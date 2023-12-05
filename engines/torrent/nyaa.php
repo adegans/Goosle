@@ -32,7 +32,7 @@ class NyaaRequest extends EngineRequest {
             $size =  $meta[1]->textContent;
             $date_added =  $meta[2]->textContent;
             $date_added = explode("-", substr(sanitize($date_added), 0, 10));
-			$date_added = mktime(0, 0, 0, $date_added[1], $date_added[2], $date_added[0]);
+			$date_added = mktime(0, 0, 0, intval($date_added[1]), intval($date_added[2]), intval($date_added[0]));
             $magnet = $xpath->evaluate(".//a[2]/@href", $meta[0])[0]->textContent;
 
             array_push($results, array (

@@ -116,7 +116,7 @@ class LeetxRequest extends EngineRequest {
 			$seeders = $xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent;
 			$leechers = $xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent;
 			$date_added = explode(" ", sanitize($xpath->evaluate(".//td[@class='coll-date']", $result)[0]->textContent));
-			$date_added = mktime(0, 0, 0, date("m", strtotime($date_added[0])), preg_replace('/[^\d.]+/', '', $date_added[1]), intval('20'.preg_replace('/[^\d.]+/', '', $date_added[2])));
+			$date_added = mktime(0, 0, 0, intval(date("m", strtotime($date_added[0]))), intval(preg_replace('/[^\d.]+/', '', $date_added[1])), intval('20'.preg_replace('/[^\d.]+/', '', $date_added[2])));
 			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
 			$size_unformatted = explode(" ", $xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent);
 			$size = $size_unformatted[0] . " " . preg_replace("/[0-9]+/", "", $size_unformatted[1]);

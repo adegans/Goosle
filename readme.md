@@ -47,12 +47,17 @@ Have fun finding things!
 ## Disclaimer
 Goosle started as a fork of LibreY, and ended up as a rewrite and something different completely. While the code structure remains largely the same, most functions have been rewritten or altered to work as I need it to.
 Search results take design cues from DuckDuckGo and the torrent search has been modified to show more useful information where possible.
-
 Goosle does not index, store or distribute torrent files. If you like, or found a use for, what you downloaded, you should probably buy a legal copy of it.
+
+THe name Goosle is my last name with an L added in. Translate it from Dutch. Not in any way a derivation of Google and DuckDuckGo combined :wink:.
 
 ## Support
 Goosle comes with limited support. You can post your questions on Github or on my support forum on [ajdg.solutions](https://ajdg.solutions/support/).
 
 ## Changelog
+1.0.1 - December 5, 2023
+- [fix] mktime() getting intermittent strings in 1337x crawler.
+- [fix] mktime() getting intermittent strings in nyaa crawler.
+
 1.0 - December 5, 2023
 - Initial release
