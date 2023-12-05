@@ -1,0 +1,44 @@
+# mod_rewrite
+RewriteEngine on
+
+# FORCE SSL
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# Redirect 404 to homepage
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . / [L,R=301]
+
+# Use UTF-8 encoding for anything served text/plain or text/html
+AddDefaultCharset UTF-8
+AddCharset UTF-8 .css .js
+
+# Cache Control
+ExpiresByType image/webp "access plus 1 year"
+ExpiresByType image/x-icon "access plus 1 year"
+ExpiresByType font/woff "access plus 1 year"
+ExpiresByType font/woff2 "access plus 1 year"
+ExpiresByType application/font-woff "access plus 1 year"
+ExpiresByType text/css "access plus 1 year"
+ExpiresByType text/javascript "access plus 1 year"
+ExpiresByType application/javascript "access plus 1 year"
+# Failsaves
+ExpiresByType application/octet-stream "access plus 1 year"
+ExpiresByType text/plain "access plus 1 year"
+ExpiresDefault "access 30 days"
+
+# Gzip compression
+SetOutputFilter DEFLATE
+
+# Don’t compress images and other uncompressible content
+SetEnvIfNoCase Request_URI \
+\.(?:gif|jpe?g|png|rar|zip|exe|flv|mov|wma|mp3|avi|swf|mp?g|mp4|webm|webp)$ no-gzip dont-vary
+
+# Compress all output labeled with one of the following MIME-types
+AddOutputFilterByType DEFLATE application/atom+xml application/javascript application/json application/rss+xml application/vnd.ms-fontobject application/x-font-ttf application/xhtml+xml application/xml font/ttf font/otf font/opentype image/svg+xml image/x-icon text/css text/html text/plain text/x-component text/xml
+Header append Vary: Accept-Encoding
+
+# Force deflate for mangled headers
+SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
