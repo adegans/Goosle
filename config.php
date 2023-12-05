@@ -74,7 +74,7 @@ TORRENT TRACKERS:
 ------------------------------------------------------------------------------------ */
 
 return (object) array(
-	"hash" => "blja-3jaq-34eg",
+	"hash" => "j9fg-i2du-er6m",
     "cache" => "off",
     "cache_time" => 30, // (Default: 30)
     "hash_auth" => "off", // Default: off)
@@ -107,8 +107,6 @@ return (object) array(
     	"udp://tracker.opentrackr.org:1337/announce", 
     	"udp://exodus.desync.com:6969/announce", 
     	"udp://tracker.torrent.eu.org:451/announce",
-    ),
-    "version" => "1.0",
-    "released" => "Nov 28, 2023"
+    )
 );
 ?>

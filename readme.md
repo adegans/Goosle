@@ -35,6 +35,7 @@ Tested to work on Apache with PHP8.2.
 3. Upload all files to your webserver, for example to the root folder of a subdomain (eg. search.example.com) or a sub-folder on your main site (eg. example.com/search/)
 4. Rename goosle.htaccess to .htaccess
 5. Load the site in your browser. If you've enabled the access hash add ?a=YOURHASH to the url.
+6. Let me know where you installed Goosle :-)
 
 ### Notes:
 - The .htaccess file has a redirect to force HTTPS as well as browser caching instructions ready to go.

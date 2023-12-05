@@ -107,8 +107,6 @@ if(verify_hash($opts, $auth)) {
 			<?php } ?>
 
 			<p><small><strong>Acknowledgements:</strong><br />Goosle started as a fork of LibreY, and takes some design cues from DuckDuckGo.com. Goosle is created by <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.</small></p>
-
-			<p><small><strong>Version:</strong> <?php echo $opts->version; ?> / <strong>Released:</strong> <?php echo $opts->released; ?></small></p>
 		</section>
 	</div>
 </div>
@@ -122,7 +120,7 @@ if(verify_hash($opts, $auth)) {
 
 <?php 
 } else {
-	echo "<div class=\"auth-error\">Nope, go away!</div>";
+	echo "<div class=\"auth-error\">Goosle</div>";
 } 
 ?>
 </body>
