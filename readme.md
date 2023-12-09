@@ -6,6 +6,8 @@ Host for yourself and friends, with a access hash key. Or set up a public search
 
 After-all, finding things should be easy and not turn into a chore.
 
+[![Goosle Mainpage](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage-960x593.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage.png)
+
 ## Features
 - Search on DuckDuckGo
 - Search on Google.com
@@ -24,6 +26,11 @@ What Goosle does *not* have.
 - Javascripts or Frameworks
 
 And yet it just works...
+
+## Screenshots
+[![Goosle Mainpage](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage.png)
+[![Goosle Search results](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-search-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-search.png)
+[![Goosle Torrent results](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-torrentsearch-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-torrentsearch.png)
 
 ## Requirements
 Any basic webserver/webhosting package with PHP7.4 or newer.
@@ -56,6 +63,14 @@ THe name Goosle is my last name with an L added in. Translate it from Dutch. Not
 Goosle comes with limited support. You can post your questions on Github or on my support forum on [ajdg.solutions](https://ajdg.solutions/support/).
 
 ## Changelog
+1.0.2 - December 7, 2023
+- [fix] Magnet links for torrents no longer opening in new tabs.
+- [change] More useful error response when search doesn't work.
+- [change] EngineRequest::request_successful() now provides a boolean response.
+- [change] Removed versioning indicator from help page.
+- [change] Added version indicator to results.php and help.php footer.
+- [change] 'Nope, Go away!' for unauthorized users changed to 'Goosle'.
+
 1.0.1 - December 5, 2023
 - [fix] mktime() getting intermittent strings in 1337x crawler.
 - [fix] mktime() getting intermittent strings in nyaa crawler.

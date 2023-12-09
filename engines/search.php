@@ -37,17 +37,17 @@ class TextSearch extends EngineRequest {
         if(!isset($this->engine_request)) return $results;
 
 		// Add search results
-		$success = $this->engine_request->request_successful();
-		if($success == "ok") {
+		if($this->engine_request->request_successful()) {
 			$search_result = $this->engine_request->get_results();
 
 			if($search_result) {
 				$results['search'] = $search_result;
 			}
+
 			unset($search_result);
 		} else {
             $results["error"] = array(
-                "message" => $success
+                "message" => "Error code ".curl_getinfo($this->engine_request->ch)['http_code']." for ".curl_getinfo($this->engine_request->ch)['url'].".<br />Try again in a few seconds or <a href=\"".curl_getinfo($this->engine_request->ch)['url']."\" target=\"_blank\">visit the search engine</a> in a new tab."
             );
 		}			
 
@@ -58,6 +58,7 @@ class TextSearch extends EngineRequest {
             if($special_result) {
 				$results['special'] = $special_result;
             }
+
 			unset($special_result);
         }
 

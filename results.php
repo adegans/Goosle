@@ -60,14 +60,14 @@ if(verify_hash($opts, $auth)) {
 
 <div class="footer-wrap">
 	<div class="footer">
-		&copy; <?php echo date('Y'); ?> <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>. All rights reserved.
+		&copy; <?php echo date('Y'); ?> <a href="https://github.com/adegans/Goosle/" target="_blank">Goosle <?php echo $opts->version; ?></a>, by <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
 		<span style="float:right;"><a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - Your IP: <?php echo $_SERVER["REMOTE_ADDR"]; ?></span>
 	</div>
 </div>
 
 <?php 
 } else {
-	echo "<div class=\"auth-error\">Nope, go away!</div>";
+	echo "<div class=\"auth-error\">Goosle</div>";
 } 
 ?>
 </body>

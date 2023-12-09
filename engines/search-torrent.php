@@ -90,8 +90,8 @@ class TorrentSearch extends EngineRequest {
 	
 				// Put result together
 				echo "<li class=\"result\"><article>";
-				echo "<div class=\"url\"><a href=\"".$result["magnet"]."\" target=\"_blank\">".$result["source"]."</a></div>";
-				echo "<div class=\"title\"><a href=\"".$result["magnet"]."\" target=\"_blank\"><h2>".stripslashes($result["name"])."</h2></a></div>";
+				echo "<div class=\"url\"><a href=\"".$result["magnet"]."\">".$result["source"]."</a></div>";
+				echo "<div class=\"title\"><a href=\"".$result["magnet"]."\"><h2>".stripslashes($result["name"])."</h2></a></div>";
 				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"seeders\">".$result['seeders']."</span> - <strong>Peers:</strong> <span class=\"leechers\">".$result['leechers']."</span> - <strong>Size:</strong> ".$result['size']."<br />".implode(" - ", $meta)."</div>";
 				echo "</article></li>";
 			}

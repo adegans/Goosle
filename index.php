@@ -65,7 +65,7 @@ if(verify_hash($opts, $auth)) {
 </div>
 <?php 
 } else {
-	echo "<div class=\"auth-error\">Nope, go away!</div>";
+	echo "<div class=\"auth-error\">Goosle</div>";
 } 
 ?>
 </body>

@@ -62,12 +62,10 @@ abstract class EngineRequest {
 	--------------------------------------*/
 	public function request_successful() {
 		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || has_cached_results($this->url, $this->opts->hash)) {
-			$return = "ok";
-		} else {
-            $return = "Error code ".curl_getinfo($this->ch)['http_code']." for ".curl_getinfo($this->ch)['url'].". <a href=\"".curl_getinfo($this->ch)['url']."\" target=\"_blank\">Go there now</a>.";
+			return true;
 		}			
 
-		return $return;
+		return false;
 	}
 	
 	abstract function parse_results($response);

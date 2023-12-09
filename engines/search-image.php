@@ -40,29 +40,29 @@ class ImageSearch extends EngineRequest {
 		$results = array("search" => array());
 		$xpath = get_xpath($response);
 	
-		if(!$xpath) return $results;
-
-		foreach($xpath->query("//a[@rel='noopener']") as $result) {
-			$meta = $xpath->evaluate(".//img", $result)[0];
-
-			if($meta) {
-				$encoded_url = explode("?position", explode("==/", $result->getAttribute("href"))[1])[0];
-
-				$url = htmlspecialchars(urldecode(base64_decode($encoded_url)));
-				$alt_text = get_base_url($url)." - ".htmlspecialchars($meta->getAttribute("alt"));
-				$image = urldecode(htmlspecialchars(urlencode($meta->getAttribute("src"))));
-				
-				// filter duplicate urls/results
-	            if(!empty($results)) {
-			        $result_urls = array_column($results, "url");
-	                if(in_array($url, $result_urls) || in_array(get_base_url($url), $result_urls)) continue;
-	            }
-
-				array_push($results["search"], array (
-					"alt" => $alt_text,
-					"image" => $image,
-					"url" => $url,
-				));
+		if($xpath) {
+			foreach($xpath->query("//a[@rel='noopener']") as $result) {
+				$meta = $xpath->evaluate(".//img", $result)[0];
+	
+				if($meta) {
+					$encoded_url = explode("?position", explode("==/", $result->getAttribute("href"))[1])[0];
+	
+					$url = htmlspecialchars(urldecode(base64_decode($encoded_url)));
+					$alt_text = get_base_url($url)." - ".htmlspecialchars($meta->getAttribute("alt"));
+					$image = urldecode(htmlspecialchars(urlencode($meta->getAttribute("src"))));
+					
+					// filter duplicate urls/results
+		            if(!empty($results)) {
+				        $result_urls = array_column($results, "url");
+		                if(in_array($url, $result_urls) || in_array(get_base_url($url), $result_urls)) continue;
+		            }
+	
+					array_push($results["search"], array (
+						"alt" => $alt_text,
+						"image" => $image,
+						"url" => $url,
+					));
+				}
 			}
 		}
 

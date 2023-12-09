@@ -107,6 +107,7 @@ return (object) array(
     	"udp://tracker.opentrackr.org:1337/announce", 
     	"udp://exodus.desync.com:6969/announce", 
     	"udp://tracker.torrent.eu.org:451/announce",
-    )
+    ),
+    "version" => "1.0.2"
 );
 ?>
