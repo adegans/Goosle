@@ -51,7 +51,7 @@ class WikipediaRequest extends EngineRequest {
 			);
 			
 			if (array_key_exists("thumbnail",  $result)) {
-				$response["image"] = strip_tags(trim($result["thumbnail"]["source"]));
+				$response['image'] = strip_tags(trim($result['thumbnail']['source']));
 			}
 			
 			return $response;

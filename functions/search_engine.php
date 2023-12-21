@@ -75,11 +75,13 @@ abstract class EngineRequest {
 	--------------------------------------*/
 	public function get_results() {
 
+		// It's a torrent search?
 		if(!isset($this->url)) return $this->parse_results(null);
 
-		// Skip if there is a cached result (from earlier search)
+		// If there is a cached result from an earlier search use that instead
 		if($this->opts->cache == "on" && has_cached_results($this->url, $this->opts->hash)) return fetch_cached_results($this->url, $this->opts->hash);
-	
+
+		// Curl request
 		if(!isset($this->ch)) return $this->parse_results(null);
 		$response = ($this->mh) ? curl_multi_getcontent($this->ch) : curl_exec($this->ch);
 
@@ -98,17 +100,17 @@ abstract class EngineRequest {
 // Load and make config available, pass around variables
 --------------------------------------*/
 function load_opts() {
-    $opts = require "config.php";
-
-    $opts->query = (isset($_REQUEST['q'])) ? sanitize($_REQUEST["q"]) : "";
-    $opts->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST["t"]) : 0;
-    $opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST["a"]) : "";
-
+	$opts = require "config.php";
+	
+	// From the url/request	
+	$opts->query = (isset($_REQUEST['q'])) ? sanitize($_REQUEST['q']) : "";
+	$opts->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST['t']) : 0;
+	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
+	
 	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
-	$has_exclamation_mark = substr($opts->query, 0, 1);
-	if($has_exclamation_mark == "!") $opts->query = ltrim($opts->query, "!");
-
-    return $opts;
+	if(substr($opts->query, 0, 1) == "!") $opts->query = substr($opts->query, 1);
+	
+	return $opts;
 }
 
 /*--------------------------------------
@@ -117,37 +119,44 @@ function load_opts() {
 function fetch_search_results($opts) {
     $start_time = microtime(true);
 
-	// Curl
-    $mh = curl_multi_init();
+	echo "<section class=\"main-column\">";
 
-	// Load search script
-    if($opts->type == 0 || $opts->type == 1) {
-        require "engines/search.php";
-        $search = new TextSearch($opts, $mh);
-	} else if($opts->type == 2) {
-	    require "engines/search-image.php";
-        $search = new ImageSearch($opts, $mh);
-	} else if($opts->type == 9) {
-	    require "engines/search-torrent.php";
-        $search = new TorrentSearch($opts, $mh);
+	if(!empty($opts->query)) {
+		// Curl
+	    $mh = curl_multi_init();
+	
+		// Load search script
+	    if($opts->type == 0 || $opts->type == 1) {
+	        require "engines/search.php";
+	        $search = new TextSearch($opts, $mh);
+		} else if($opts->type == 2) {
+		    require "engines/search-image.php";
+	        $search = new ImageSearch($opts, $mh);
+		} else if($opts->type == 9) {
+		    require "engines/search-torrent.php";
+	        $search = new TorrentSearch($opts, $mh);
+	    }
+	
+	    $running = null;
+	
+	    do {
+	        curl_multi_exec($mh, $running);
+	    } while ($running);
+	
+	    $results = $search->get_results();
+	
+		curl_multi_close($mh);
+	
+		// Add elapsed time to results
+		$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
+	
+		// Echoes results and special searches
+	    $search->print_results($results, $opts);
+	} else {
+		echo "<div class=\"warning\">Search query can not be empty!<br />Not sure what went wrong? Learn more about <a href=\"./help.php?a=".$opts->hash."\">how to use Goosle</a>.</div>";
     }
 
-    $running = null;
-
-    do {
-        curl_multi_exec($mh, $running);
-    } while ($running);
-
-    $results = $search->get_results();
-
-	curl_multi_close($mh);
-
-	// Add elapsed time to results
-	$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
-
-    $search->print_results($results, $opts);
-
-    return $results;
+	echo "</section>";
 }
 
 /*--------------------------------------
@@ -158,7 +167,7 @@ function special_search_request($opts) {
     $query_terms = explode(" ", $opts->query);
 
 	// Currency converter
-	if($opts->special['currency'] == "on" && is_numeric($query_terms[0]) && ($query_terms[2] == 'to' || $query_terms[2] == 'in')) {
+	if($opts->special['currency'] == "on" && count($query_terms) == 4 && (is_numeric($query_terms[0]) && ($query_terms[2] == 'to' || $query_terms[2] == 'in'))) {
         require "engines/special/currency.php";
         $special_request = new CurrencyRequest($opts, null);
 	}

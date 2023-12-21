@@ -18,7 +18,7 @@ class CurrencyRequest extends EngineRequest {
         $json_response = json_decode($response, true);
 
 		if(!empty($json_response)) {
-	        $result = $json_response["rates"];
+	        $result = $json_response['rates'];
 
 			// Process query
 			// [0] = AMOUNT

@@ -10,17 +10,17 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class LeetxRequest extends EngineRequest {
-    public function get_request_url() {
-        return "https://1337x.to/search/".urlencode($this->query)."/1/";
-    }
-
-    public function parse_results($response) {
-        $results = array();
-        $xpath = get_xpath($response);
-
-		// Failted to load page
-        if(!$xpath) return $results;
-
+	public function get_request_url() {
+		return "https://1337x.to/search/".urlencode($this->query)."/1/";
+	}
+	
+	public function parse_results($response) {
+		$results = array();
+		$xpath = get_xpath($response);
+		
+		// Failed to load page
+		if(!$xpath) return $results;
+		
 		$categories = array(
 			1 => "DVD",
 			2 => "Divx/Xvid",
@@ -105,38 +105,43 @@ class LeetxRequest extends EngineRequest {
 		);
 
 		// Scrape the page
-        foreach($xpath->query("//table/tbody/tr") as $result) {
-			$category = $xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[0]->textContent;
-			$category = explode("/", trim($category));
-
-            // Block these categories
-            if(in_array($category[2], $this->opts->leetx_categories_blocked)) continue;
-
-			$name = $xpath->evaluate(".//td[@class='coll-1 name']/a", $result)[1]->textContent;
-			$seeders = $xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent;
-			$leechers = $xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent;
-			$date_added = explode(" ", sanitize($xpath->evaluate(".//td[@class='coll-date']", $result)[0]->textContent));
-			$date_added = mktime(0, 0, 0, intval(date("m", strtotime($date_added[0]))), intval(preg_replace('/[^\d.]+/', '', $date_added[1])), intval('20'.preg_replace('/[^\d.]+/', '', $date_added[2])));
-			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
-			$size_unformatted = explode(" ", $xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent);
+		foreach($xpath->query("//table/tbody/tr") as $result) {
+			$name = sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a", $result)[1]->textContent);
+			$seeders = sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent);
+			$leechers = sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent);
+			$size_unformatted = explode(" ", sanitize($xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent));
 			$size = $size_unformatted[0] . " " . preg_replace("/[0-9]+/", "", $size_unformatted[1]);
 			
+			$category = explode("/", sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[0]->textContent));
+			$category = $category[2];
+			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
+			$date_added = explode(" ", sanitize($xpath->evaluate(".//td[@class='coll-date']", $result)[0]->textContent));
+			$date_added = mktime(0, 0, 0, intval(date("m", strtotime($date_added[0]))), intval(preg_replace('/[^\d.]+/', '', $date_added[1])), intval('20'.preg_replace('/[^\d.]+/', '', $date_added[2])));
+			
+			// Block these categories
+			if(in_array($category, $this->opts->leetx_categories_blocked)) continue;
+			
+			// Remove results with 0 seeders?
+			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			
 			array_push($results, array (
-                // Required
+				// Required
 				"source" => "1337x.to",
-				"name" => sanitize($name),
+				"name" => $name,
 				"magnet" => "./engines/torrent/magnetize_1337x.php?url=".$url,
-				"seeders" => sanitize($seeders),
-				"leechers" => sanitize($leechers),
-				"size" => sanitize($size),
+				"seeders" => $seeders,
+				"leechers" => $leechers,
+				"size" => $size,
 				// Optional values
-				"category" => $categories[sanitize($category[2])],
+				"category" => $categories[$category],
 				"url" => $url,
 				"date_added" => $date_added
 			));
-        }
 
-        return $results;
-    }
+			unset($name, $seeders, $leechers, $size_unformatted, $size, $category, $url, $date_added);
+		}
+		
+		return $results;
+	}
 }
 ?>

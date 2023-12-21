@@ -35,8 +35,9 @@ if(verify_hash($opts, $auth)) {
 	<div class="header-wrap">
 		<form action="results.php" method="get" autocomplete="off">
 		    <h1 class="logo"><a class="no-decoration" href="./?a=<?php echo $opts->hash; ?>"><span class="G">G</span>oosle</a></h1>        
-		    <input tabindex="1" class="search" type="text" value="<?php echo (strlen($opts->query) > 0) ? htmlspecialchars($opts->query) : "" ; ?>" name="q" required /><input tabindex="2" class="button" type="submit" value="Search" />
-		
+		    <input tabindex="1" class="search" type="search" value="<?php echo (strlen($opts->query) > 0) ? htmlspecialchars($opts->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+			
+
 	        <input type="hidden" name="t" value="<?php echo $opts->type; ?>"/>
 		    <input type="hidden" name="a" value="<?php echo $opts->hash; ?>">
 	 

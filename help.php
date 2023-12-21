@@ -35,7 +35,7 @@ if(verify_hash($opts, $auth)) {
 	<div class="header-wrap">
 		<form action="results.php" method="get" autocomplete="off">
 		    <h1 class="logo"><a class="no-decoration" href="./?a=<?php echo $opts->hash; ?>"><span class="G">G</span>oosle</a></h1>        
-		    <input tabindex="1" class="search" type="text" value="<?php echo (strlen($opts->query) > 0) ? htmlspecialchars($opts->query) : "" ; ?>" name="q" required /><input tabindex="2" class="button" type="submit" value="Search" />
+		    <input tabindex="1" class="search" type="search" value="<?php echo (strlen($opts->query) > 0) ? htmlspecialchars($opts->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
 		
 	        <input type="hidden" name="t" value="<?php echo $opts->type; ?>"/>
 		    <input type="hidden" name="a" value="<?php echo $opts->hash; ?>">
@@ -63,12 +63,12 @@ if(verify_hash($opts, $auth)) {
 			<h2>Google features</h2>
 			<p>Searching defaults to Moderate Safe mode. You can override safe mode by adding the prefix <strong>safe:on</strong> or <strong>safe:off</strong> to your search query.<br /><strong>On</strong> will use 'Strict' mode, while <strong>off</strong> will disable safe searching. this may yield results that are unsuitable for work or minors.</p>
 			<p>Google results are not personalized by default, using Google's option for it.</p>
-			<p>Google search is language agnostic and Google will try to figure out on it's own what language to use. To search in a specific language prefix your search with <strong>lang fr</strong> for French or <strong>lang:es</strong> for Spanish. Any language that google supports will work as long as you use the ISO639-1:2002 language code. Commonly these are the 2 letter abbreviations for the language such as; en, fr, es, de, sk, and so on.</p>
+			<p>Google search is language agnostic and Google will try to figure out on it's own what language to use. To search in a specific language prefix your search with <strong>lang:fr</strong> for French or <strong>lang:es</strong> for Spanish. Any language that google supports will work as long as you use the ISO639-1:2002 language code. Commonly these are the 2 letter abbreviations for the language such as; en, fr, es, de, sk, and so on.</p>
 			<p>To do a category search, prefix your search with one of the following keywords; <strong>app</strong>, <strong>book</strong>, <strong>news</strong>, <strong>shop</strong> or <strong>patent</strong>. This will tell Google to look for results in that specific category.<br />For example: Searching for <strong>book trainspotting</strong> will (or should) show results related to the book Trainspotting.</p>
 
 			<?php if($opts->enable_image_search == "on") { ?>
 				<h2>Image Search</h2>
-				<p>Search for images through Qwant Image Search.<br />The number of results is limited to 50.</p>
+				<p>Search for images through Yahoo! Image Search.<br />The number of results is limited to 100. So up to 100 images may appear.</p>
 				<p>Contrary to Google Image Search which opens a popup/slider with more information. Goosle Image Search links directly to the page where the image is hosted.</p>
 				<p>You can search for images in a general size by adding <strong>size:small</strong>, <strong>size:medium</strong> or <strong>size:large</strong> to your search query.</p>
 			<?php } ?>
@@ -77,7 +77,7 @@ if(verify_hash($opts, $auth)) {
 			<?php if($opts->special['currency'] == "on") { ?>
 				<h3>Currency converter</h3>
 				<p>Convert currency with a simple query.<br />
-				For example: Search for <strong>20 EUR in HKD</strong> or <strong>20 USD to MXN</strong> and DuckDuckGo or Google will search for it, but also a local conversion is done in a highlighted result.</p>
+				For example: Search for <strong>20 EUR in HKD</strong> or <strong>14 USD to MXN</strong> and DuckDuckGo or Google will search for it, but also a local conversion is done in a highlighted result.</p>
 			<?php } ?>
 			
 			<?php if($opts->special['wikipedia'] == "on") { ?>
@@ -89,24 +89,33 @@ if(verify_hash($opts, $auth)) {
 			<?php if($opts->special['phpnet'] == "on") { ?>
 				<h3>PHP.net Search</h3>
 				<p>Prefix your search with <strong>php</strong> to search on php.net for a PHP function.<br />
-				For example: Searching for <strong>php in_array</strong> or <strong>php trim</strong> will show you a brief description, compatible PHP versions and a usage example for that function.</p>
+				For example: Searching for <strong>php in_array</strong> or <strong>php trim</strong> will show you a brief description, compatible PHP versions and the basic syntax for that function.</p>
 			<?php } ?>
 			
 			<?php if($opts->special['definition'] == "on") { ?>
 				<h3>Word Definition</h3>
-				<p>You can easily look up the meaning of single words. Prefix the word you want to look up with any of the following keywords; <strong>d</strong>, <strong>define</strong>, <strong>mean</strong>, <strong>meaning</strong>.<br />
-				For example: Searching for <strong>define search</strong> will search for that on Google or DuckDuckGo, but also show the definition highlighted above the search results.</p>
+				<p>You can easily look up the meaning of single words. Prefix the word you want to look up with any of the following keywords; <strong>d</strong>, <strong>define</strong>, <strong>mean</strong> or <strong>meaning</strong>.<br />
+				For example: Searching for <strong>define search</strong> will search for that on Google or DuckDuckGo, but also show the dictionary definition highlighted above the search results.</p>
 				<p><em><strong>Note:</strong> Special Searches do not work for torrent searches.</em></p>
 			<?php } ?>
 			
 			<?php if($opts->enable_torrent_search == "on") { ?>
 				<h2>Torrent Search</h2>
-				<p>Search for anything torrent sites have on offer the direct search result should give you the magnet link.<br />Results are gathered from 1337x, Nyaa, The Pirate Bay and YTS and are sorted by Seeders, highest first. The number of results is limited to 50.</p>
+				<p>Search for anything torrent sites have on offer the direct search result should give you the magnet link.<br />Results are gathered from 1337x, Nyaa, The Pirate Bay, EZTV and YTS and are sorted by Seeders, highest first. The number of results is limited to 50.</p>
 				<p>The search scripts will try to provide useful data which may include; Seeders/Leechers, A link to the torrent page, Download Category, Release year, Movie quality (720p, 4K etc.), Movie Runtime and the Download Size. Not every website makes this available and all results take a best effort approach.</p>
-				<p><em><strong>Disclaimer:</strong> If you like, or found a use for, what you downloaded, you should probably buy a legal copy of it.</em></p>
+				<?php if($opts->special['imdb_id_search'] == "on") { ?>
+					<h3>Searching TV Shows</h3>
+					<p>To do a specific search on The Pirate Bay and EZTV you can search for IMDb Title IDs. These are numeric IDs prefixed with <strong>tt</strong>. This kind of search is useful if you're looking a tv show that doesn't have a unique name.</p>
+					<p>	If you already know the Title ID you can enter it directly in the Torrent search as your search query.<br />
+					If you don't know the Title ID you can search DuckDuckGo or Google for <strong>imdb [tv show name]</strong>, for example <strong>imdb game of thrones</strong>.<br />
+					Goosle will detect the IMDb ID from the search results and show a special search result that offers you to search for Magnet Links through a torrent search.</p>
+					
+					<p>To help you narrow down seasons and episodes you can search for <strong>tt0944947 S08</strong> and get filtered results from EZTV for Game of Thrones Season 8. Searching for <strong>tt0944947 S08E05</strong> should find Season 8 Episode 5 and so on.</p>
+				<?php } ?>
+				<p><em><strong>Note:</strong> If you like, or found a use for, what you downloaded, you should probably buy a legal copy of it.</em></p>
 			<?php } ?>
 
-			<p><small><strong>Acknowledgements:</strong><br />Goosle started as a fork of LibreY, and takes some design cues from DuckDuckGo.com. Goosle is created by <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.</small></p>
+			<p><small><strong>Acknowledgements:</strong><br />Goosle started as a fork of LibreY, and takes some design cues from DuckDuckGo.com. Goosle is created by <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a> with the intent to make search fun again.</small></p>
 		</section>
 	</div>
 </div>

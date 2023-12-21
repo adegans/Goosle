@@ -36,7 +36,7 @@ if(verify_hash($opts, $auth)) {
 	    <form action="results.php" method="get" autocomplete="off">
 	        <h1><span class="G">G</span>oosle</h1>
 	
-	        <input tabindex="10" type="text" class="search" name="q" autofocus required />
+	        <input tabindex="10" type="search" class="search" name="q" autofocus />
 
 	        <input type="hidden" name="t" value="0"/>
 	        <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>

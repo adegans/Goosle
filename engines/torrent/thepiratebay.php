@@ -10,17 +10,17 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class PirateBayRequest extends EngineRequest {
-    public function get_request_url() {
-        return "https://apibay.org/q.php?q=".urlencode($this->query);
-    }
+	public function get_request_url() {
+		return "https://apibay.org/q.php?q=".urlencode($this->query);
+	}
 
-    public function parse_results($response) {
-        $results = array();
-        $json_response = json_decode($response, true);
-
+	public function parse_results($response) {
+		$results = array();
+		$json_response = json_decode($response, true);
+		
 		// No response
-        if(empty($json_response)) return $results;
-
+		if(empty($json_response)) return $results;
+		
 		$categories = array(
 			100 => "Audio",
 			101 => "Music",
@@ -84,32 +84,44 @@ class PirateBayRequest extends EngineRequest {
 		);
 
 		// Use API result
-        foreach($json_response as $response) {
+		foreach($json_response as $response) {
 			// Nothing found
-            if($response["name"] == "No results returned") break;
-
-            // Block these categories
-            if(in_array($response["category"], $this->opts->piratebay_categories_blocked)) continue;
-
-            $name = sanitize($response["name"]);
-            $magnet = "magnet:?xt=urn:btih:".sanitize($response["info_hash"])."&dn=".$name."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-
-            array_push($results, array (
-                // Required
-                "source" => "thepiratebay.org",
-                "name" => $name,
-                "magnet" => $magnet,
-				"seeders" => sanitize($response["seeders"]),
-                "leechers" => sanitize($response["leechers"]),
-                "size" => human_filesize(sanitize($response["size"])),
+			if($response['name'] == "No results returned") break;
+			
+			$name = sanitize($response['name']);
+			$magnet = "magnet:?xt=urn:btih:".sanitize($response['info_hash'])."&dn=".$name."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+			$seeders = sanitize($response['seeders']);
+			$leechers = sanitize($response['leechers']);
+			$size = sanitize($response['size']);
+			
+			$category = sanitize($response['category']);
+			$id = sanitize($response['id']);
+			$date_added = sanitize($response['added']);
+			
+			// Block these categories
+			if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
+			
+			// Remove results with 0 seeders?
+			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			
+			array_push($results, array(
+				// Required
+				"source" => "thepiratebay.org",
+				"name" => $name,
+				"magnet" => $magnet,
+				"seeders" => $seeders,
+				"leechers" => $leechers,
+				"size" => human_filesize($size),
 				// Optional
-				"category" => $categories[sanitize($response["category"])],
-                "url" => "https://thepiratebay.org/description.php?id=".sanitize($response["id"]),
- 				"date_added" => sanitize($response["added"]),
-           ));
-        }
+				"category" => $categories[$category],
+				"url" => "https://thepiratebay.org/description.php?id=".$id,
+				"date_added" => $date_added,
+ 			));
 
-        return $results;
-    }
+		   	unset($name, $magnet, $seeders, $leechers, $size, $category, $id, $date_added);
+		}
+
+		return $results;
+	}
 }
 ?>

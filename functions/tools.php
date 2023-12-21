@@ -20,24 +20,6 @@ function verify_hash($opts, $auth) {
 }
 
 /*--------------------------------------
-// Strip all extras from an url
---------------------------------------*/
-function get_base_url($url) {
-    $parsed = parse_url($url);
-
-    return $parsed["scheme"] . "://" . $parsed["host"] . "/";
-}
-
-/*--------------------------------------
-// Format search result urls
---------------------------------------*/
-function get_formatted_url($url) {
-    $parsed = parse_url($url);
-
-    return $parsed["scheme"] . "://" . $parsed["host"] . str_replace('/', ' &rsaquo; ', str_replace('%20', ' ', rtrim($parsed['path'], '/')));
-}
-
-/*--------------------------------------
 // Load pages into a DOM
 --------------------------------------*/
 function get_xpath($response) {
@@ -49,6 +31,24 @@ function get_xpath($response) {
     $xpath = new DOMXPath($htmlDom);
 
     return $xpath;
+}
+
+/*--------------------------------------
+// Strip all extras from an url
+--------------------------------------*/
+function get_base_url($url) {
+    $url = parse_url($url);
+
+    return $url['scheme'] . "://" . $url['host'] . "/";
+}
+
+/*--------------------------------------
+// Format search result urls
+--------------------------------------*/
+function get_formatted_url($url) {
+    $url = parse_url($url);
+
+    return $url['scheme'] . "://" . $url['host'] . str_replace('/', ' &rsaquo; ', str_replace('%20', ' ', rtrim($url['path'], '/')));
 }
 
 /*--------------------------------------

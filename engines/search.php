@@ -36,17 +36,17 @@ class TextSearch extends EngineRequest {
         // Abort if no results from search engine
         if(!isset($this->engine_request)) return $results;
 
-		// Add search results
+		// Add search results if there are any, otherwise add error
 		if($this->engine_request->request_successful()) {
 			$search_result = $this->engine_request->get_results();
 
 			if($search_result) {
-				$results['search'] = $search_result;
+				$results = $search_result;
 			}
 
 			unset($search_result);
 		} else {
-            $results["error"] = array(
+            $results['error'] = array(
                 "message" => "Error code ".curl_getinfo($this->engine_request->ch)['http_code']." for ".curl_getinfo($this->engine_request->ch)['url'].".<br />Try again in a few seconds or <a href=\"".curl_getinfo($this->engine_request->ch)['url']."\" target=\"_blank\">visit the search engine</a> in a new tab."
             );
 		}			
@@ -62,9 +62,9 @@ class TextSearch extends EngineRequest {
 			unset($special_result);
         }
 
-		// Add warning if there are no results, or a text if there is no search query.
+		// Add error if there are no search results
 		if(empty($results)) {
-			$results["error"] = array(
+			$results['error'] = array(
 				"message" => "No results found. Please try with less or different keywords!"
 			);
 		}
@@ -73,93 +73,104 @@ class TextSearch extends EngineRequest {
     }
 
     public static function print_results($results, $opts)  {
-		if($opts->raw_output == "on") {
-			echo '<pre>Results: ';
-			print_r($results);
-			echo '</pre>';
-		}
+/*
+		echo '<pre>Results: ';
+		print_r($results);
+		echo '</pre>';
+*/
 
-		echo "<section class=\"main-column\">";
-		echo "<ol>";
-
-		// Elapsed time
 		if(array_key_exists("search", $results)) {
+			echo "<ol>";
+
+			// Elapsed time
 			$number_of_results = count($results['search']);
-			echo "<li class=\"meta-time\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
-		}
+			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
-		// No results found
-        if(array_key_exists("error", $results)) {
-            echo "<li class=\"meta-error\">".$results['error']['message']."</li>";
-        }
+			// Did you mean/Search suggestion
+			if(array_key_exists("did_you_mean", $results)) {
+				$specific_result = "";
 
-		// Did you mean/Search suggestion
-		if(array_key_exists("search", $results)) {
-			$specific_result = "";
-
-			if(array_key_exists("did_you_mean", $results['search'][0])) {
-				if(array_key_exists("search_specific", $results['search'][1])) {
+				if(array_key_exists("search_specific", $results)) {
 					// Add double quotes to Google search
-					$search_specific = ($opts->type == 1) ? "\"".$results['search'][1]['search_specific']."\"" : $results['search'][1]['search_specific'];
+					$search_specific = ($opts->type == 1) ? "\"".$results['search_specific']."\"" : $results['search_specific'];
+
+					// Format query url
 					$search_specific_url = "./results.php?q="  . urlencode($search_specific)."&t=".$opts->type."&a=".$opts->hash;
-					$specific_result = "<br /><small>Or instead search for <a href=\"$search_specific_url\">$search_specific</a>.</small>";
+					
+					// Specific search
+					$specific_result = "<br /><small>Or instead search for <a href=\"".$search_specific_url."\">".$search_specific."</a>.</small>";
 		
-					unset($results['search'][1], $search_specific, $search_specific_url);
+					unset($search_specific, $search_specific_url);
 				}
 
-				$didyoumean = $results['search'][0]['did_you_mean'];
-				$didyoumean_url = "./results.php?q="  . urlencode($didyoumean)."&t=".$opts->type."&a=".$opts->hash;
+				$didyoumean_url = "./results.php?q="  . urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash;
 	
-				echo "<li class=\"meta-did-you-mean\">Did you mean <a href=\"$didyoumean_url\">$didyoumean</a>?$specific_result</li>";
+				echo "<li class=\"meta\">Did you mean <a href=\"".$didyoumean_url."\">".$results['did_you_mean']."</a>?".$specific_result."</li>";
 	
-				unset($results['search'][0], $didyoumean, $didyoumean_url, $specific_result);
-			}
-		}
-
-		// Special result
-		if(array_key_exists("special", $results)) {
-			echo "<li class=\"special-result\"><article>";
-			// Maybe shorten text
-			if(strlen($results['special']['text']) > 1250) {
-				$results['special']['text'] = substr($results['special']['text'], 0, strrpos(substr($results['special']['text'], 0, 1300), ". "));
-				$results['special']['text'] .= '. <a href="'.$results['special']['source'].'" target="_blank">[...]</a>';
+				unset($didyoumean_url, $specific_result);
 			}
 
-			// Add image to text
-			if(array_key_exists("image", $results['special'])) {
-				$image_specs = getimagesize($results['special']['image']);
-				$width = $image_specs[0] / 2;
-				$height = $image_specs[1] / 2;
-
-				$special_image = "<img src=\"".$results['special']['image']."\" align=\"right\" width=\"".$width."\" height=\"".$height."\" />";
-				$results['special']['text'] = $special_image.$results['special']['text'];
-
-				unset($image_specs, $width, $height, $special_image);
+			// Special results
+			if($opts->special['imdb_id_search'] == "on") {
+				$found = false;
+				foreach($results['search'] as $search_result) {
+					if(!$found && preg_match_all("/(imdb.com|tt[0-9]+)/i", $search_result['url'], $imdb_result) && stristr($search_result['title'], "tv series") !== false) {
+						$results['special'] = array(
+							"title" => $search_result['title'], 
+							"text" => "Goosle found an IMDb ID for this TV Show in your results (".$imdb_result[0][1].") - <a href=\"./results.php?q=".$imdb_result[0][1]."&a=".$opts->hash."&t=9\">search for magnet links</a>?<br /><sub>An IMDb ID is detected when a TV Show is present in the results. The first match is highlighted here.</sub>"
+						);
+						$found = true;
+					}
+				}
 			}
-			echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
-			echo "<div class=\"text\">".$results['special']['text']."</div>";
-			if(array_key_exists("source", $results['special'])) {
-				echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
+			if(array_key_exists("special", $results)) {
+				echo "<li class=\"special-result\"><article>";
+				// Maybe shorten text
+				if(strlen($results['special']['text']) > 1250) {
+					$results['special']['text'] = substr($results['special']['text'], 0, strrpos(substr($results['special']['text'], 0, 1300), ". "));
+					$results['special']['text'] .= '. <a href="'.$results['special']['source'].'" target="_blank">[...]</a>';
+				}
+	
+				// Add image to text
+				if(array_key_exists("image", $results['special'])) {
+					$image_specs = getimagesize($results['special']['image']);
+					$width = $image_specs[0] / 2;
+					$height = $image_specs[1] / 2;
+	
+					$special_image = "<img src=\"".$results['special']['image']."\" align=\"right\" width=\"".$width."\" height=\"".$height."\" />";
+					$results['special']['text'] = $special_image.$results['special']['text'];
+	
+					unset($image_specs, $width, $height, $special_image);
+				}
+				echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
+				echo "<div class=\"text\">".$results['special']['text']."</div>";
+				if(array_key_exists("source", $results['special'])) {
+					echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
+				}
+				echo "</article></li>";
 			}
-			echo "</article></li>";
-		}
 
-		// Search results
-		if(array_key_exists("search", $results)) {
+			// Search results
 	        foreach($results['search'] as $result) {
 		        if(array_key_exists("did_you_mean", $result)) continue;
 	
 				// Put result together
 				echo "<li class=\"result\"><article>";
-				echo "<div class=\"url\"><a href=\"".$result["url"]."\" target=\"_blank\">".get_formatted_url($result["url"])."</a></div>";
-				echo "<div class=\"title\"><a href=\"".$result["url"]."\" target=\"_blank\"><h2>".$result["title"]."</h2></a></div>";
-				echo "<div class=\"description\">".$result["description"]."</div>";
+				echo "<div class=\"url\"><a href=\"".$result['url']."\" target=\"_blank\">".get_formatted_url($result['url'])."</a></div>";
+				echo "<div class=\"title\"><a href=\"".$result['url']."\" target=\"_blank\"><h2>".$result['title']."</h2></a></div>";
+				echo "<div class=\"description\">".$result['description']."</div>";
 				echo "</article></li>";
+
+				unset($result);
 	        }
+
+			echo "</ol>";
 		}
- 
-        echo "</ol>";
-        echo "</section>";
+
+		// No results found
+        if(array_key_exists("error", $results)) {
+            echo "<div class=\"error\">".$results['error']['message']."</div>";
+        }
     }
 }
 ?>

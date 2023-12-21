@@ -51,21 +51,23 @@ class DuckDuckGoRequest extends EngineRequest {
     }
 
     public function parse_results($response) {
-		$results = array();
+		$results = array("search" => array());
 		$xpath = get_xpath($response);
 
-		if(!$xpath) return $results;
+		if(!$xpath) return array();
  
+		// Scrape recommended
 		$didyoumean = $xpath->query(".//div[@id='did_you_mean']/a[1]")[0];
 		if(!is_null($didyoumean)) {
-			array_push($results, array("did_you_mean" => $didyoumean->textContent));
+			$results['did_you_mean'] = $didyoumean->textContent;
 		}
         $search_specific = $xpath->query(".//div[@id='did_you_mean']/a[2]")[0];
         if(!is_null($search_specific)) {
-            array_push($results, array("search_specific" => $search_specific->textContent));
+			$results['search_specific'] = $search_specific->textContent;
         }
  
-        foreach($xpath->query("/html/body/div[1]/div[". count($xpath->query('/html/body/div[1]/div')) ."]/div/div/div[contains(@class, 'web-result')]/div") as $result) {
+		// Scrape the results
+		foreach($xpath->query("/html/body/div[1]/div['. count($xpath->query('/html/body/div[1]/div')) .']/div/div/div[contains(@class, 'web-result')]/div") as $result) {
             $url = $xpath->evaluate(".//h2[@class='result__title']//a/@href", $result)[0];
             if($url == null) continue;
 
@@ -79,7 +81,7 @@ class DuckDuckGoRequest extends EngineRequest {
 
 			$description = $xpath->evaluate(".//a[@class='result__snippet']", $result)[0];
 
-            array_push($results, array (
+            array_push($results['search'], array (
                 "title" => htmlspecialchars($title->textContent),
                 "url" =>  htmlspecialchars($url->textContent),
                 "description" =>  $description == null ? 'No description was provided for this site.' : htmlspecialchars($description->textContent)

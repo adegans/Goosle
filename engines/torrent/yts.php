@@ -10,55 +10,73 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class YTSRequest extends EngineRequest {
-    public function get_request_url() {
-        return "https://yts.mx/api/v2/list_movies.json?query_term=".urlencode($this->query);
-    }
+	public function get_request_url() {
+		return "https://yts.mx/api/v2/list_movies.json?query_term=".urlencode($this->query);
+	}
 
-    public function parse_results($response) {
-        $results = array();
-        $response = curl_multi_getcontent($this->ch);
-        $json_response = json_decode($response, true);
-
+	public function parse_results($response) {
+		$results = array();
+		$response = curl_multi_getcontent($this->ch);
+		$json_response = json_decode($response, true);
+		
 		// No response
-        if(empty($json_response)) return $results;
-
+		if(empty($json_response)) return $results;
+		
 		// Nothing found
-        if($json_response["status"] != "ok" || $json_response["data"]["movie_count"] == 0) return $results;
-
+		if($json_response['status'] != "ok" || $json_response['data']['movie_count'] == 0) return $results;
+		
 		// Use API result
-        foreach ($json_response["data"]["movies"] as $movie) {
+		foreach ($json_response['data']['movies'] as $movie) {
 			// Prevent gaps
-            if(!array_key_exists("year", $movie)) $movie['year'] = 0;
-            if(!array_key_exists("genres", $movie)) $movie['genres'] = array();
-            if(!array_key_exists("runtime", $movie)) $movie['runtime'] = 0;
-            if(!array_key_exists("url", $movie)) $movie['url'] = '';
+			if(!array_key_exists("year", $movie)) $movie['year'] = 0;
+			if(!array_key_exists("genres", $movie)) $movie['genres'] = array();
+			if(!array_key_exists("runtime", $movie)) $movie['runtime'] = 0;
+			if(!array_key_exists("url", $movie)) $movie['url'] = '';
+			
+			// Block these categories
+			if(array_intersect($movie['genres'], $this->opts->yts_categories_blocked)) continue;
+			
+			$name = sanitize($movie['title']);
+			
+			$year = sanitize($movie['year']);
+			$category = sanitize(implode(', ', $movie['genres']));
+			$runtime = sanitize($movie['runtime']);
+			$url = sanitize($movie['url']);
+			$date_added = sanitize($movie['date_uploaded_unix']);
 
-            // Block these categories
-           	if(array_intersect($movie["genres"], $this->opts->yts_categories_blocked)) continue;
-
-            $name = sanitize($movie["title"]);
-
-            foreach ($movie["torrents"] as $torrent) {
-                $magnet = "magnet:?xt=urn:btih:".sanitize($torrent["hash"])."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-
-                array_push($results, array (
-	                // Required
+			foreach ($movie['torrents'] as $torrent) {
+				$magnet = "magnet:?xt=urn:btih:".sanitize($torrent['hash'])."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+				$seeders = sanitize($torrent['seeds']);
+				$leechers = sanitize($torrent['peers']);
+				$size = sanitize($torrent['size']);
+				
+				$quality = sanitize($torrent['quality']);
+				
+				// Remove results with 0 seeders?
+				if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+				
+				array_push($results, array (
+					// Required
 					"source" => "yts.mx",
 					"name" => $name,
 					"magnet" => $magnet,
-					"seeders" => sanitize($torrent["seeds"]),
-					"leechers" => sanitize($torrent["peers"]),
-					"size" => sanitize($torrent["size"]),
+					"seeders" => $seeders,
+					"leechers" => $leechers,
+					"size" => $size,
 					// Optional
-					"quality" => sanitize($torrent["quality"]),
-					"year" => sanitize($movie["year"]),
-					"category" => sanitize(implode(', ', $movie["genres"])),
-					"runtime" => sanitize($movie["runtime"]),
-					"url" => sanitize($movie["url"]),
-					"date_added" => sanitize($movie["date_uploaded_unix"])
+					"quality" => $quality,
+					"year" => $year,
+					"category" => $category,
+					"runtime" => $runtime,
+					"url" => $url,
+					"date_added" => $date_added
 				));
-            }
-        }
+
+				unset($magnet, $seeders, $leechers, $size, $quality);
+			}
+
+			unset($name, $year, $category, $runtime, $url, $date_added);
+		}
 
 		return $results;
 	}
