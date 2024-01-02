@@ -1,113 +1,111 @@
 <?php
+/* ------------------------------------------------------------------------------------
+*  Goosle - A meta search engine for private and fast internet fun.
+*
+*  COPYRIGHT NOTICE
+*  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
+*
+*  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
+*  By using this code you agree to indemnify Arnan de Gans from any 
+*  liability that might arise from its use.
+------------------------------------------------------------------------------------ */
 class ImageSearch extends EngineRequest {
-	public function get_request_url() {
+	protected $requests;
+	
+	public function __construct($opts, $mh) {
+		require "engines/image/yahoo.php";
+		
+		$this->requests = array(
+			new YahooImageRequest($opts, $mh),
+		);
+	}
+
+    public function parse_results($response) {
         $results = array();
 
-		// Split the query
-	    $query_terms = explode(" ", strtolower($this->query));
+		// Merge all results together
+        foreach($this->requests as $request) {
+			if($request->request_successful()) {
+				$engine_result = $request->get_results();
 
-		// Size override
-		$size = "";
-		if($query_terms[0] == 'size') {
-			$switch = explode(":", $query_terms[0]);
+				if(!empty($engine_result)) {
+					if(array_key_exists('search', $engine_result)) {
 
-			if((strlen($switch[1]) >= 3 && strlen($switch[1]) <= 6) && !is_numeric($switch[1])) {
-				if($switch[1] == "med") $switch[1] = "medium";
-				if($switch[1] == "lrg") $switch[1] = "large";
-				if($switch[1] == "xlrg") $switch[1] = "wallpaper";
+						if(array_key_exists('did_you_mean', $engine_result)) {
+							$results['did_you_mean'] = $engine_result['did_you_mean'];
+						}
+						
+						if(array_key_exists('search_specific', $engine_result)) {
+							$results['search_specific'][] = $engine_result['search_specific'];
+						}
 	
-				if($switch[1] == "small" || $switch[1] == "medium" || $switch[1] == "large" || $switch[1] == "wallpaper") {
-					$size = $switch[1];
+						$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
+
+						// Merge duplicates and apply relevance scoring
+						foreach($engine_result['search'] as $result) {
+							if(array_key_exists('search', $results)) {
+								$result_urls = array_column($results['search'], "direct_link", "id");
+								$found_key = array_search($result['direct_link'], $result_urls);
+							} else {
+								$found_key = false;
+							}
+
+							if($found_key !== false) {
+								// Duplicate result from another source, merge and rank accordingly
+								$results['search'][$found_key]['goosle_rank'] += $result['engine_rank'];
+							} else {
+								// First find, rank and add to results
+								$match_rank = match_count($result['alt'], $query_terms);
+
+								$result['goosle_rank'] = $result['engine_rank'] + $match_rank;
+
+								$results['search'][$result['id']] = $result;
+							}
+	
+							unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+						}
+					}
 				}
+			} else {
+				$request_result = curl_getinfo($request->ch);
+				$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
 				
-				$this->query = implode(" ", array_slice($query_terms, 1));
+	            $results['error'][] = array(
+	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."."
+	            );
 			}
-		}
-
-		// p = query
-		// imgsz = Image size (small|medium|large|wallpaper)
-
-		$args = array("p" => $this->query, "imgsz" => $size);
-        $url = "https://images.search.yahoo.com/search/images?".http_build_query($args);
-
-        unset($query_terms, $switch, $args, $size);
-
-        return $url;
-	}
-	
-	public function parse_results($response) {
-		$results = array("search" => array());
-		$xpath = get_xpath($response);
-	
-		// Failed to load page
-        if(!$xpath) return array();
-
-		// Scrape recommended
-		$didyoumean = $xpath->query(".//section[@class='dym-c']/section/h3/a")[0];
-		if(!is_null($didyoumean)) {
-			$results['did_you_mean'] = $didyoumean->textContent;
-		}
-        $search_specific = $xpath->query(".//section[@class='dym-c']/section/h5/a")[0];
-        if(!is_null($search_specific)) {
-			$results['search_specific'] = $search_specific->textContent;
+			
+			unset($request);
         }
-		
-		// Scrape the results
-		foreach($xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'slotting'))][position() < 101]") as $result) {
- 			$image = $xpath->evaluate(".//img/@src", $result)[0];
-            if($image == null) continue;
 
- 			$url_data = $xpath->evaluate(".//a/@href", $result)[0];
-            if($url_data == null) continue;
+		if(array_key_exists('search', $results)) {
+			// Re-order results based on rank
+			$keys = array_column($results['search'], 'goosle_rank');
+			array_multisort($keys, SORT_DESC, $results['search']);
 
- 			// Get meta data
- 			// -- Relevant $url_data (there is more, but unused by Goosle)
-			// w = Image width (1280)
-			// h = Image height (720)
-			// imgurl = Actual full size image (Used in Yahoo preview/popup)
-			// rurl = Url to page where the image is used
-			// size = Image size (413.1KB)
-			// tt = Website title (Used for image alt text)
-			parse_str($url_data->textContent, $url_data);
-
-			// filter duplicate urls/results
-            if(!empty($results['search'])) {
-		        $result_urls = array_column($results['search'], "direct_link");
-                if(in_array($url_data['imgurl'], $result_urls)) continue;
-            }
-
-			// Deal with optional or missing data
-			$dimensions_w = (!array_key_exists('w', $url_data) || empty($url_data['w'])) ? 0 : htmlspecialchars($url_data['w']);
-			$dimensions_h = (!array_key_exists('h', $url_data) || empty($url_data['h'])) ? 0 : htmlspecialchars($url_data['h']);
-			$filesize = (!array_key_exists('size', $url_data) || empty($url_data['size'])) ? "" : htmlspecialchars($url_data['size']);
-			$link = (!array_key_exists('imgurl', $url_data) || empty($url_data['imgurl'])) ? "" : "//".htmlspecialchars($url_data['imgurl']);
-
-			array_push($results['search'], array (
-				"image" => htmlspecialchars($image->textContent),
-				"alt" => htmlspecialchars($url_data['tt']),
-				"url" => htmlspecialchars($url_data['rurl']),
-				"height" => $dimensions_w,
-				"width" => $dimensions_h,
-				"filesize" => $filesize,
-				"direct_link" => $link
-			));
+			// Count results per source
+			$results['sources'] = array_count_values(array_column($results['search'], 'source'));
+			
+			unset($keys);
+		} else {
+			// Add error if there are no search results
+            $results['error'][] = array(
+                "message" => "No results found. Please try with more specific or different keywords!" 
+            );
 		}
 
-		// Add error if there are no search results
-		if(empty($results['search'])) {
-			$results['error'] = array(
-				"message" => "No results found. Please try with less or different keywords!"
-			);
-		}
-		
-		return $results;
-	}
-	
-	public static function print_results($results, $opts) {
+        return $results; 
+    }
+
+    public static function print_results($results, $opts) {
 /*
-		echo '<pre>Results: ';
-		print_r($results);
-		echo '</pre>';
+// Uncomment for debugging
+echo '<pre>Settings: ';
+print_r($opts);
+echo '</pre>';
+echo '<pre>Search results: ';
+print_r($results);
+echo '</pre>';
 */
 
 		if(array_key_exists("search", $results)) {
@@ -117,27 +115,12 @@ class ImageSearch extends EngineRequest {
 			$number_of_results = count($results['search']);
 			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
+			// Format sources
+	        search_sources($results['sources']);
+
 			// Did you mean/Search suggestion
-			if(array_key_exists("did_you_mean", $results)) {
-				$specific_result = "";
+			search_suggestion($opts, $results);
 
-				if(array_key_exists("search_specific", $results)) {
-					// Format query url
-					$search_specific = "\"".$results['search_specific']."\"";
-					$search_specific_url = "./results.php?q=".urlencode($search_specific)."&t=".$opts->type."&a=".$opts->hash;
-					
-					// Specific search
-					$specific_result = "<br /><small>Or instead search for <a href=\"".$search_specific_url."\">".$search_specific."</a>.</small>";
-		
-					unset($search_specific, $search_specific_url);
-				}
-
-				$didyoumean_url = "./results.php?q=".urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash;
-	
-				echo "<li class=\"meta\">Did you mean <a href=\"".$didyoumean_url."\">".$results['did_you_mean']."</a>?$specific_result</li>";
-	
-				unset($didyoumean_url, $specific_result);
-			}
 			echo "</ol>";
 
 			// Search results
@@ -145,13 +128,11 @@ class ImageSearch extends EngineRequest {
 			echo "<ol class=\"image-grid\">";
 	
 	        foreach($results['search'] as $result) {
+				// Extra data
 				$meta = $links = array();
-
-				// Optional data
 				if(!empty($result['height']) && !empty($result['width'])) $meta[] = $result['width']."&times;".$result['height'];
 				if(!empty($result['filesize'])) $meta[] = $result['filesize'];
 
-				// Links
 				$links[] = "<a href=\"".$result['url']."\" target=\"_blank\">Website</a>";
 				if(!empty($result['direct_link'])) $links[] = "<a href=\"".$result['direct_link']."\" target=\"_blank\">Image</a>";
 
@@ -160,20 +141,20 @@ class ImageSearch extends EngineRequest {
 				echo "<a href=\"".$result['url']."\" target=\"_blank\" title=\"".$result['alt']."\"><img src=\"".$result['image']."\" alt=\"".$result['alt']."\" /></a>";
 				echo "</div><span>".implode(" - ", $meta)."<br />".implode(" - ", $links)."</span>";
 				echo "</li>";
-				
-				unset($result, $meta, $links);
 	        }
 
 	        echo "</ol>";
 	        echo "</div>";
-	 		echo "<center><small>Not what you're looking for? Try <a href=\"https://duckduckgo.com/?q=".urlencode($opts->query)."&iax=images&ia=images\" target=\"_blank\">DuckDuckGo</a>, <a href=\"https://images.search.yahoo.com/search/images?p=".urlencode($opts->query)."\" target=\"_blank\">Yahoo! Images</a> or <a href=\"https://www.google.com/search?q=".urlencode($opts->query)."&tbm=isch&pws=0\" target=\"_blank\">Google Images</a>.</small></center>";
 		}
 
 		// No results found
         if(array_key_exists("error", $results)) {
-            echo "<div class=\"error\">".$results['error']['message']."</div>";
+	        foreach($results['error'] as $error) {
+            	echo "<div class=\"error\">".$error['message']."</div>";
+            }
         }
 
+		unset($results);
 	}
 }
 ?>

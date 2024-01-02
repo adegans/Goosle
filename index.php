@@ -15,12 +15,12 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 ?>
-<!DOCTYPE html >
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta charset="UTF-8"/>
-    <meta name="description" content="Goosle - A meta search engine for private and fast internet fun!"/>
+    <meta name="description" content="Goosle - The best meta search engine for private and fast internet fun!"/>
     <meta name="referrer" content="no-referrer"/>
 	<link rel="apple-touch-icon" href="apple-touch-icon.png">
 	<link rel="icon" href="favicon.ico" type="image/x-icon"/>
@@ -42,10 +42,9 @@ if(verify_hash($opts, $auth)) {
 	        <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>
 	
 	        <div class="search-box-buttons">
-		        <button tabindex="20" name="t" value="0" type="submit">DuckDuckGo</button>
-		        <button tabindex="30" name="t" value="1" type="submit">Google</button>
+		        <button tabindex="20" name="t" value="0" type="submit">Search</button>
 		        <?php if($opts->enable_image_search == "on") { ?>
-		        <button tabindex="40" name="t" value="2" type="submit">Image</button>
+		        <button tabindex="40" name="t" value="1" type="submit">Image</button>
 		        <?php } ?>
 		        <?php if($opts->enable_torrent_search == "on") { ?>
 		        <button tabindex="50" name="t" value="9" type="submit">Torrent</button>
@@ -55,7 +54,7 @@ if(verify_hash($opts, $auth)) {
 	    </form>
 	</div>
 
-	<?php if($opts->special['password_generator'] == "on") { ?>
+	<?php if($opts->password_generator == "on") { ?>
 	<div class="password-generator">
 		<form method="get" action="./" autocomplete="off">
 			Password Generator:<br/><input class="password" type="text" name="pw" maxlength="27" value="<?php echo string_generator(); ?>" autocomplete="0" />

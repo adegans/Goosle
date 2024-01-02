@@ -31,7 +31,7 @@ class PHPnetRequest extends EngineRequest {
 			$response = array (
                 // Required
 				"title" => sanitize($title),
-				"text" => "<p>".$purpose." <em><small>".$php_versions."</small></em></p><p>".highlight_string("<?php ".trim($usage)." ?>", 1)."</p>",
+				"text" => "<p><em><small>".$php_versions."</small></em></p><p>".$purpose."</p><p>".highlight_string("<?php ".trim($usage)." ?>", 1)."</p>",
 				"source" => "https://www.php.net/manual/function.".urlencode($this->query)
 			);
 

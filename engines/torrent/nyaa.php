@@ -11,7 +11,12 @@
 ------------------------------------------------------------------------------------ */
 class NyaaRequest extends EngineRequest {
 	public function get_request_url() {
-		return "https://nyaa.si/?q=".urlencode($this->query);
+		$args = array("q" => $this->query);
+        $url = "https://nyaa.si/?".http_build_query($args);
+
+        unset($args);
+
+        return $url;
 	}
 	
 	public function parse_results($response) {
@@ -31,28 +36,30 @@ class NyaaRequest extends EngineRequest {
 			$leechers = sanitize($meta[4]->textContent);
 			$size =  sanitize($meta[1]->textContent);
 			
+			// Ignore results with 0 seeders?
+			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			
+			// Get extra data
 			$category = sanitize($xpath->evaluate(".//td[1]//a/@title", $result)[0]->textContent);
-			$url = sanitize($xpath->evaluate(".//td[@colspan='2']//a[not(contains(@class, 'comments'))]/@href", $result)[0]->textContent);
+			$category = str_replace(" - ", "/", $category);
+			$url = "https://nyaa.si".sanitize($xpath->evaluate(".//td[@colspan='2']//a[not(contains(@class, 'comments'))]/@href", $result)[0]->textContent);
 			$date_added =  sanitize($meta[2]->textContent);
 			$date_added = explode("-", substr($date_added, 0, 10));
 			$date_added = mktime(0, 0, 0, intval($date_added[1]), intval($date_added[2]), intval($date_added[0]));
 			
-			// Remove results with 0 seeders?
-			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			// Filter by Season (S01) or Season and Episode (S01E01)
+			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
+				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
+					continue;
+				}
+			}
 			
-			array_push($results, array (
+			$results[] = array (
 				// Required
-				"source" => "nyaa.si",
-				"name" => $name,
-				"magnet" => $magnet,
-				"seeders" => $seeders,
-				"leechers" => $leechers,
-				"size" => $size,
-				// Optional values
-				"category" => str_replace(" - ", "/", $category),
-				"url" => "https://nyaa.si".$url,
-				"date_added" => $date_added
-			));
+				"source" => "nyaa.si", "name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+				// Extra
+				"category" => $category, "url" => $url, "date_added" => $date_added
+			);
 
 			unset($name, $magnet, $seeders, $leechers, $size, $category, $url, $date_added, $meta);
 		}

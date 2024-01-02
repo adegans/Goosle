@@ -9,47 +9,90 @@
 *  By using this code you agree to indemnify Arnan de Gans from any 
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
-class TextSearch extends EngineRequest {
-    protected $engine, $engine_request, $special_request;
-
-    public function __construct($opts, $mh) {
-        $this->query = $opts->query;
-        $this->opts = $opts;
-
-        if($this->opts->type == 0) {            
-            require "engines/duckduckgo.php";
-            $this->engine_request = new DuckDuckGoRequest($opts, $mh);
-        }
-
-        if($this->opts->type == 1) {
-            require "engines/google.php";
-            $this->engine_request = new GoogleRequest($opts, $mh);
-        }
+class Search extends EngineRequest {
+	protected $requests, $special_request;
+	
+	public function __construct($opts, $mh) {
+		require "engines/search/duckduckgo.php";
+		require "engines/search/google.php";
+		require "engines/search/wikipedia.php";
+		require "engines/search/ecosia.php";
+		
+		$this->requests = array(
+			new DuckDuckGoRequest($opts, $mh),
+			new GoogleRequest($opts, $mh),
+			new WikiRequest($opts, $mh),
+			new EcosiaRequest($opts, $mh),
+		);
 
 		// Special search
 		$this->special_request = special_search_request($opts);
-    }
+	}
 
     public function parse_results($response) {
         $results = array();
 
-        // Abort if no results from search engine
-        if(!isset($this->engine_request)) return $results;
+		// Merge all results together
+        foreach($this->requests as $request) {
+			if($request->request_successful()) {
+				$engine_result = $request->get_results();
 
-		// Add search results if there are any, otherwise add error
-		if($this->engine_request->request_successful()) {
-			$search_result = $this->engine_request->get_results();
+				if(!empty($engine_result)) {
+					if(array_key_exists('search', $engine_result)) {
 
-			if($search_result) {
-				$results = $search_result;
+						if(array_key_exists('did_you_mean', $engine_result)) {
+							$results['did_you_mean'] = $engine_result['did_you_mean'];
+						}
+						
+						if(array_key_exists('search_specific', $engine_result)) {
+							$results['search_specific'][] = $engine_result['search_specific'];
+						}
+	
+						$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
+
+						// Merge duplicates and apply relevance scoring
+						foreach($engine_result['search'] as $result) {
+							if(array_key_exists('search', $results)) {
+								$result_urls = array_column($results['search'], "url", "id");
+								$found_key = array_search($result['url'], $result_urls);
+							} else {
+								$found_key = false;
+							}
+
+							$social_media_multiplier = (is_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
+							$goosle_rank = floor($result['engine_rank'] * floatval($social_media_multiplier));
+	
+							if($found_key !== false) {
+								// Duplicate result from another source, merge and rank accordingly
+								$results['search'][$found_key]['goosle_rank'] += $goosle_rank;
+								$results['search'][$found_key]['combo_source'][] = $result['source'];
+							} else {
+								// First find, rank and add to results
+								$match_rank = match_count($result['title'], $query_terms);
+								$match_rank += match_count($result['description'], $query_terms);
+//								$match_rank += match_count($result['url'], $query_terms);
+
+								$result['goosle_rank'] = $goosle_rank + $match_rank;
+								$result['combo_source'][] = $result['source'];
+
+								$results['search'][$result['id']] = $result;
+							}
+	
+							unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+						}
+					}
+				}
+			} else {
+				$request_result = curl_getinfo($request->ch);
+				$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
+				
+	            $results['error'][] = array(
+	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."."
+	            );
 			}
-
-			unset($search_result);
-		} else {
-            $results['error'] = array(
-                "message" => "Error code ".curl_getinfo($this->engine_request->ch)['http_code']." for ".curl_getinfo($this->engine_request->ch)['url'].".<br />Try again in a few seconds or <a href=\"".curl_getinfo($this->engine_request->ch)['url']."\" target=\"_blank\">visit the search engine</a> in a new tab."
-            );
-		}			
+			
+			unset($request);
+        }
 
 		// Check for Special result
         if($this->special_request) {
@@ -62,21 +105,34 @@ class TextSearch extends EngineRequest {
 			unset($special_result);
         }
 
-		// Add error if there are no search results
-		if(empty($results)) {
-			$results['error'] = array(
-				"message" => "No results found. Please try with less or different keywords!"
-			);
+		if(array_key_exists('search', $results)) {
+			// Re-order results based on rank
+			$keys = array_column($results['search'], 'goosle_rank');
+			array_multisort($keys, SORT_DESC, $results['search']);
+
+			// Count results per source
+			$results['sources'] = array_count_values(array_column($results['search'], 'source'));
+			
+			unset($keys);
+		} else {
+			// Add error if there are no search results
+            $results['error'][] = array(
+                "message" => "No results found. Please try with more specific or different keywords!" 
+            );
 		}
 
-        return $results;
+        return $results; 
     }
 
-    public static function print_results($results, $opts)  {
+    public static function print_results($results, $opts) {
 /*
-		echo '<pre>Results: ';
-		print_r($results);
-		echo '</pre>';
+// Uncomment for debugging
+echo '<pre>Settings: ';
+print_r($opts);
+echo '</pre>';
+echo '<pre>Search results: ';
+print_r($results);
+echo '</pre>';
 */
 
 		if(array_key_exists("search", $results)) {
@@ -86,91 +142,40 @@ class TextSearch extends EngineRequest {
 			$number_of_results = count($results['search']);
 			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
+			// Format sources
+	        search_sources($results['sources']);
+
 			// Did you mean/Search suggestion
-			if(array_key_exists("did_you_mean", $results)) {
-				$specific_result = "";
-
-				if(array_key_exists("search_specific", $results)) {
-					// Add double quotes to Google search
-					$search_specific = ($opts->type == 1) ? "\"".$results['search_specific']."\"" : $results['search_specific'];
-
-					// Format query url
-					$search_specific_url = "./results.php?q="  . urlencode($search_specific)."&t=".$opts->type."&a=".$opts->hash;
-					
-					// Specific search
-					$specific_result = "<br /><small>Or instead search for <a href=\"".$search_specific_url."\">".$search_specific."</a>.</small>";
-		
-					unset($search_specific, $search_specific_url);
-				}
-
-				$didyoumean_url = "./results.php?q="  . urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash;
-	
-				echo "<li class=\"meta\">Did you mean <a href=\"".$didyoumean_url."\">".$results['did_you_mean']."</a>?".$specific_result."</li>";
-	
-				unset($didyoumean_url, $specific_result);
-			}
+			search_suggestion($opts, $results);
 
 			// Special results
-			if($opts->special['imdb_id_search'] == "on") {
-				$found = false;
-				foreach($results['search'] as $search_result) {
-					if(!$found && preg_match_all("/(imdb.com|tt[0-9]+)/i", $search_result['url'], $imdb_result) && stristr($search_result['title'], "tv series") !== false) {
-						$results['special'] = array(
-							"title" => $search_result['title'], 
-							"text" => "Goosle found an IMDb ID for this TV Show in your results (".$imdb_result[0][1].") - <a href=\"./results.php?q=".$imdb_result[0][1]."&a=".$opts->hash."&t=9\">search for magnet links</a>?<br /><sub>An IMDb ID is detected when a TV Show is present in the results. The first match is highlighted here.</sub>"
-						);
-						$found = true;
-					}
-				}
-			}
-			if(array_key_exists("special", $results)) {
-				echo "<li class=\"special-result\"><article>";
-				// Maybe shorten text
-				if(strlen($results['special']['text']) > 1250) {
-					$results['special']['text'] = substr($results['special']['text'], 0, strrpos(substr($results['special']['text'], 0, 1300), ". "));
-					$results['special']['text'] .= '. <a href="'.$results['special']['source'].'" target="_blank">[...]</a>';
-				}
-	
-				// Add image to text
-				if(array_key_exists("image", $results['special'])) {
-					$image_specs = getimagesize($results['special']['image']);
-					$width = $image_specs[0] / 2;
-					$height = $image_specs[1] / 2;
-	
-					$special_image = "<img src=\"".$results['special']['image']."\" align=\"right\" width=\"".$width."\" height=\"".$height."\" />";
-					$results['special']['text'] = $special_image.$results['special']['text'];
-	
-					unset($image_specs, $width, $height, $special_image);
-				}
-				echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
-				echo "<div class=\"text\">".$results['special']['text']."</div>";
-				if(array_key_exists("source", $results['special'])) {
-					echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
-				}
-				echo "</article></li>";
-			}
+			special_search_result($opts, $results);
 
 			// Search results
 	        foreach($results['search'] as $result) {
-		        if(array_key_exists("did_you_mean", $result)) continue;
-	
-				// Put result together
-				echo "<li class=\"result\"><article>";
+				echo "<li class=\"result rs-".$result['goosle_rank']." id-".$result['id']."\"><article>";
 				echo "<div class=\"url\"><a href=\"".$result['url']."\" target=\"_blank\">".get_formatted_url($result['url'])."</a></div>";
 				echo "<div class=\"title\"><a href=\"".$result['url']."\" target=\"_blank\"><h2>".$result['title']."</h2></a></div>";
 				echo "<div class=\"description\">".$result['description']."</div>";
+				if($opts->show_search_source == "on") {
+					echo "<div class=\"engine\">";
+					echo "Found on ".replace_last_comma(implode(", ", $result['combo_source'])).".";
+					if($opts->show_search_rank == "on") echo " [rank: ".$result['goosle_rank']."]";
+					echo "</div>";
+				}
 				echo "</article></li>";
-
-				unset($result);
 	        }
 
 			echo "</ol>";
 		}
 
-		// No results found
+		// Some error occured
         if(array_key_exists("error", $results)) {
-            echo "<div class=\"error\">".$results['error']['message']."</div>";
+	        foreach($results['error'] as $error) {
+            	echo "<div class=\"error\">".$error['message']."</div>";
+            }
         }
-    }
+		unset($results);
+	}
 }
 ?>

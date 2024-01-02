@@ -11,7 +11,12 @@
 ------------------------------------------------------------------------------------ */
 class PirateBayRequest extends EngineRequest {
 	public function get_request_url() {
-		return "https://apibay.org/q.php?q=".urlencode($this->query);
+		$args = array("q" => $this->query);
+        $url = "https://apibay.org/q.php?".http_build_query($args);
+
+        unset($args);
+
+        return $url;
 	}
 
 	public function parse_results($response) {
@@ -94,31 +99,32 @@ class PirateBayRequest extends EngineRequest {
 			$leechers = sanitize($response['leechers']);
 			$size = sanitize($response['size']);
 			
+			// Ignore results with 0 seeders?
+			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			
+			// Get extra data
 			$category = sanitize($response['category']);
-			$id = sanitize($response['id']);
+			$url = "https://thepiratebay.org/description.php?id=".sanitize($response['id']);
 			$date_added = sanitize($response['added']);
 			
 			// Block these categories
 			if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
 			
-			// Remove results with 0 seeders?
-			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			// Filter by Season (S01) or Season and Episode (S01E01)
+			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
+				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
+					continue;
+				}
+			}
 			
-			array_push($results, array(
+			$results[] = array(
 				// Required
-				"source" => "thepiratebay.org",
-				"name" => $name,
-				"magnet" => $magnet,
-				"seeders" => $seeders,
-				"leechers" => $leechers,
-				"size" => human_filesize($size),
-				// Optional
-				"category" => $categories[$category],
-				"url" => "https://thepiratebay.org/description.php?id=".$id,
-				"date_added" => $date_added,
- 			));
+				"source" => "thepiratebay.org", "name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
+				// Extra
+				"category" => $categories[$category], "url" => $url, "date_added" => $date_added,
+ 			);
 
-		   	unset($name, $magnet, $seeders, $leechers, $size, $category, $id, $date_added);
+		   	unset($name, $magnet, $seeders, $leechers, $size, $category, $url, $date_added);
 		}
 
 		return $results;

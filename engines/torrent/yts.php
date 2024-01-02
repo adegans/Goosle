@@ -11,7 +11,12 @@
 ------------------------------------------------------------------------------------ */
 class YTSRequest extends EngineRequest {
 	public function get_request_url() {
-		return "https://yts.mx/api/v2/list_movies.json?query_term=".urlencode($this->query);
+		$args = array("query_term" => $this->query);
+        $url = "https://yts.mx/api/v2/list_movies.json?".http_build_query($args);
+
+        unset($args);
+
+        return $url;
 	}
 
 	public function parse_results($response) {
@@ -38,6 +43,7 @@ class YTSRequest extends EngineRequest {
 			
 			$name = sanitize($movie['title']);
 			
+			// Get extra data
 			$year = sanitize($movie['year']);
 			$category = sanitize(implode(', ', $movie['genres']));
 			$runtime = sanitize($movie['runtime']);
@@ -50,32 +56,21 @@ class YTSRequest extends EngineRequest {
 				$leechers = sanitize($torrent['peers']);
 				$size = sanitize($torrent['size']);
 				
-				$quality = sanitize($torrent['quality']);
-				
-				// Remove results with 0 seeders?
+				// Ignore results with 0 seeders?
 				if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
 				
-				array_push($results, array (
+				// Get extra data
+				$quality = sanitize($torrent['quality']);
+				
+				$results[] = array (
 					// Required
-					"source" => "yts.mx",
-					"name" => $name,
-					"magnet" => $magnet,
-					"seeders" => $seeders,
-					"leechers" => $leechers,
-					"size" => $size,
-					// Optional
-					"quality" => $quality,
-					"year" => $year,
-					"category" => $category,
-					"runtime" => $runtime,
-					"url" => $url,
-					"date_added" => $date_added
-				));
-
-				unset($magnet, $seeders, $leechers, $size, $quality);
+					"source" => "yts.mx", "name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+					// Extra
+					"quality" => $quality, "year" => $year, "category" => $category, "runtime" => $runtime, "url" => $url, "date_added" => $date_added
+				);
 			}
 
-			unset($name, $year, $category, $runtime, $url, $date_added);
+			unset($name, $magnet, $seeders, $leechers, $size, $quality, $year, $category, $runtime, $url, $date_added);
 		}
 
 		return $results;

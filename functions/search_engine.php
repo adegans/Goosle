@@ -24,29 +24,11 @@ abstract class EngineRequest {
 		
 		// Skip if there is a cached result (from earlier search)
 		if($this->opts->cache == "on" && has_cached_results($this->url, $this->opts->hash)) return;
-		
+
 		// Curl
 		$this->ch = curl_init();
+		set_curl_options($this->ch, $this->url, $this->opts->user_agents);
 
-		curl_setopt($this->ch, CURLOPT_URL, $this->url);
-		curl_setopt($this->ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
-		curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($this->ch, CURLOPT_VERBOSE, false);
-		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($this->ch, CURLOPT_USERAGENT, $this->opts->user_agents[array_rand($this->opts->user_agents)]);
-		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array(
-		    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-		    'Accept-Language: en-US,en;q=0.5',
-		    'Upgrade-Insecure-Requests: 1'
-		));
-		curl_setopt($this->ch, CURLOPT_ENCODING, "gzip,deflate");
-		curl_setopt($this->ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
-		curl_setopt($this->ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-		curl_setopt($this->ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-		curl_setopt($this->ch, CURLOPT_MAXREDIRS, 5);
-		curl_setopt($this->ch, CURLOPT_TIMEOUT, 3);
-		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
-		
 		if($mh) curl_multi_add_handle($mh, $this->ch);
 	}
 
@@ -88,7 +70,7 @@ abstract class EngineRequest {
 		$results = $this->parse_results($response) ?? array();
 	
 		// Cache last request
-		if($this->opts->cache == "on" && !empty($results)) store_cached_results($this->url, $this->opts->hash, $results, ($this->opts->cache_time * 60));
+		if($this->opts->cache == "on" && !empty($results)) store_cached_results($this->url, $this->opts->hash, $results, (intval($this->opts->cache_time) * 60));
 
 		return $results;
 	}
@@ -103,9 +85,15 @@ function load_opts() {
 	$opts = require "config.php";
 	
 	// From the url/request	
-	$opts->query = (isset($_REQUEST['q'])) ? sanitize($_REQUEST['q']) : "";
+	$opts->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : "";
 	$opts->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST['t']) : 0;
 	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
+	
+	// Force a few defaults and safeguards
+	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
+	if($opts->enable_torrent_search == "off" && $opts->type == 9) $opts->type = 0;
+	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 30 || $opts->cache_time < 1)) $opts->cache_time = 30;
+	if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
 	
 	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
 	if(substr($opts->query, 0, 1) == "!") $opts->query = substr($opts->query, 1);
@@ -124,12 +112,12 @@ function fetch_search_results($opts) {
 	if(!empty($opts->query)) {
 		// Curl
 	    $mh = curl_multi_init();
-	
+
 		// Load search script
-	    if($opts->type == 0 || $opts->type == 1) {
+	    if($opts->type == 0) {
 	        require "engines/search.php";
-	        $search = new TextSearch($opts, $mh);
-		} else if($opts->type == 2) {
+	        $search = new Search($opts, $mh);
+		} else if($opts->type == 1) {
 		    require "engines/search-image.php";
 	        $search = new ImageSearch($opts, $mh);
 		} else if($opts->type == 9) {
@@ -165,6 +153,7 @@ function fetch_search_results($opts) {
 function special_search_request($opts) {
 	$special_request = null;
     $query_terms = explode(" ", $opts->query);
+	$query_terms[0] = strtolower($query_terms[0]);
 
 	// Currency converter
 	if($opts->special['currency'] == "on" && count($query_terms) == 4 && (is_numeric($query_terms[0]) && ($query_terms[2] == 'to' || $query_terms[2] == 'in'))) {
@@ -176,12 +165,6 @@ function special_search_request($opts) {
 	if($opts->special['definition'] == "on" && count($query_terms) == 2 && ($query_terms[0] == 'define' || $query_terms[0] == 'd' || $query_terms[0] == 'mean' || $query_terms[0] == 'meaning')) {
         require "engines/special/definition.php";
         $special_request = new DefinitionRequest($opts, null);
-	}
-
-	// Wikipedia search
-	if($opts->special['wikipedia'] == "on" && count($query_terms) >= 2 && ($query_terms[0] == 'wiki' || $query_terms[0] == 'w')) {
-        require "engines/special/wikipedia.php";
-        $special_request = new WikipediaRequest($opts, null);
 	}
 
 	// php.net search

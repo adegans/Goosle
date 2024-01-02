@@ -11,7 +11,10 @@
 ------------------------------------------------------------------------------------ */
 class LeetxRequest extends EngineRequest {
 	public function get_request_url() {
-		return "https://1337x.to/search/".urlencode($this->query)."/1/";
+		$url = "https://1337x.to/search/".urlencode($this->query)."/1/";
+
+        return $url;
+
 	}
 	
 	public function parse_results($response) {
@@ -107,38 +110,37 @@ class LeetxRequest extends EngineRequest {
 		// Scrape the page
 		foreach($xpath->query("//table/tbody/tr") as $result) {
 			$name = sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a", $result)[1]->textContent);
+			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
 			$seeders = sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent);
 			$leechers = sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent);
 			$size_unformatted = explode(" ", sanitize($xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent));
 			$size = $size_unformatted[0] . " " . preg_replace("/[0-9]+/", "", $size_unformatted[1]);
 			
+			// Ignore results with 0 seeders?
+			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			
+			// Get extra data
 			$category = explode("/", sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[0]->textContent));
 			$category = $category[2];
-			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
-			$date_added = explode(" ", sanitize($xpath->evaluate(".//td[@class='coll-date']", $result)[0]->textContent));
-			$date_added = mktime(0, 0, 0, intval(date("m", strtotime($date_added[0]))), intval(preg_replace('/[^\d.]+/', '', $date_added[1])), intval('20'.preg_replace('/[^\d.]+/', '', $date_added[2])));
 			
 			// Block these categories
 			if(in_array($category, $this->opts->leetx_categories_blocked)) continue;
 			
-			// Remove results with 0 seeders?
-			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			// Filter by Season (S01) or Season and Episode (S01E01)
+			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
+				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
+					continue;
+				}
+			}
 			
-			array_push($results, array (
+			$results[] = array (
 				// Required
-				"source" => "1337x.to",
-				"name" => $name,
-				"magnet" => "./engines/torrent/magnetize_1337x.php?url=".$url,
-				"seeders" => $seeders,
-				"leechers" => $leechers,
-				"size" => $size,
-				// Optional values
-				"category" => $categories[$category],
-				"url" => $url,
-				"date_added" => $date_added
-			));
+				"source" => "1337x.to", "name" => $name, "magnet" => "./engines/torrent/magnetize_1337x.php?url=".$url, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+				// Extra
+				"category" => $categories[$category], "url" => $url
+			);
 
-			unset($name, $seeders, $leechers, $size_unformatted, $size, $category, $url, $date_added);
+			unset($name, $seeders, $leechers, $size_unformatted, $size, $category, $url);
 		}
 		
 		return $results;

@@ -14,26 +14,7 @@ $opts = require "../../config.php";
 ------------------------------------------------------------------------------------ */
 
 $ch = curl_init();
-
-curl_setopt($ch, CURLOPT_URL, $_REQUEST["url"]);
-curl_setopt($ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_VERBOSE, false);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_USERAGENT, $opts->user_agents[array_rand($opts->user_agents)]);
-curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language: en-US,en;q=0.5',
-    'Upgrade-Insecure-Requests: 1'
-));
-curl_setopt($ch, CURLOPT_ENCODING, "gzip,deflate");
-curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
-curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
+set_curl_options($ch, $_REQUEST["url"], $opts->user_agents);
 $response = curl_exec($ch);
 curl_close($ch);
 

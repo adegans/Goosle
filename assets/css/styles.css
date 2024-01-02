@@ -13,7 +13,7 @@ body { position: relative; margin: 0; padding: 0; font-family: Arial, Helvetica,
 div { margin: 0; padding: 0; border: 0; font-size: 100%; vertical-align: baseline; }
 article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section, summary { display: block; }
 h2, h3, h4, h5, h6 { font-weight: normal; }
-h2, h3, h4, h5, h6, p, ul, ol, blockquote { padding-top: .5em; padding-bottom: .5em; }
+h2, h3, h4, h5, h6, p, ul, ol, blockquote { margin: 0; padding-top: .5em; padding-bottom: .5em; }
 ol, ol > li { margin: 0; padding: 0; list-style: none; }
 input, button { outline: none; }
 button { cursor: pointer; }
@@ -60,19 +60,23 @@ body.main { background-color: #1f242b; color: #f0f6fc; }
 
 /* Search results - Main column */
 .main-column { width: 100%; }
+.main-column ol .meta { margin: .75rem 0 .05rem 0; padding: .5rem 10px 0 10px; }
+.main-column ol .sources { margin: .05rem 0 .75rem 0; padding: 0 10px .5rem 10px; font-size: 12px; color: #666; }
+
+.main-column ol .special-result { margin: .75rem 0 .25rem 0; padding: .5rem 10px; }
 .main-column ol .result { margin: .50rem 0 .50rem 0; padding: 0; }
-.main-column ol .special-result, .main-column ol .meta { margin: .75rem 0 .75rem 0; padding: .5rem 10px; }
 
 .main-column ol li article { padding: .5rem 10px; border: 1px solid #fefefe; border-radius: 8px; }
 .main-column ol li article div.url:first-child, .main-column ol li.special-result article div.source:first-child { flex-grow: 0; }
 .main-column ol li article div.url { display: inline-block; margin: 0; max-width: 100%; color: #666; font-size: 1rem; line-height: 1.6; letter-spacing: .2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .main-column ol li article div.url a { margin: 0; color: #3f6e35; cursor: pointer; text-decoration: none; }
-.main-column ol li article div.title, .main-column ol li.special-result article div.title { margin-top: .146rem; margin-bottom: .28451rem; }
+.main-column ol li article div.title, .main-column ol li.special-result article div.title { margin-bottom: .29rem; }
 .main-column ol li article div.title h2 { margin: 0; padding: 0; position: relative; font-size: 1.46rem; letter-spacing: -.01px; }
 .main-column ol li article div.title h2:hover { text-decoration: underline; }
 .main-column ol li article div.title a { margin: 0; display: block; cursor: pointer; }
 .main-column ol li article div.title a:visited { color: #6d59a3; }
 .main-column ol li article div.description { margin: 0; line-height: 1.4; font-size: 1rem; color: #494949; }
+.main-column ol li article div.engine { padding: 2px 0; font: 12px italic; color: #666; }
 .main-column ol li article div.description .seeders { color: #518257; }
 .main-column ol li article div.description .leechers { color: #c00; }
 
@@ -99,7 +103,7 @@ body.main { background-color: #1f242b; color: #f0f6fc; }
 .main-column ol li.special-result article div.title h2:hover { text-decoration: none; }
 .main-column ol li.special-result article div.title a { margin: 0; display: block; color: #6c00a2; cursor: pointer; }
 .main-column ol li.special-result article div.title a:visited { color: #6d59a3; }
-.main-column ol li.special-result article div.text, .main-column ol li article div.source { padding-top: 10px; position: relative; font-style: normal; }
+.main-column ol li.special-result article div.text, .main-column ol li article div.source { position: relative; font-style: normal; }
 .main-column ol li.special-result article div.text img { padding: 0 0 10px 10px; }
 .main-column ol li.special-result article div.source { display: inline-block; margin: 0; max-width: 100%; color: #666; font-size: 1rem; line-height: 1.6; letter-spacing: .2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: inherit; }
 .main-column ol li.special-result article div.source a { margin: 0; color: #3f6e35; text-decoration: none; }
@@ -118,6 +122,7 @@ body.main { background-color: #1f242b; color: #f0f6fc; }
 .footer-wrap { background-color: #161616; color: #f0f6fc; border-top: 2px solid #303134; }
 .footer { padding: 10px; }
 .footer a { color: #f0f6fc; }
+a.update { color: #c90; font-weight: bold; }
 
 @media only screen and (max-width:960px)  { /* tablet, landscape iPad, lo-res laptops ands desktops */ 
 	/* Page structure */
