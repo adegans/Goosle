@@ -38,7 +38,36 @@ class TorrentSearch extends EngineRequest {
 				$engine_result = $request->get_results();
 
 				if(!empty($engine_result)) {
-					$results_temp = array_merge($results_temp, $engine_result);
+					// No merging of results
+//					$results_temp = array_merge($results_temp, $engine_result);
+
+					// Merge duplicates and apply relevance scoring
+					foreach($engine_result as $result) {
+						if(count($results_temp) > 1 && !is_null($result['hash'])) {
+							$result_urls = array_column($results_temp, "hash", "id");
+							$found_key = array_search($result['hash'], $result_urls);
+						} else {
+							$found_key = false;
+						}
+
+						if($found_key !== false) {
+							// Duplicate result from another source
+							// If seeders and/or leechers mismatch, assume they're different users
+							if($results_temp[$found_key]['seeders'] != $result['seeders']) $results_temp[$found_key]['combo_seeders'] += $result['seeders'];
+							if($results_temp[$found_key]['leechers'] != $result['leechers']) $results_temp[$found_key]['combo_leechers'] += $result['leechers'];
+
+							$results_temp[$found_key]['combo_source'][] = $result['source'];
+						} else {
+							// First find, rank and add to results
+							$result['combo_seeders'] = $result['seeders'];
+							$result['combo_leechers'] = $result['leechers'];
+							$result['combo_source'][] = $result['source'];
+
+							$results_temp[$result['id']] = $result;
+						}
+
+						unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+					}
 				}
 			} else {
 				$request_result = curl_getinfo($request->ch);
@@ -54,7 +83,7 @@ class TorrentSearch extends EngineRequest {
 
 		if(count($results_temp) > 0) {
 			// Sort by highest seeders
-	        $seeders = array_column($results_temp, "seeders");
+	        $seeders = array_column($results_temp, "combo_seeders");
 	        array_multisort($seeders, SORT_DESC, $results_temp);
 	
 			// Cap results to 50
@@ -102,18 +131,18 @@ echo '</pre>';
 			foreach($results['search'] as $result) {
 				// Extra data
 				$meta = array();
-				if($opts->show_search_source == "on") $meta[] = "<strong>Source:</strong> ".$result['source'];
 				if(array_key_exists('quality', $result)) $meta[] = "<strong>Quality:</strong> ".$result['quality'];
 				if(array_key_exists('year', $result)) $meta[] = "<strong>Year:</strong> ".$result['year'];
 				if(array_key_exists('category', $result)) $meta[] = "<strong>Category:</strong> ".$result['category'];
 				if(array_key_exists('runtime', $result)) $meta[] = "<strong>Runtime:</strong> ".date('H:i', mktime(0, $result['runtime']));
-				if(array_key_exists('date_added', $result)) $meta[] = "<strong>Added:</strong> ".date('M d, Y', $result['date_added']);
-				if(array_key_exists('url', $result)) $meta[] = "<a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">Torrent page</a>";
+				if(array_key_exists('date_added', $result)) $meta[] = "<strong>Added on:</strong> ".date('M d, Y', $result['date_added']);
+				if(array_key_exists('url', $result)) $url = " - <a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">torrent page</a>";
 	
 				// Put result together
 				echo "<li class=\"result\"><article>";
 				echo "<div class=\"title\"><a href=\"".$result['magnet']."\"><h2>".stripslashes($result['name'])."</h2></a></div>";
-				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"seeders\">".$result['seeders']."</span> - <strong>Peers:</strong> <span class=\"leechers\">".$result['leechers']."</span> - <strong>Size:</strong> ".$result['size']."<br />".implode(" - ", $meta)."</div>";
+				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"seeders\">".$result['combo_seeders']."</span> - <strong>Peers:</strong> <span class=\"leechers\">".$result['combo_leechers']."</span> - <strong>Size:</strong> ".$result['size']."<br />".implode(" - ", $meta)."</div>";
+				if($opts->show_search_source == "on") echo "<div class=\"description\"><strong>Found on:</strong> ".replace_last_comma(implode(", ", $result['combo_source'])).$url."</div>";
 				echo "</article></li>";
 
 				unset($result, $meta);

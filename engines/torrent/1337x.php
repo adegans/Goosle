@@ -111,8 +111,9 @@ class LeetxRequest extends EngineRequest {
 		foreach($xpath->query("//table/tbody/tr") as $result) {
 			$name = sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a", $result)[1]->textContent);
 			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
-			$seeders = sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent);
-			$leechers = sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent);
+			$magnet = "./engines/torrent/magnetize_1337x.php?url=".$url;
+			$seeders = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent));
+			$leechers = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent));
 			$size_unformatted = explode(" ", sanitize($xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent));
 			$size = $size_unformatted[0] . " " . preg_replace("/[0-9]+/", "", $size_unformatted[1]);
 			
@@ -127,21 +128,23 @@ class LeetxRequest extends EngineRequest {
 			if(in_array($category, $this->opts->leetx_categories_blocked)) continue;
 			
 			// Filter by Season (S01) or Season and Episode (S01E01)
+			// Where [0][0] = Season and [0][1] = Episode
 			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
 				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
 					continue;
 				}
 			}
+
+			$id = uniqid(rand(0, 9999));
 			
 			$results[] = array (
 				// Required
-				"source" => "1337x.to", "name" => $name, "magnet" => "./engines/torrent/magnetize_1337x.php?url=".$url, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+				"id" => $id, "source" => "1337x.to", "name" => $name, "magnet" => $magnet, "hash" => null, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
 				// Extra
 				"category" => $categories[$category], "url" => $url
 			);
-
-			unset($name, $seeders, $leechers, $size_unformatted, $size, $category, $url);
 		}
+		unset($response, $xpath);
 		
 		return $results;
 	}

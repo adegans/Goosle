@@ -29,18 +29,15 @@ class ImageSearch extends EngineRequest {
 				$engine_result = $request->get_results();
 
 				if(!empty($engine_result)) {
+					if(array_key_exists('did_you_mean', $engine_result)) {
+						$results['did_you_mean'] = $engine_result['did_you_mean'];
+					}
+					
+					if(array_key_exists('search_specific', $engine_result)) {
+						$results['search_specific'][] = $engine_result['search_specific'];
+					}
+
 					if(array_key_exists('search', $engine_result)) {
-
-						if(array_key_exists('did_you_mean', $engine_result)) {
-							$results['did_you_mean'] = $engine_result['did_you_mean'];
-						}
-						
-						if(array_key_exists('search_specific', $engine_result)) {
-							$results['search_specific'][] = $engine_result['search_specific'];
-						}
-	
-						$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
-
 						// Merge duplicates and apply relevance scoring
 						foreach($engine_result['search'] as $result) {
 							if(array_key_exists('search', $results)) {
@@ -55,6 +52,7 @@ class ImageSearch extends EngineRequest {
 								$results['search'][$found_key]['goosle_rank'] += $result['engine_rank'];
 							} else {
 								// First find, rank and add to results
+								$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
 								$match_rank = match_count($result['alt'], $query_terms);
 
 								$result['goosle_rank'] = $result['engine_rank'] + $match_rank;

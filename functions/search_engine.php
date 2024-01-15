@@ -23,7 +23,7 @@ abstract class EngineRequest {
 		if(!$this->url) return;
 		
 		// Skip if there is a cached result (from earlier search)
-		if($this->opts->cache == "on" && has_cached_results($this->url, $this->opts->hash)) return;
+		if($this->opts->cache == "on" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) return;
 
 		// Curl
 		$this->ch = curl_init();
@@ -43,7 +43,7 @@ abstract class EngineRequest {
 	// Check if a request to a search engine was successful
 	--------------------------------------*/
 	public function request_successful() {
-		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || has_cached_results($this->url, $this->opts->hash)) {
+		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) {
 			return true;
 		}			
 
@@ -56,21 +56,31 @@ abstract class EngineRequest {
 	// Load search results
 	--------------------------------------*/
 	public function get_results() {
-
-		// It's a torrent search?
-		if(!isset($this->url)) return $this->parse_results(null);
+		if(!isset($this->url)) {
+			return $this->parse_results(null);
+		}
+		
+		$ttl = intval($this->opts->cache_time) * 60;
 
 		// If there is a cached result from an earlier search use that instead
-		if($this->opts->cache == "on" && has_cached_results($this->url, $this->opts->hash)) return fetch_cached_results($this->url, $this->opts->hash);
+		if($this->opts->cache == "on" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $ttl)) {
+			return fetch_cached_results($this->opts->cache_type, $this->opts->hash, $this->url);
+		}
 
 		// Curl request
-		if(!isset($this->ch)) return $this->parse_results(null);
+		if(!isset($this->ch)) {
+			return $this->parse_results(null);
+		}
+
 		$response = ($this->mh) ? curl_multi_getcontent($this->ch) : curl_exec($this->ch);
 
 		$results = $this->parse_results($response) ?? array();
 	
 		// Cache last request
-		if($this->opts->cache == "on" && !empty($results)) store_cached_results($this->url, $this->opts->hash, $results, (intval($this->opts->cache_time) * 60));
+		if($this->opts->cache == "on") {
+			if(!empty($results)) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $ttl);
+			if($this->opts->cache_type == "file") delete_cached_results($ttl);
+		}
 
 		return $results;
 	}
@@ -90,9 +100,11 @@ function load_opts() {
 	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
 	
 	// Force a few defaults and safeguards
+	if($opts->cache_type == "file" && !is_dir(dirname(__DIR__).'/cache/')) $opts->cache = "off";
+	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache = "off";
 	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
 	if($opts->enable_torrent_search == "off" && $opts->type == 9) $opts->type = 0;
-	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 30 || $opts->cache_time < 1)) $opts->cache_time = 30;
+	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 720 || $opts->cache_time < 1)) $opts->cache_time = 30;
 	if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
 	
 	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)

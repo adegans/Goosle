@@ -36,11 +36,12 @@ class EZTVRequest extends EngineRequest {
 		if($json_response['torrents_count'] == 0) return $results;
 		
 		// Use API result
-		foreach ($json_response['torrents'] as $episode) {
+		foreach($json_response['torrents'] as $episode) {
 			$name = sanitize($episode['title']);
 			$magnet = sanitize($episode['magnet_url']);
-			$seeders = sanitize($episode['seeds']);
-			$leechers = sanitize($episode['peers']);
+			$hash = sanitize($episode['hash']);
+			$seeders = sanitize_numeric(sanitize($episode['seeds']));
+			$leechers = sanitize_numeric(sanitize($episode['peers']));
 			$size = sanitize($episode['size_bytes']);
 			
 			// Ignore results with 0 seeders?
@@ -51,6 +52,7 @@ class EZTVRequest extends EngineRequest {
 			$date_added = sanitize($episode['date_released_unix']);
 			
 			// Filter by Season (S01) or Season and Episode (S01E01)
+			// Where [0][0] = Season and [0][1] = Episode
 			$season = sanitize($episode['season']);
 			$episode = sanitize($episode['episode']);
 			
@@ -60,15 +62,16 @@ class EZTVRequest extends EngineRequest {
 				}
 			}
 			
+			$id = uniqid(rand(0, 9999));
+			
 			$results[] = array (
 				// Required
-				"source" => "EZTV",	"name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
+				"id" => $id, "source" => "EZTV", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
 				// Extra
 				"quality" => $quality, "date_added" => $date_added
 			);
-
-			unset($name, $magnet, $seeders, $leechers, $size, $quality, $category, $date_added, $season, $episode);
 		}
+		unset($json_response);
 		
 		return $results;
 	}

@@ -101,6 +101,7 @@ class YahooImageRequest extends EngineRequest {
 			$results['search'][] = array ("id" => $id, "source" => "Yahoo! Images", "image" => $image, "alt" => $alt, "url" => $url, "width" => $dimensions_w, "height" => $dimensions_h, "filesize" => $filesize, "direct_link" => $link, "engine_rank" => $rank);
 			$rank -= 1;
 		}
+		unset($response, $xpath, $scrape, $rank);
 
 		// Add error if there are no search results
 		if(empty($results['search'])) {

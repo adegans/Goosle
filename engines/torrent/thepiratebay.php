@@ -93,10 +93,12 @@ class PirateBayRequest extends EngineRequest {
 			// Nothing found
 			if($response['name'] == "No results returned") break;
 			
+
 			$name = sanitize($response['name']);
-			$magnet = "magnet:?xt=urn:btih:".sanitize($response['info_hash'])."&dn=".$name."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-			$seeders = sanitize($response['seeders']);
-			$leechers = sanitize($response['leechers']);
+			$hash = sanitize($response['info_hash']);
+			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+			$seeders = sanitize_numeric(sanitize($response['seeders']));
+			$leechers = sanitize_numeric(sanitize($response['leechers']));
 			$size = sanitize($response['size']);
 			
 			// Ignore results with 0 seeders?
@@ -111,21 +113,23 @@ class PirateBayRequest extends EngineRequest {
 			if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
 			
 			// Filter by Season (S01) or Season and Episode (S01E01)
+			// Where [0][0] = Season and [0][1] = Episode
 			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
 				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
 					continue;
 				}
 			}
 			
+			$id = uniqid(rand(0, 9999));
+			
 			$results[] = array(
 				// Required
-				"source" => "thepiratebay.org", "name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
+				"id" => $id, "source" => "thepiratebay.org", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
 				// Extra
 				"category" => $categories[$category], "url" => $url, "date_added" => $date_added,
  			);
-
-		   	unset($name, $magnet, $seeders, $leechers, $size, $category, $url, $date_added);
 		}
+		unset($json_response);
 
 		return $results;
 	}

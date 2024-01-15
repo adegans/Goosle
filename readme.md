@@ -14,7 +14,7 @@ Host for yourself and friends, with a access hash key. Or set up a public search
 
 After-all, finding things should be easy and not turn into a chore.
 
-[![Goosle Mainpage](https://ajdg.solutions/assets/goosle/goosle-main.jpg)](https://ajdg.solutions/assets/goosle/goosle-main.jpg)
+[![Goosle Mainpage](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage-960x593.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage.png)
 
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
@@ -44,9 +44,9 @@ And yet it just works... fast!
 If you like Goosle, or found a use for it, please support my work and [donate](https://www.arnan.me/donate.html?mtm_campaign=goosle_readme) and tell everyone about its existence.
 
 ## Screenshots
-[![Goosle Search results](https://ajdg.solutions/assets/goosle/goosle-search-150x150.jpg)](https://ajdg.solutions/assets/goosle/goosle-search.jpg)
-[![Goosle Image results](https://ajdg.solutions/assets/goosle/goosle-images-150x150.jpg)](https://ajdg.solutions/assets/goosle/goosle-images.jpg)
-[![Goosle Torrent results](https://ajdg.solutions/assets/goosle/goosle-torrents-150x150.jpg)](https://ajdg.solutions/assets/goosle/goosle-torrents.jpg)
+[![Goosle Mainpage](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-mainpage.png)
+[![Goosle Search results](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-search-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-search.png)
+[![Goosle Torrent results](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-torrentsearch-150x150.png)](https://ajdg.solutions/wp-content/uploads/2023/12/goosle-torrentsearch.png)
 
 ## Requirements
 Any basic webserver/webhosting package with PHP7.4 or newer. \
@@ -56,16 +56,16 @@ Tested to work on Apache with PHP8.0.24-8.2.x.
 ## Installation
 1. Unzip the download.
 2. In the main directory. Copy config.default.php to config.php.
-3. Edit the config.php file and set your preferences.
-4. Upload all files to your webserver, for example to the root folder of a domain (eg. example.com), subdomain (eg. search.example.com) or a sub-folder on your main domain (eg. example.com/search/)
+3. Edit config.php file and set your preferences.
+4. Upload all files to your webserver, for example to the root folder of a subdomain (eg. search.example.com) or a sub-folder on your main site (eg. example.com/search/)
 5. Rename goosle.htaccess to .htaccess
-6. Load the site in your browser. If you've enabled the access hash add *?a=YOURHASH* to the url.
+6. Load the site in your browser. If you've enabled the access hash add ?a=YOURHASH to the url.
 7. Let me know where you installed Goosle :-)
 
 ## Updates
 1. Unzip the download.
-2. Check your config.php file and go over your preferences. Make sure any new settings are present in your config.php. (Or reconfigure Goosle with a new copy from config.default.php)
-3. Upload all files to your webserver, overwriting the current Goosle files.
+2. Check your config.php file and go over your preferences. Make sure any new settings or changed values are present in your config.php. (Or reconfigure Goosle with a new copy from config.default.php)
+3. Upload all files to your webserver, overwriting all files except perhaps config.php.
 4. Load the site in your browser. If you've enabled the access hash don't forget to add *?a=YOURHASH* to the url.
 5. Enjoy your updated search experience!
 
@@ -82,6 +82,14 @@ You can post your questions on Github Discussions or on my support forum on [ajd
 Or say hi on [Mastodon](https://mas.to/@arnan) or [Telegram](https://t.me/arnandegans).
 
 ## Changelog
+1.2.1 - January 15, 2024
+- [new] Merge identical downloads (determined by info hash) from different torrent sites that provide hashes
+- [new] Option to cache to flat files instead of APCu, files stored in /cache/ folder
+- [new] Blank index.php files in all subfolders to shield from prying eyes
+- [tweak] Improved version check
+- [fix] Stray periods in some Limetorrent categories
+- [fix] Inconsistent size indication for torrent results
+
 1.2 - January 2, 2024
 - [new] Preferred language setting for DuckDuckGo results in config.php.
 - [new] Preferred language setting for Wikipedia results in config.php.

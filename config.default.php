@@ -23,13 +23,23 @@ HASH AUTH:
 	Disclaimer: This is not meant to 'hack proof' or truly secure the setup. Just a simple token to keep surface level prying eyes out.
 	
 CACHE:
-	If you have ACPu enabled in your server it is highly recommended to enable caching as it'll speed up repeat searches by a lot.
-	"on" (Recommended) for active sites, requires APCu
-	"off" Disables cache, useful for testing or if your server lacks APCu support
+	It is highly recommended to enable caching as it'll speed up repeat searches by a lot.
+	"on" (Recommended)
+	"off" Disables cache
 
 CACHE_TIME:
-	Minutes the result should be cached in ACPu.
-	Accepts a numeric value between 1 and 30.
+	Minutes the result should be cached. Accepts a numeric value between 1 and 720.
+	APCu stores in memory, using a longer time takes up more of it. It is recommended to not exceed 30 minutes for it.
+	The file cache is only limited by your hosting storage space and can safely be much much longer if you want.
+	To not show outdated results the 'limit' is 720 minutes, which equals 12 hours.
+	Ignored if above 'cache' option is set to off.
+
+CACHE_TYPE:
+	Choose how to cache results. The cache is NOT unique per user but shared between all users. Different users searching for the exact same thing get the same results.
+	Default caching method is APCu. Alternatively, you can store the results in text files in the /cache/ folder.
+	Ignored if above 'cache' option is set to off.
+	"apcu" (Recommended) faster, utilize memory.
+	"file" Store results in text files.
 
 LANGUAGE:
 	DuckDuckGo, Google and Ecosia are language agnostic. But they DO profile you for your locale.
@@ -82,12 +92,12 @@ SPECIAL:
 	"off" Disable this special search
 
 USER AGENTS:
-	Add more or less user agents to the list. Keep at least one.
+	Add more or less user agents to the list. Keep at least one!
 	On every search Goosle picks one at random to identify as.
 	Keep them generic to prevent profiling, but also so that the request comes off as a generic boring browser and not as a server/crawler.
 	
 	Safari, Firefox and Internet Explorer/Edge should be safe to use.
-	Chrome may attract attention because of the lack of Chrome information (tracking) aside from the user agent. The search engine will know something is wrong.
+	Chrome may attract attention because of the lack of Chrome information (tracking) aside from the user agent. The search engine may know something is 'weird'.
 	Opera/Edge/Brave and many others use Chrome under the hood and are not a good pick for that reason.
 	Mobile agents may work, but some services like Wikipedia are a bit picky when it comes to answering API calls. Mobile users generally do not use APIs, so they may block your search.
 
@@ -120,6 +130,7 @@ return (object) array(
 	"hash" => "j9fg-i2du-er6m",
     "hash_auth" => "off", // Default: off
     "cache" => "off", // Default: off
+    "cache_type" => "apcu", // Default: apcu
     "cache_time" => 30, // Default: 30 (Minutes)
 
     "duckduckgo_language" => "uk-en", // Default: uk-en (United Kingdom)
@@ -158,11 +169,7 @@ return (object) array(
     	"udp://tracker.opentrackr.org:1337/announce", 
     	"udp://exodus.desync.com:6969/announce", 
     	"udp://tracker.torrent.eu.org:451/announce",
-    	"udp://tracker.yify-torrents.com/announce",
-    	"udp://coppersurfer.tk:6969/announce",
     	"udp://opentracker.i2p.rocks:6969/announce",
-    	"udp://tracker.internetwarriors.net:1337/announce",
-    	"udp://tracker.zer0day.to:1337/announce",
     )
 );
 ?>

@@ -38,18 +38,15 @@ class Search extends EngineRequest {
 				$engine_result = $request->get_results();
 
 				if(!empty($engine_result)) {
+					if(array_key_exists('did_you_mean', $engine_result)) {
+						$results['did_you_mean'] = $engine_result['did_you_mean'];
+					}
+					
+					if(array_key_exists('search_specific', $engine_result)) {
+						$results['search_specific'][] = $engine_result['search_specific'];
+					}
+
 					if(array_key_exists('search', $engine_result)) {
-
-						if(array_key_exists('did_you_mean', $engine_result)) {
-							$results['did_you_mean'] = $engine_result['did_you_mean'];
-						}
-						
-						if(array_key_exists('search_specific', $engine_result)) {
-							$results['search_specific'][] = $engine_result['search_specific'];
-						}
-	
-						$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
-
 						// Merge duplicates and apply relevance scoring
 						foreach($engine_result['search'] as $result) {
 							if(array_key_exists('search', $results)) {
@@ -68,6 +65,7 @@ class Search extends EngineRequest {
 								$results['search'][$found_key]['combo_source'][] = $result['source'];
 							} else {
 								// First find, rank and add to results
+								$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
 								$match_rank = match_count($result['title'], $query_terms);
 								$match_rank += match_count($result['description'], $query_terms);
 //								$match_rank += match_count($result['url'], $query_terms);
@@ -111,7 +109,8 @@ class Search extends EngineRequest {
 			array_multisort($keys, SORT_DESC, $results['search']);
 
 			// Count results per source
-			$results['sources'] = array_count_values(array_column($results['search'], 'source'));
+			$sources = array_count_values(array_column($results['search'], 'source'));
+			if(count($sources) > 0) $results['sources'] = $sources;
 			
 			unset($keys);
 		} else {

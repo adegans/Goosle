@@ -51,9 +51,10 @@ class YTSRequest extends EngineRequest {
 			$date_added = sanitize($movie['date_uploaded_unix']);
 
 			foreach ($movie['torrents'] as $torrent) {
-				$magnet = "magnet:?xt=urn:btih:".sanitize($torrent['hash'])."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-				$seeders = sanitize($torrent['seeds']);
-				$leechers = sanitize($torrent['peers']);
+				$hash = sanitize($torrent['hash']);
+				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+				$seeders = sanitize_numeric(sanitize($torrent['seeds']));
+				$leechers = sanitize_numeric(sanitize($torrent['peers']));
 				$size = sanitize($torrent['size']);
 				
 				// Ignore results with 0 seeders?
@@ -61,17 +62,17 @@ class YTSRequest extends EngineRequest {
 				
 				// Get extra data
 				$quality = sanitize($torrent['quality']);
-				
+				$id = uniqid(rand(0, 9999));
+			
 				$results[] = array (
 					// Required
-					"source" => "yts.mx", "name" => $name, "magnet" => $magnet, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+					"id" => $id, "source" => "yts.mx", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
 					// Extra
 					"quality" => $quality, "year" => $year, "category" => $category, "runtime" => $runtime, "url" => $url, "date_added" => $date_added
 				);
 			}
-
-			unset($name, $magnet, $seeders, $leechers, $size, $quality, $year, $category, $runtime, $url, $date_added);
 		}
+		unset($json_response);
 
 		return $results;
 	}

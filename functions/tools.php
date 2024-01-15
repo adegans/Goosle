@@ -53,14 +53,13 @@ function set_curl_options($curl, $url, $user_agents) {
 // Load pages into a DOM
 --------------------------------------*/
 function get_xpath($response) {
-    if(!$response)
-        return null;
-
-    $htmlDom = new DOMDocument;
-    @$htmlDom->loadHTML($response);
-    $xpath = new DOMXPath($htmlDom);
-
-    return $xpath;
+	if(!$response) return null;
+	
+	$htmlDom = new DOMDocument;
+	@$htmlDom->loadHTML($response);
+	$xpath = new DOMXPath($htmlDom);
+	
+	return $xpath;
 }
 
 /*--------------------------------------
@@ -68,36 +67,71 @@ function get_xpath($response) {
 --------------------------------------*/
 function get_formatted_url($url) {
 	$url = parse_url($url);
-
+	
 	$formatted_url = $url['scheme'] . "://" . $url['host'];
 	$formatted_url .= str_replace('/', ' &rsaquo; ', urldecode(str_replace('%20', ' ', rtrim($url['path'], '/'))));
-
+	
 	return $formatted_url;
 }
 
 /*--------------------------------------
-// APCu Caching
+// Result Caching
 --------------------------------------*/
-function has_cached_results($url, $hash) {
-	if(function_exists("apcu_exists")) {
+function has_cached_results($cache_type, $hash, $url, $ttl) {
+	if($cache_type == "apcu") {
 		return apcu_exists("$hash:$url");
+	}
+
+	if($cache_type == "file") {
+		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		if(is_file($cache_file)) {
+			if(filemtime($cache_file) >= (time() - $ttl)) {
+				return true;
+			}
+		}
 	}
 
 	return false;
 }
 
-function store_cached_results($url, $hash, $results, $ttl = 0) {
-	if(function_exists("apcu_store") && !empty($results)) {
-		return apcu_store("$hash:$url", $results, $ttl);
+function store_cached_results($cache_type, $hash, $url, $results, $ttl) {
+	if($cache_type == "apcu" && !empty($results)) {
+		apcu_store("$hash:$url", $results, $ttl);
+	}
+
+	if($cache_type == "file") {
+		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		file_put_contents($cache_file, serialize($results));
 	}
 }
 
-function fetch_cached_results($url, $hash) {
-	if(function_exists("apcu_fetch")) {
+function fetch_cached_results($cache_type, $hash, $url) {
+	if($cache_type == "apcu") {
 		return apcu_fetch("$hash:$url");
 	}
-	
+
+	if($cache_type == "file") {
+		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		if(is_file($cache_file)) {
+			return unserialize(file_get_contents($cache_file));
+		}
+	}
+
 	return array();
+}
+
+function delete_cached_results($ttl) {
+	$folder = opendir(dirname(__DIR__).'/cache/');	
+	while($file_name = readdir($folder)) {
+		$extension = pathinfo($file_name, PATHINFO_EXTENSION);
+		if($file_name == "." OR $file_name == ".." OR $extension != "data") continue; 
+	
+		if(is_file($folder.$file_name)) {
+			if(filemtime($folder.$file_name) < (time() - $ttl)) {
+				unlink($folder.$file_name);
+			}
+		}
+	}
 }
 
 /*--------------------------------------
@@ -117,6 +151,13 @@ function sanitize($variable) {
 	}
 
     return $variable;
+}
+
+function sanitize_numeric($variable) {
+	$variable = preg_replace('/[^0-9]/', '', $variable);
+	if(strlen($variable) == 0) $variable = 0;
+
+	return $variable;
 }
 
 /*--------------------------------------
@@ -200,7 +241,7 @@ function search_sources($results) {
 
     $sources = replace_last_comma(implode(', ', $sources));
 
-	echo "<li class=\"sources\">".$sources.".</li>";
+	echo "<li class=\"sources\">Includes ".$sources.".</li>";
 	
 	unset($sources);
 }
@@ -280,21 +321,22 @@ function string_generator() {
 function show_version($opts) {
 	$cache_file = dirname(__DIR__).'/version.data';
 	
+	// Currently installed version
+	$current_version = "1.2.1";
+
 	if(!is_file($cache_file)){
 		// Create update cache file
-	    $version = array('version' => "1.2", 'latest' => "0.0", "checked" => 0, "url" => "");
+	    $version = array('latest' => "0.0", "checked" => 0, "url" => "");
 	    file_put_contents($cache_file, serialize($version));
 	} else {
 		// Get update information
 		$version = unserialize(file_get_contents($cache_file));
 	}
 
-	// Current version
-	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$version['version']."</a>.";
-
+	// Update check, every week
 	if($version['checked'] < time() - 604800) {
 		$ch = curl_init();
-		set_curl_options($ch, "https://api.github.com/repos/adegans/goosle/releases/latest", $opts->user_agents);
+		set_curl_options($ch, "https://api.github.com/repos/adegans/goosle/releases/latest", array("goosle/".$current_version.";"));
 		$response = curl_exec($ch);
 		curl_close($ch);
 		
@@ -304,12 +346,15 @@ function show_version($opts) {
 		if(empty($json_response)) return $show_version;
 
 		// Update version info
-		$version = array('version' => $version['version'], 'latest' => $json_response['tag_name'], "checked" => time(), "url" => $json_response['html_url']);
+		$version = array('latest' => $json_response['tag_name'], "checked" => time(), "url" => $json_response['html_url']);
 		file_put_contents($cache_file, serialize($version));
 	}
 
+	// Format version for footer
+	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$current_version."</a>.";
+
 	// Check if a newer version is available and add it to the version display
-	if(version_compare($version['version'], $version['latest'], "<")) {
+	if(version_compare($current_version, $version['latest'], "<")) {
 		$show_version .= " <a href=\"".$version['url']."\" target=\"_blank\" class=\"update\">Version ".$version['latest']." is available!</a>";
 	}
 

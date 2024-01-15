@@ -78,7 +78,7 @@ class GoogleRequest extends EngineRequest {
 			$title = htmlspecialchars(trim($title->textContent));
 			$id = uniqid(rand(0, 9999));
 			
-			$results['search'][] = array ("id" => $id, "source" => "Google", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
+			$results['search'][] = array("id" => $id, "source" => "Google", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
 			$rank -= 1;
         }
 		unset($response, $xpath, $scrape, $rank);
