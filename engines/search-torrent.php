@@ -10,24 +10,45 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class TorrentSearch extends EngineRequest {
-	protected $requests;
+	protected $requests, $special_request;
 	
 	public function __construct($opts, $mh) {
-		require "engines/torrent/1337x.php";
-		require "engines/torrent/lime.php";
-		require "engines/torrent/thepiratebay.php";
-		require "engines/torrent/yts.php";
-		require "engines/torrent/nyaa.php";
-		require "engines/torrent/eztv.php";
+		$this->requests = array();
+
+		if($opts->enable_limetorrents == "on") {
+			require ABSPATH."engines/torrent/lime.php";
+			$this->requests[] = new LimeRequest($opts, $mh);
+		}
+
+		if($opts->enable_piratebay == "on") {
+			require ABSPATH."engines/torrent/thepiratebay.php";
+			$this->requests[] = new PirateBayRequest($opts, $mh);
+		}
+
+		if($opts->enable_yts == "on") {
+			require ABSPATH."engines/torrent/yts.php";
+			$this->requests[] = new YTSRequest($opts, $mh);
+		}
+
+		if($opts->enable_nyaa == "on") {
+			require ABSPATH."engines/torrent/nyaa.php";
+			$this->requests[] = new NyaaRequest($opts, $mh);
+		}
+
+		if($opts->enable_eztv == "on") {
+			if(substr(strtolower($opts->query), 0, 2) == "tt") {
+				require ABSPATH."engines/torrent/eztv.php";
+				$this->requests[] = new EZTVRequest($opts, $mh);
+			}
+		}
+
+		if($opts->enable_l33tx == "on") {
+			require ABSPATH."engines/torrent/1337x.php";
+			$this->requests[] = new LeetxRequest($opts, $mh);
+		}
 		
-		$this->requests = array(
-			new LeetxRequest($opts, $mh), // 1337x
-			new LimeRequest($opts, $mh), // Limetorrents
-			new PirateBayRequest($opts, $mh),
-			new YTSRequest($opts, $mh),
-			new NyaaRequest($opts, $mh),
-			new EZTVRequest($opts, $mh)
-		);
+		// Special search
+		$this->special_request = special_torrent_request($opts, $mh);
 	}
 
     public function parse_results($response) {
@@ -38,9 +59,6 @@ class TorrentSearch extends EngineRequest {
 				$engine_result = $request->get_results();
 
 				if(!empty($engine_result)) {
-					// No merging of results
-//					$results_temp = array_merge($results_temp, $engine_result);
-
 					// Merge duplicates and apply relevance scoring
 					foreach($engine_result as $result) {
 						if(count($results_temp) > 1 && !is_null($result['hash'])) {
@@ -71,14 +89,22 @@ class TorrentSearch extends EngineRequest {
 				}
 			} else {
 				$request_result = curl_getinfo($request->ch);
-				$http_code_info = ($request_result['http_code'] >= 200 && $request_result['http_code'] <= 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
+				$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
+				$github_issue_url = "https://github.com/adegans/Goosle/discussions/new?category=general&".http_build_query(array("title" => get_class($request)." failed with error ".$request_result['http_code'], "body" => "```\nEngine: ".get_class($request)."\nError Code: ".$request_result['http_code']."\nRequest url: ".$request_result['url']."\n```", "labels" => 'request-error'));
 				
 	            $results['error'][] = array(
-	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."."
+	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."<br /><strong>Need help?</strong> Find <a href=\"https://github.com/adegans/Goosle/discussions\" target=\"_blank\">similar issues</a>, or <a href=\"".$github_issue_url."\" target=\"_blank\">ask your own question</a>."
 	            );
             }
             
             unset($request);
+        }
+
+		// Check for Special result
+        if(count($this->special_request) > 0) {
+            foreach($this->special_request as $source => $highlight) {
+            	$results['special'][$source] = $highlight->get_results();
+            }
         }
 
 		if(count($results_temp) > 0) {
@@ -117,6 +143,59 @@ print_r($results);
 echo '</pre>';
 */
 
+		// Special results
+		if(array_key_exists("special", $results)) {
+			echo "<div class=\"magnet-wrapper\">";
+			if(array_key_exists("yts", $results['special'])) {
+				if($opts->yts_highlight == "date_added") echo "<h2>Latest releases from YTS</h2>";
+				if($opts->yts_highlight == "rating") echo "<h2>Highest rated on YTS</h2>";
+				if($opts->yts_highlight == "download_count") echo "<h2>Most downloaded from YTS</h2>";
+				if($opts->yts_highlight == "seeds") echo "<h2>Most seeded on YTS</h2>";
+				echo "<ol class=\"magnet-grid\">";
+		
+				foreach($results['special']['yts'] as $highlight) {
+					echo "<li class=\"result\">";
+					echo "<div class=\"magnet-box\">";
+					echo "<img src=\"".$highlight['thumbnail']."\" alt=\"".$highlight['name']."\" />";
+			       	echo "<p><strong>Genre:</strong> ".$highlight['category']."<br />";
+			       	echo "<strong>Released:</strong> ".$highlight['year']."<br />";
+			       	echo "<strong>Rating:</strong> ".$highlight['rating']." / 10<br />";
+					echo "<strong>Downloads:</strong> ";
+					foreach($highlight['torrents'] as $torrent) {
+						echo "<a href=\"".$torrent['magnet']."\">".$torrent['quality']." ".$torrent['codec']."</a>";
+					}
+					echo "</p>";
+					echo "</div>";
+					echo "<strong>".$highlight['name']."</strong>";
+					echo "</li>";	
+				}
+				unset($highlight);
+		
+		        echo "</ol>";
+			}
+
+			if(array_key_exists("eztv", $results['special'])) {
+				echo "<h2>Latest releases from EZTV</h2>";
+				echo "<ol class=\"magnet-grid\">";
+		
+				foreach($results['special']['eztv'] as $highlight) {
+					echo "<li class=\"result\">";
+					echo "<div class=\"magnet-box\">";
+					echo "<img src=\"".$highlight['thumbnail']."\" alt=\"".$highlight['name']."\" />";
+			       	echo "<p>".$highlight['quality']."<br />";
+			       	echo "<a href=\"".$highlight['magnet']."\">Download</a></p>";
+					echo "</div>";
+					echo "<strong>".$highlight['name']." S".$highlight['season']."E".$highlight['episode']."</strong>";
+					echo "</li>";	
+				}
+				unset($highlight);
+
+		        echo "</ol>";
+			}
+	        echo "</div>";
+		}
+
+		// Main content
 		if(array_key_exists("search", $results)) {
 			echo "<ol>";
 
@@ -132,11 +211,14 @@ echo '</pre>';
 				// Extra data
 				$meta = array();
 				if(array_key_exists('quality', $result)) $meta[] = "<strong>Quality:</strong> ".$result['quality'];
+				if(array_key_exists('codec', $result)) $meta[] = "<strong>Codec:</strong> ".$result['codec'];
 				if(array_key_exists('year', $result)) $meta[] = "<strong>Year:</strong> ".$result['year'];
 				if(array_key_exists('category', $result)) $meta[] = "<strong>Category:</strong> ".$result['category'];
 				if(array_key_exists('runtime', $result)) $meta[] = "<strong>Runtime:</strong> ".date('H:i', mktime(0, $result['runtime']));
 				if(array_key_exists('date_added', $result)) $meta[] = "<strong>Added on:</strong> ".date('M d, Y', $result['date_added']);
-				if(array_key_exists('url', $result)) $url = " - <a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">torrent page</a>";
+
+				// If available, add the url to the first found torrent result page
+				$url = (array_key_exists('url', $result)) ? " - <a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">torrent page</a>" : "";
 	
 				// Put result together
 				echo "<li class=\"result\"><article>";
@@ -145,7 +227,7 @@ echo '</pre>';
 				if($opts->show_search_source == "on") echo "<div class=\"description\"><strong>Found on:</strong> ".replace_last_comma(implode(", ", $result['combo_source'])).$url."</div>";
 				echo "</article></li>";
 
-				unset($result, $meta);
+				unset($result, $meta, $url);
 			}
 
 			echo "</ol>";

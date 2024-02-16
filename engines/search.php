@@ -13,18 +13,28 @@ class Search extends EngineRequest {
 	protected $requests, $special_request;
 	
 	public function __construct($opts, $mh) {
-		require "engines/search/duckduckgo.php";
-		require "engines/search/google.php";
-		require "engines/search/wikipedia.php";
-		require "engines/search/ecosia.php";
+		$this->requests = array();
 		
-		$this->requests = array(
-			new DuckDuckGoRequest($opts, $mh),
-			new GoogleRequest($opts, $mh),
-			new WikiRequest($opts, $mh),
-			new EcosiaRequest($opts, $mh),
-		);
+		if($opts->enable_duckduckgo == "on") {
+			require ABSPATH."engines/search/duckduckgo.php";
+			$this->requests[] = new DuckDuckGoRequest($opts, $mh);	
+		}
 
+		if($opts->enable_google == "on") {
+			require ABSPATH."engines/search/google.php";
+			$this->requests[] = new GoogleRequest($opts, $mh);	
+		}
+
+		if($opts->enable_wikipedia == "on") {
+			require ABSPATH."engines/search/wikipedia.php";
+			$this->requests[] = new WikiRequest($opts, $mh);	
+		}
+
+		if($opts->enable_ecosia == "on") {
+			require ABSPATH."engines/search/ecosia.php";
+			$this->requests[] = new EcosiaRequest($opts, $mh);	
+		}
+		
 		// Special search
 		$this->special_request = special_search_request($opts);
 	}
@@ -32,7 +42,6 @@ class Search extends EngineRequest {
     public function parse_results($response) {
         $results = array();
 
-		// Merge all results together
         foreach($this->requests as $request) {
 			if($request->request_successful()) {
 				$engine_result = $request->get_results();
@@ -83,9 +92,10 @@ class Search extends EngineRequest {
 			} else {
 				$request_result = curl_getinfo($request->ch);
 				$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
-				
+				$github_issue_url = "https://github.com/adegans/Goosle/discussions/new?category=general&".http_build_query(array("title" => get_class($request)." failed with error ".$request_result['http_code'], "body" => "```\nEngine: ".get_class($request)."\nError Code: ".$request_result['http_code']."\nRequest url: ".$request_result['url']."\n```", "labels" => 'request-error'));
+
 	            $results['error'][] = array(
-	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."."
+	                "message" => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."<br /><strong>Need help?</strong> Find <a href=\"https://github.com/adegans/Goosle/discussions\" target=\"_blank\">similar issues</a>, or <a href=\"".$github_issue_url."\" target=\"_blank\">ask your own question</a>."
 	            );
 			}
 			
@@ -148,20 +158,36 @@ echo '</pre>';
 			search_suggestion($opts, $results);
 
 			// Special results
-			special_search_result($opts, $results);
-
+			if(array_key_exists("special", $results)) {
+				echo "<li class=\"special-result\"><article>";
+				echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
+				echo "<div class=\"text\">".$results['special']['text']."</div>";
+				if(array_key_exists("source", $results['special'])) {
+					echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
+				}
+				echo "</article></li>";
+			}
+		
 			// Search results
 	        foreach($results['search'] as $result) {
+				if($opts->imdb_id_search == "on") {
+					if(stristr($result['url'], "imdb.com") !== false && preg_match_all("/(?:tt[0-9]+)/i", $result['url'], $imdb_result)) {
+						$result['description'] = $result['description']."<br /><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\">magnet links</a>?</strong>";
+					}
+				}
+
 				echo "<li class=\"result rs-".$result['goosle_rank']." id-".$result['id']."\"><article>";
 				echo "<div class=\"url\"><a href=\"".$result['url']."\" target=\"_blank\">".get_formatted_url($result['url'])."</a></div>";
 				echo "<div class=\"title\"><a href=\"".$result['url']."\" target=\"_blank\"><h2>".$result['title']."</h2></a></div>";
 				echo "<div class=\"description\">".$result['description']."</div>";
+
 				if($opts->show_search_source == "on") {
 					echo "<div class=\"engine\">";
 					echo "Found on ".replace_last_comma(implode(", ", $result['combo_source'])).".";
 					if($opts->show_search_rank == "on") echo " [rank: ".$result['goosle_rank']."]";
 					echo "</div>";
 				}
+
 				echo "</article></li>";
 	        }
 

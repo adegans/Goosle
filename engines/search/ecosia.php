@@ -11,7 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class EcosiaRequest extends EngineRequest {
     public function get_request_url() {
-		$args = array("q" => $this->query, "addon" => "opensearch");
+		$args = array("q" => $this->query, "method" => "index", "addon" => "opensearch");
         $url = "https://www.ecosia.org/search/?".http_build_query($args);
 
         return $url;

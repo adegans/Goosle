@@ -11,10 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class YTSRequest extends EngineRequest {
 	public function get_request_url() {
-		$args = array("query_term" => $this->query);
-        $url = "https://yts.mx/api/v2/list_movies.json?".http_build_query($args);
-
-        unset($args);
+        $url = "https://yts.mx/api/v2/list_movies.json?".http_build_query(array("query_term" => $this->query));
 
         return $url;
 	}
@@ -39,7 +36,7 @@ class YTSRequest extends EngineRequest {
 			if(!array_key_exists("url", $movie)) $movie['url'] = '';
 			
 			// Block these categories
-			if(array_intersect($movie['genres'], $this->opts->yts_categories_blocked)) continue;
+			if(count(array_uintersect($movie['genres'], $this->opts->yts_categories_blocked, "strcasecmp")) > 0) continue;
 			
 			$name = sanitize($movie['title']);
 			
@@ -53,8 +50,8 @@ class YTSRequest extends EngineRequest {
 			foreach ($movie['torrents'] as $torrent) {
 				$hash = sanitize($torrent['hash']);
 				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-				$seeders = sanitize_numeric(sanitize($torrent['seeds']));
-				$leechers = sanitize_numeric(sanitize($torrent['peers']));
+				$seeders = sanitize($torrent['seeds']);
+				$leechers = sanitize($torrent['peers']);
 				$size = sanitize($torrent['size']);
 				
 				// Ignore results with 0 seeders?
@@ -62,13 +59,14 @@ class YTSRequest extends EngineRequest {
 				
 				// Get extra data
 				$quality = sanitize($torrent['quality']);
+				$codec = sanitize($torrent['video_codec']);
 				$id = uniqid(rand(0, 9999));
 			
 				$results[] = array (
 					// Required
 					"id" => $id, "source" => "yts.mx", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
 					// Extra
-					"quality" => $quality, "year" => $year, "category" => $category, "runtime" => $runtime, "url" => $url, "date_added" => $date_added
+					"quality" => $quality, "codec" => $codec, "year" => $year, "category" => $category, "runtime" => $runtime, "url" => $url, "date_added" => $date_added
 				);
 			}
 		}

@@ -29,7 +29,7 @@ After-all, finding things should be easy and not turn into a chore.
 - Special searches for; Currency conversion, Dictionary and php.net
 - Randomized user-agents for to prevent profiling by search providers
 - Non-personalized Google results without instant results or other non-sense
-- Optional: Speed up repeat searches with APCu cache if your server has it
+- Optional: Speed up repeat searches with APCu cache if your server has it or a basic file cache
 - Optional: Access key as a basic way to keep your server to yourself
 - Optional: Instant password generator on the start page
 
@@ -57,21 +57,22 @@ Tested to work on Apache with PHP8.0.24-8.2.x.
 1. Unzip the download.
 2. In the main directory. Copy config.default.php to config.php.
 3. Edit config.php file and set your preferences.
-4. Upload all files to your webserver, for example to the root folder of a subdomain (eg. search.example.com) or a sub-folder on your main site (eg. example.com/search/)
+4. Upload all files to your webserver, for example to the root folder of a subdomain (eg. example.com or search.example.com or a sub-folder such as example.com/search/)
 5. Rename goosle.htaccess to .htaccess
-6. Load the site in your browser. If you've enabled the access hash add ?a=YOURHASH to the url.
+6. Load the site in your browser. If you've enabled the access hash add *?a=YOURHASH* to the url.
 7. Let me know where you installed Goosle :-)
 
-## Updates
+## Updating Goosle to a newer version
 1. Unzip the download.
-2. Check your config.php file and go over your preferences. Make sure any new settings or changed values are present in your config.php. (Or reconfigure Goosle with a new copy from config.default.php)
+2. Check your config.php file and compare it to config.default.php. Go over your preferences. Make sure any new settings or changed values are present in your config.php. (Or reconfigure Goosle with a new copy from config.default.php)
 3. Upload all files to your webserver, overwriting all files except perhaps config.php.
 4. Load the site in your browser. If you've enabled the access hash don't forget to add *?a=YOURHASH* to the url.
 5. Enjoy your updated search experience!
 
 ### Notes:
+- If you use file caching you can set up a cron job to execute goosle-cron.php every 12 or 24 hours. Check that file for details and usage examples.
 - The .htaccess file has a redirect to force HTTPS as well as browser caching rules ready to go.
-- The robots.txt has a rule to prevent all crawlers from crawling Goosle. But keep in mind that not every crawler obeys this file.
+- The robots.txt has a rule to tell all crawlers to not crawl Goosle. But keep in mind that not every crawler obeys this file.
 - The access hash is NOT meant as a super secure measure and only works for surface level prying eyes.
 
 Have fun finding things! And tell your friends!
@@ -82,6 +83,21 @@ You can post your questions on Github Discussions or on my support forum on [ajd
 Or say hi on [Mastodon](https://mas.to/@arnan) or [Telegram](https://t.me/arnandegans).
 
 ## Changelog
+1.2.2 - February 16, 2024
+- [new] Individual on/off setting for each search engine and torrent site
+- [new] YTS Highlights for latest releases, highest rated or most downloaded movies
+- [new] EZTV Highlights for latest TV Show episode releases
+- [new] Goosle-cron.php file for if you want to clear the file cache in the background
+- [change] l33tx torrents disabled by default - They use Cloudflare now, preventing the crawler from working reliably
+- [change] Ecosia search disabled by default - They use some kind of bot detector now, preventing the crawler from working once caught
+- [change] Now uses an ABSPATH global for file inclusions and paths
+- [change] More discrete TV Show and Movie result detection in text search
+- [tweak] Filter for eztv search, only include eztv if the search term starts with 'tt' (case insensitive)
+- [tweak] Better ecosia link formatting to (hopefully) not get blocked by their bot detector
+- [tweak] cURL headers to be (even) more browser-like
+- [fix] Variable $url sometimes empty for certain torrent results
+- [fix] Blocked category filter for YTS results now actually works
+
 1.2.1 - January 15, 2024
 - [new] Merge identical downloads (determined by info hash) from different torrent sites that provide hashes
 - [new] Option to cache to flat files instead of APCu, files stored in /cache/ folder

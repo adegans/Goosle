@@ -112,8 +112,8 @@ class LeetxRequest extends EngineRequest {
 			$name = sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a", $result)[1]->textContent);
 			$url = "https://1337x.to".sanitize($xpath->evaluate(".//td[@class='coll-1 name']/a/@href", $result)[1]->textContent);
 			$magnet = "./engines/torrent/magnetize_1337x.php?url=".$url;
-			$seeders = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent));
-			$leechers = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent));
+			$seeders = sanitize($xpath->evaluate(".//td[@class='coll-2 seeds']", $result)[0]->textContent);
+			$leechers = sanitize($xpath->evaluate(".//td[@class='coll-3 leeches']", $result)[0]->textContent);
 			$size_unformatted = explode(" ", sanitize($xpath->evaluate(".//td[contains(@class, 'coll-4 size')]", $result)[0]->textContent));
 			$size = $size_unformatted[0] . " " . preg_replace("/[0-9]+/", "", $size_unformatted[1]);
 			

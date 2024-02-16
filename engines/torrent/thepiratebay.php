@@ -97,8 +97,8 @@ class PirateBayRequest extends EngineRequest {
 			$name = sanitize($response['name']);
 			$hash = sanitize($response['info_hash']);
 			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-			$seeders = sanitize_numeric(sanitize($response['seeders']));
-			$leechers = sanitize_numeric(sanitize($response['leechers']));
+			$seeders = sanitize($response['seeders']);
+			$leechers = sanitize($response['leechers']);
 			$size = sanitize($response['size']);
 			
 			// Ignore results with 0 seeders?

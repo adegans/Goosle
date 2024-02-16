@@ -20,27 +20,50 @@ function verify_hash($opts, $auth) {
 }
 
 /*--------------------------------------
+// Load and make config available, pass around variables
+--------------------------------------*/
+function load_opts() {
+	$opts = require ABSPATH."config.php";
+	
+	// From the url/request	
+	$opts->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : "";
+	$opts->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST['t']) : 0;
+	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
+	
+	// Force a few defaults and safeguards
+	if($opts->cache_type == "file" && !is_dir(ABSPATH.'cache/')) $opts->cache = "off";
+	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache = "off";
+	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
+	if($opts->enable_torrent_search == "off" && $opts->type == 9) $opts->type = 0;
+	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 720 || $opts->cache_time < 1)) $opts->cache_time = 30;
+	if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
+	
+	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
+	if(substr($opts->query, 0, 1) == "!") $opts->query = substr($opts->query, 1);
+	
+	return $opts;
+}
+
+/*--------------------------------------
 // Set curl options
 --------------------------------------*/
 function set_curl_options($curl, $url, $user_agents) {
-	$referer_url = parse_url($url);
-
 	curl_setopt($curl, CURLOPT_URL, $url);
 	curl_setopt($curl, CURLOPT_HTTPGET, 1); // Redundant? Probably...
 	curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
 	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
 	curl_setopt($curl, CURLOPT_USERAGENT, $user_agents[array_rand($user_agents)]);
+	curl_setopt($curl, CURLOPT_ENCODING, "gzip,deflate");
 	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
 	    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 	    'Accept-Language: en-US,en;q=0.5',
+	    'Accept-Encoding: gzip, deflate',
+	    'Connection: keep-alive',
 	    'Upgrade-Insecure-Requests: 1',
 	    'Sec-Fetch-Dest: document',
 		'Sec-Fetch-Mode: navigate',
-		'Sec-Fetch-Site: none',
-		'Referer: '.$referer_url["scheme"].'://'.$referer_url["host"].'/',
+		'Sec-Fetch-Site: none'
 	));
-	curl_setopt($curl, CURLOPT_ENCODING, "gzip,deflate");
-	curl_setopt($curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
 	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 	curl_setopt($curl, CURLOPT_MAXREDIRS, 5);
@@ -83,7 +106,7 @@ function has_cached_results($cache_type, $hash, $url, $ttl) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
 		if(is_file($cache_file)) {
 			if(filemtime($cache_file) >= (time() - $ttl)) {
 				return true;
@@ -100,7 +123,7 @@ function store_cached_results($cache_type, $hash, $url, $results, $ttl) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
 		file_put_contents($cache_file, serialize($results));
 	}
 }
@@ -111,7 +134,7 @@ function fetch_cached_results($cache_type, $hash, $url) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = dirname(__DIR__).'/cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
 		if(is_file($cache_file)) {
 			return unserialize(file_get_contents($cache_file));
 		}
@@ -121,7 +144,7 @@ function fetch_cached_results($cache_type, $hash, $url) {
 }
 
 function delete_cached_results($ttl) {
-	$folder = opendir(dirname(__DIR__).'/cache/');	
+	$folder = opendir(ABSPATH.'cache/');	
 	while($file_name = readdir($folder)) {
 		$extension = pathinfo($file_name, PATHINFO_EXTENSION);
 		if($file_name == "." OR $file_name == ".." OR $extension != "data") continue; 
@@ -142,6 +165,10 @@ function sanitize($variable) {
 		case 'string': 
 			$variable = htmlspecialchars(trim($variable), ENT_QUOTES);
 		break;
+		case 'integer':
+			$variable = preg_replace('/[^0-9]/', '', $variable);
+			if(strlen($variable) == 0) $variable = 0;
+		break;
 		case 'boolean':
 			$variable = ($variable === FALSE) ? 0 : 1;
 		break;
@@ -151,13 +178,6 @@ function sanitize($variable) {
 	}
 
     return $variable;
-}
-
-function sanitize_numeric($variable) {
-	$variable = preg_replace('/[^0-9]/', '', $variable);
-	if(strlen($variable) == 0) $variable = 0;
-
-	return $variable;
 }
 
 /*--------------------------------------
@@ -247,33 +267,6 @@ function search_sources($results) {
 }
 
 /*--------------------------------------
-// Special Search result
---------------------------------------*/
-function special_search_result($opts, $results) {
-	if($opts->imdb_id_search == "on") {
-		$found = false;
-		foreach($results['search'] as $search_result) {
-			if(!$found && preg_match_all("/(imdb.com|tt[0-9]+)/i", $search_result['url'], $imdb_result) && stristr($search_result['title'], "tv series") !== false) {
-				$results['special'] = array(
-					"title" => $search_result['title'], 
-					"text" => "Goosle found an IMDb ID for this TV Show in your results (".$imdb_result[0][1].") - <a href=\"./results.php?q=".$imdb_result[0][1]."&a=".$opts->hash."&t=9\">search for magnet links</a>?<br /><sub>An IMDb ID is detected when a TV Show is present in the results. The first match is highlighted here.</sub>"
-				);
-				$found = true;
-			}
-		}
-	}
-	if(array_key_exists("special", $results)) {
-		echo "<li class=\"special-result\"><article>";
-		echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
-		echo "<div class=\"text\">".$results['special']['text']."</div>";
-		if(array_key_exists("source", $results['special'])) {
-			echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
-		}
-		echo "</article></li>";
-	}
-}
-
-/*--------------------------------------
 // Find and replace the last comma in a string
 --------------------------------------*/
 function replace_last_comma($string) {
@@ -318,11 +311,11 @@ function string_generator() {
 /*--------------------------------------
 // Show version in footer and do periodic update check
 --------------------------------------*/
-function show_version($opts) {
+function show_version() {
 	$cache_file = dirname(__DIR__).'/version.data';
 	
 	// Currently installed version
-	$current_version = "1.2.1";
+	$current_version = "1.2.2";
 
 	if(!is_file($cache_file)){
 		// Create update cache file

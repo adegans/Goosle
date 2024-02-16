@@ -31,8 +31,8 @@ class LimeRequest extends EngineRequest {
 			$hash = explode("/", substr($hash, 0, strpos($hash, ".torrent?")));
 			$hash = $hash[array_key_last($hash)];
 			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-			$seeders = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='tdseed']", $result)[0]->textContent));
-			$leechers = sanitize_numeric(sanitize($xpath->evaluate(".//td[@class='tdleech']", $result)[0]->textContent));
+			$seeders = sanitize($xpath->evaluate(".//td[@class='tdseed']", $result)[0]->textContent);
+			$leechers = sanitize($xpath->evaluate(".//td[@class='tdleech']", $result)[0]->textContent);
 			$size = sanitize($xpath->evaluate(".//td[@class='tdnormal'][2]", $result)[0]->textContent);
 
 			// Ignore results with 0 seeders?

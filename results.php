@@ -1,6 +1,8 @@
 <?php
-require "functions/tools.php";
-require "functions/search_engine.php";
+if(!defined('ABSPATH')) define('ABSPATH', dirname(__FILE__) . '/');
+
+require ABSPATH."functions/tools.php";
+require ABSPATH."functions/search_engine.php";
 
 $opts = load_opts();
 $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
@@ -60,7 +62,7 @@ if(verify_hash($opts, $auth)) {
 
 <div class="footer-wrap">
 	<div class="footer">
-		&copy; <?php echo date('Y'); ?> <?php echo show_version($opts); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
+		&copy; <?php echo date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
 		<span style="float:right;"><a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - Your IP: <?php echo $_SERVER["REMOTE_ADDR"]; ?></span>
 	</div>
 </div>

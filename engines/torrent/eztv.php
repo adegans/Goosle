@@ -16,11 +16,9 @@ class EZTVRequest extends EngineRequest {
 
 		// Is eztvx.to blocked for you? Use one of these urls as an alternative
 		// eztv1.xyz, eztv.wf, eztv.tf, eztv.yt
+        $url = "https://eztvx.to/api/get-torrents?".http_build_query(array("imdb_id" => $query));
 
-		$args = array("imdb_id" => $query);
-        $url = "https://eztvx.to/api/get-torrents?".http_build_query($args);
-
-        unset($query, $args);
+        unset($query);
 
         return $url;
 	}
@@ -36,25 +34,26 @@ class EZTVRequest extends EngineRequest {
 		if($json_response['torrents_count'] == 0) return $results;
 		
 		// Use API result
-		foreach($json_response['torrents'] as $episode) {
-			$name = sanitize($episode['title']);
-			$magnet = sanitize($episode['magnet_url']);
-			$hash = sanitize($episode['hash']);
-			$seeders = sanitize_numeric(sanitize($episode['seeds']));
-			$leechers = sanitize_numeric(sanitize($episode['peers']));
-			$size = sanitize($episode['size_bytes']);
+		foreach($json_response['torrents'] as $result) {
+			$name = sanitize($result['title']);
+			$magnet = sanitize($result['magnet_url']);
+			$hash = sanitize($result['hash']);
+			$seeders = sanitize($result['seeds']);
+			$leechers = sanitize($result['peers']);
+			$size = sanitize($result['size_bytes']);
 			
 			// Ignore results with 0 seeders?
 			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
 			
 			// Get extra data
-			$quality = (preg_match('/(480p|720p|1080p|2160p)/i', $name, $quality)) ? $quality[0] : "Unknown";
-			$date_added = sanitize($episode['date_released_unix']);
+			$quality = (preg_match('/(480p|720p|1080p|2160p)/i', $name, $quality)) ? $quality[0] : "";
+			$codec = (preg_match('/(x264|h264|x265|h265|xvid)/i', $name, $codec)) ? $codec[0] : "";
+			$date_added = sanitize($result['date_released_unix']);
 			
 			// Filter by Season (S01) or Season and Episode (S01E01)
 			// Where [0][0] = Season and [0][1] = Episode
-			$season = sanitize($episode['season']);
-			$episode = sanitize($episode['episode']);
+			$season = sanitize($result['season']);
+			$episode = sanitize($result['episode']);
 			
 			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $filter_episode)) {
 				if(str_ireplace("s0", "", $filter_episode[0][0]) != $season || (array_key_exists(1, $filter_episode[0]) && str_ireplace("e0", "", $filter_episode[0][1]) != $episode)) {
@@ -68,7 +67,7 @@ class EZTVRequest extends EngineRequest {
 				// Required
 				"id" => $id, "source" => "EZTV", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
 				// Extra
-				"quality" => $quality, "date_added" => $date_added
+				"quality" => $quality, "codec" => $codec, "date_added" => $date_added
 			);
 		}
 		unset($json_response);

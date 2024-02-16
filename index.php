@@ -1,6 +1,8 @@
 <?php 
-require "functions/tools.php";
-require "functions/search_engine.php";
+if(!defined('ABSPATH')) define('ABSPATH', dirname(__FILE__) . '/');
+
+require ABSPATH."functions/tools.php";
+require ABSPATH."functions/search_engine.php";
 
 $opts = load_opts();
 $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;

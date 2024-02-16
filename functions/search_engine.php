@@ -89,31 +89,6 @@ abstract class EngineRequest {
 }
 
 /*--------------------------------------
-// Load and make config available, pass around variables
---------------------------------------*/
-function load_opts() {
-	$opts = require "config.php";
-	
-	// From the url/request	
-	$opts->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : "";
-	$opts->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST['t']) : 0;
-	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
-	
-	// Force a few defaults and safeguards
-	if($opts->cache_type == "file" && !is_dir(dirname(__DIR__).'/cache/')) $opts->cache = "off";
-	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache = "off";
-	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
-	if($opts->enable_torrent_search == "off" && $opts->type == 9) $opts->type = 0;
-	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 720 || $opts->cache_time < 1)) $opts->cache_time = 30;
-	if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
-	
-	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
-	if(substr($opts->query, 0, 1) == "!") $opts->query = substr($opts->query, 1);
-	
-	return $opts;
-}
-
-/*--------------------------------------
 // Try to get some search results
 --------------------------------------*/
 function fetch_search_results($opts) {
@@ -127,13 +102,13 @@ function fetch_search_results($opts) {
 
 		// Load search script
 	    if($opts->type == 0) {
-	        require "engines/search.php";
+	        require ABSPATH."engines/search.php";
 	        $search = new Search($opts, $mh);
 		} else if($opts->type == 1) {
-		    require "engines/search-image.php";
+		    require ABSPATH."engines/search-image.php";
 	        $search = new ImageSearch($opts, $mh);
 		} else if($opts->type == 9) {
-		    require "engines/search-torrent.php";
+		    require ABSPATH."engines/search-torrent.php";
 	        $search = new TorrentSearch($opts, $mh);
 	    }
 	
@@ -144,7 +119,7 @@ function fetch_search_results($opts) {
 	    } while ($running);
 	
 	    $results = $search->get_results();
-	
+
 		curl_multi_close($mh);
 	
 		// Add elapsed time to results
@@ -164,25 +139,46 @@ function fetch_search_results($opts) {
 --------------------------------------*/
 function special_search_request($opts) {
 	$special_request = null;
+
     $query_terms = explode(" ", $opts->query);
 	$query_terms[0] = strtolower($query_terms[0]);
 
 	// Currency converter
 	if($opts->special['currency'] == "on" && count($query_terms) == 4 && (is_numeric($query_terms[0]) && ($query_terms[2] == 'to' || $query_terms[2] == 'in'))) {
-        require "engines/special/currency.php";
+        require ABSPATH."engines/special/currency.php";
         $special_request = new CurrencyRequest($opts, null);
 	}
 	
 	// Dictionary
 	if($opts->special['definition'] == "on" && count($query_terms) == 2 && ($query_terms[0] == 'define' || $query_terms[0] == 'd' || $query_terms[0] == 'mean' || $query_terms[0] == 'meaning')) {
-        require "engines/special/definition.php";
+        require ABSPATH."engines/special/definition.php";
         $special_request = new DefinitionRequest($opts, null);
 	}
 
 	// php.net search
 	if($opts->special['phpnet'] == "on" && count($query_terms) == 2 && $query_terms[0] == 'php') {
-        require "engines/special/php.php";
+        require ABSPATH."engines/special/php.php";
         $special_request = new PHPnetRequest($opts, null);
+	}
+	
+	return $special_request;
+}
+
+/*--------------------------------------
+// Process special torrent features
+--------------------------------------*/
+function special_torrent_request($opts, $mh) {
+	$special_request = array();
+
+	// Latest additions to yts
+	if($opts->special['yts'] == "on") {
+        require ABSPATH."engines/special/yts_highlights.php";
+        $special_request['yts'] = new ytshighlights($opts, $mh);
+	}
+
+	if($opts->special['eztv'] == "on") {
+        require ABSPATH."engines/special/eztv_highlights.php";
+        $special_request['eztv'] = new eztvhighlights($opts, $mh);
 	}
 	
 	return $special_request;

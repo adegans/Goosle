@@ -35,8 +35,8 @@ class NyaaRequest extends EngineRequest {
 			$hash = parse_url($magnet, PHP_URL_QUERY);
 			parse_str($hash, $hash_parameters);
 			$hash = str_replace("urn:btih:", "", $hash_parameters['xt']);
-			$seeders = sanitize_numeric(sanitize($meta[3]->textContent));
-			$leechers = sanitize_numeric(sanitize($meta[4]->textContent));
+			$seeders = sanitize($meta[3]->textContent);
+			$leechers = sanitize($meta[4]->textContent);
 			$size =  str_replace("GiB", "GB", str_replace("MiB", "MB", sanitize($meta[1]->textContent)));
 
 			// Ignore results with 0 seeders?
