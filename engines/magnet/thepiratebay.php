@@ -93,10 +93,9 @@ class PirateBayRequest extends EngineRequest {
 			// Nothing found
 			if($response['name'] == "No results returned") break;
 			
-
 			$name = sanitize($response['name']);
-			$hash = sanitize($response['info_hash']);
-			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+			$hash = strtolower(sanitize($response['info_hash']));
+			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
 			$seeders = sanitize($response['seeders']);
 			$leechers = sanitize($response['leechers']);
 			$size = sanitize($response['size']);
@@ -112,13 +111,8 @@ class PirateBayRequest extends EngineRequest {
 			// Block these categories
 			if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
 			
-			// Filter by Season (S01) or Season and Episode (S01E01)
-			// Where [0][0] = Season and [0][1] = Episode
-			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
-				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
-					continue;
-				}
-			}
+			// Filter episodes
+			if(!is_season_or_episode($this->query, $name)) continue;
 			
 			$id = uniqid(rand(0, 9999));
 			

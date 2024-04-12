@@ -108,8 +108,8 @@ function fetch_search_results($opts) {
 		    require ABSPATH."engines/search-image.php";
 	        $search = new ImageSearch($opts, $mh);
 		} else if($opts->type == 9) {
-		    require ABSPATH."engines/search-torrent.php";
-	        $search = new TorrentSearch($opts, $mh);
+		    require ABSPATH."engines/search-magnet.php";
+	        $search = new MagnetSearch($opts, $mh);
 	    }
 	
 	    $running = null;
@@ -165,9 +165,9 @@ function special_search_request($opts) {
 }
 
 /*--------------------------------------
-// Process special torrent features
+// Process special magnet search features
 --------------------------------------*/
-function special_torrent_request($opts, $mh) {
+function special_magnet_request($opts, $mh) {
 	$special_request = array();
 
 	// Latest additions to yts

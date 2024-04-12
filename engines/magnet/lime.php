@@ -29,8 +29,8 @@ class LimeRequest extends EngineRequest {
 			$name = sanitize($xpath->evaluate(".//td[@class='tdleft']//a[2]", $result)[0]->textContent);
 			$hash = sanitize($xpath->evaluate(".//td[@class='tdleft']//a[1]/@href", $result)[0]->textContent);
 			$hash = explode("/", substr($hash, 0, strpos($hash, ".torrent?")));
-			$hash = $hash[array_key_last($hash)];
-			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
+			$hash = strtolower($hash[array_key_last($hash)]);
+			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
 			$seeders = sanitize($xpath->evaluate(".//td[@class='tdseed']", $result)[0]->textContent);
 			$leechers = sanitize($xpath->evaluate(".//td[@class='tdleech']", $result)[0]->textContent);
 			$size = sanitize($xpath->evaluate(".//td[@class='tdnormal'][2]", $result)[0]->textContent);
@@ -43,14 +43,9 @@ class LimeRequest extends EngineRequest {
 			$category = $category[array_key_last($category)];
 			$url = "https://www.limetorrents.lol".sanitize($xpath->evaluate(".//td[@class='tdleft']//a[2]/@href", $result)[0]->textContent);
 			
-			// Filter by Season (S01) or Season and Episode (S01E01)
-			// Where [0][0] = Season and [0][1] = Episode
-			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
-				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
-					continue;
-				}
-			}
-
+			// Filter episodes
+			if(!is_season_or_episode($this->query, $name)) continue;
+			
 			$id = uniqid(rand(0, 9999));
 			
 			$results[] = array (

@@ -25,6 +25,11 @@ class Search extends EngineRequest {
 			$this->requests[] = new GoogleRequest($opts, $mh);	
 		}
 
+		if($opts->enable_reddit == "on") {
+			require ABSPATH."engines/search/reddit.php";
+			$this->requests[] = new RedditRequest($opts, $mh);	
+		}
+
 		if($opts->enable_wikipedia == "on") {
 			require ABSPATH."engines/search/wikipedia.php";
 			$this->requests[] = new WikiRequest($opts, $mh);	

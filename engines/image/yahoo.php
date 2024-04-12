@@ -60,35 +60,47 @@ class YahooImageRequest extends EngineRequest {
         }
 		
 		// Scrape the results
-		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'slotting'))][position() < 101]");
+//		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'slotting'))][position() < 101]");
+		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'ignore'))][position() < 101]");
 		$rank = $results['amount'] = count($scrape);
+
+
         foreach($scrape as $result) {
- 			$image = $xpath->evaluate(".//img/@src", $result)[0];
-            if($image == null) continue;
-
- 			$url_data = $xpath->evaluate(".//a/@href", $result)[0];
-            if($url_data == null) continue;
-
- 			// Get meta data
- 			// -- Relevant $url_data (there is more, but unused by Goosle)
+			$image = $xpath->evaluate(".//img/@src", $result)[0];
+			if($image == null) continue;
+			
+			$url_data = $xpath->evaluate(".//a/@href", $result)[0];
+			if($url_data == null) continue;
+			
+			// Get and prepare meta data
+			// -- Relevant $url_data (there is more, but unused by Goosle)
 			// w = Image width (1280)
 			// h = Image height (720)
 			// imgurl = Actual full size image (Used in Yahoo preview/popup)
 			// rurl = Url to page where the image is used
 			// size = Image size (413.1KB)
 			// tt = Website title (Used for image alt text)
-			parse_str($url_data->textContent, $url_data);
+			foreach(explode("&", strstr($url_data->textContent, '?')) as &$meta) {
+				if(!is_null($meta) || !empty($meta)) {
+					$value = explode("=", trim($meta));
+
+					if(!empty($value[0]) && !empty($value[1])) {
+						$usable_data[$value[0]] = urldecode($value[1]);
+					}
+				}
+				unset($meta, $value);
+			}
 
 			// Deal with optional or missing data
-			$dimensions_w = (!array_key_exists('w', $url_data) || empty($url_data['w'])) ? "" : htmlspecialchars($url_data['w']);
-			$dimensions_h = (!array_key_exists('h', $url_data) || empty($url_data['h'])) ? "" : htmlspecialchars($url_data['h']);
-			$filesize = (!array_key_exists('size', $url_data) || empty($url_data['size'])) ? "" : htmlspecialchars($url_data['size']);
-			$link = (!array_key_exists('imgurl', $url_data) || empty($url_data['imgurl'])) ? "" : "//".htmlspecialchars($url_data['imgurl']);
+			$dimensions_w = (!array_key_exists('w', $usable_data)) ? "" : htmlspecialchars($usable_data['w']);
+			$dimensions_h = (!array_key_exists('h', $usable_data)) ? "" : htmlspecialchars($usable_data['h']);
+			$link = (!array_key_exists('imgurl', $usable_data)) ? "" : "//".htmlspecialchars($usable_data['imgurl']);
+			$url = (!array_key_exists('rurl', $usable_data)) ? "" : htmlspecialchars($usable_data['rurl']);
+			$filesize = (!array_key_exists('size', $usable_data)) ? "" : htmlspecialchars($usable_data['size']);
+			$alt = (!array_key_exists('tt', $usable_data)) ? "" : htmlspecialchars($usable_data['tt']);
 
 			// Process result
 			$image = htmlspecialchars($image->textContent);
-			$url = htmlspecialchars($url_data['rurl']);
-			$alt = htmlspecialchars($url_data['tt']);
 
 			// filter duplicate urls/results
             if(!empty($results['search'])) {
@@ -100,6 +112,7 @@ class YahooImageRequest extends EngineRequest {
 
 			$results['search'][] = array ("id" => $id, "source" => "Yahoo! Images", "image" => $image, "alt" => $alt, "url" => $url, "width" => $dimensions_w, "height" => $dimensions_h, "filesize" => $filesize, "direct_link" => $link, "engine_rank" => $rank);
 			$rank -= 1;
+			unset($url_data, $usable_data, $dimensions_w, $dimensions_h, $filesize, $link, $url, $alt, $image);
 		}
 		unset($response, $xpath, $scrape, $rank);
 

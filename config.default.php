@@ -44,8 +44,8 @@ CACHE_TIME:
 ENABLE IMAGE SEARCH:
 	Enable or disable image searches - Search results are provided by Yahoo! Images.
 
-ENABLE TORRENT SEARCH:
-	Enable or disable searching for torrent downloads.
+ENABLE MAGNET SEARCH:
+	Enable or disable searching for magnet links on torrent websites.
 
 ENABLE SEARCH ENGINES:
 	Enable or disable search engines.
@@ -99,11 +99,11 @@ YTS HIGHLIGHT:
 	"download_count" = Most downloaded movies.
 
 BLOCK 1337x CATEGORIES:
-	Add category IDs of 1337x categories, check /engines/torrent/1337x.php for a list of known categories.
+	Add category IDs of 1337x categories, check /engines/magnet/1337x.php for a list of known categories.
 	Accepts a basic numeric array, comma separated.
 
 BLOCK PIRATEBAY CATEGORIES:
-	Add category IDs of Pirate Bay categories, check /engines/torrent/thepiratebay.php for a list of known categories.
+	Add category IDs of Pirate Bay categories, check /engines/magnet/thepiratebay.php for a list of known categories.
 	Accepts a basic numeric array, comma separated.
 
 BLOCK YTS CATEGORIES:
@@ -123,7 +123,7 @@ USER AGENTS:
 	Opera/Edge/Brave and many others use Chrome under the hood and are not a good pick for that reason.
 	Mobile agents may work, but some services like Wikipedia are a bit picky when it comes to answering API calls. Mobile users generally do not use APIs, so they may block your search.
 
-TORRENT TRACKERS:
+MAGNET TRACKERS:
 	Only used for The Pirate Bay, LimeTorrents and YTS.
 	Generally you do not need to change these.
 	These are added to the magnet links Goosle creates. You can add more or replace the existing ones if you know what you're doing.
@@ -138,9 +138,10 @@ return (object) array(
     "cache_time" => 30, // Default: 30 (Minutes)
 
     "enable_image_search" => "on", // Default: on
-    "enable_torrent_search" => "on", // Default: on
+    "enable_magnet_search" => "on", // Default: on
     "enable_duckduckgo" => "on", // Default: on
     "enable_google" => "on", // Default: on
+    "enable_reddit" => "on", // Default: on
     "enable_wikipedia" => "on", // Default: on
     "enable_ecosia" => "off", // Default: on	
     	// Site uses some kind of bot detector preventing crawler from working reliably since Feb 1, 2024, remove support in future release?)
@@ -148,6 +149,7 @@ return (object) array(
     "enable_limetorrents" => "on", // Default: on
     "enable_piratebay" => "on", // Default: on
     "enable_yts" => "on", // Default: on
+    "enable_magnetdl" => "on", // Default: on	
     "enable_nyaa" => "on", // Default: on	
     "enable_eztv" => "on", // Default: on
     "enable_l33tx" => "off", // Default: off
@@ -156,6 +158,7 @@ return (object) array(
     "duckduckgo_language" => "uk-en", // Default: uk-en (United Kingdom)
     "wikipedia_language" => "en", // Default: en (English)
     "social_media_relevance" => 8, // Default: 8
+    "show_reddit_nsfw" => "on", // Default: on
     "show_search_source" => "on", // Default: on
     "show_search_rank" => "off", // Default: off
 	"imdb_id_search" => "off", // Default: off
@@ -182,7 +185,7 @@ return (object) array(
 		"Mozilla/5.0 (X11; Linux i686) Gecko/20100101 Firefox/119.0", // Linux Generic, Firefox 119
 	),
 
-    "torrent_trackers" => array(
+    "magnet_trackers" => array(
     	"http://nyaa.tracker.wf:7777/announce", 
 		"http://tracker.openbittorrent.com:80/announce",
     	"udp://tracker.opentrackr.org:1337/announce", 

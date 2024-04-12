@@ -26,12 +26,12 @@ class eztvhighlights extends EngineRequest {
 		if($json_response['torrents_count'] == 0) return $results;
 		
 		// Use API result
-		foreach($json_response['torrents'] as $highlight) {
-			$name = sanitize($highlight['title']);
-			$thumbnail = sanitize($highlight['small_screenshot']);
-			$season = sanitize($highlight['season']);
-			$episode = sanitize($highlight['episode']);
-			$highlight = sanitize($highlight['magnet_url']);
+		foreach($json_response['torrents'] as $result) {
+			$name = sanitize($result['title']);
+			$thumbnail = sanitize($result['small_screenshot']);
+			$season = sanitize($result['season']);
+			$episode = sanitize($result['episode']);
+			$magnet_link = sanitize($result['magnet_url']);
 			$quality = (preg_match('/(480p|720p|1080p|2160p)/i', $name, $quality)) ? $quality[0] : "";
 			$codec = (preg_match('/(x264|h264|x265|h265|xvid)/i', $name, $codec)) ? $codec[0] : "";
 
@@ -42,10 +42,10 @@ class eztvhighlights extends EngineRequest {
 			if(!empty($codec)) $quality = $quality." ".$codec;
 
 			$results[] = array (
-				"name" => $name, "thumbnail" => $thumbnail, "season" => $season, "episode" => $episode, "magnet" => $highlight, "quality" => $quality
+				"name" => $name, "thumbnail" => $thumbnail, "season" => $season, "episode" => $episode, "magnet_link" => $magnet_link, "quality" => $quality
 			);
 
-			unset($highlight, $name, $clean_name, $thumbnail, $season, $episode, $highlight, $quality, $codec);
+			unset($result, $name, $clean_name, $thumbnail, $season, $episode, $magnet_link, $quality, $codec);
 		}
 		unset($json_response);
 

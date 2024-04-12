@@ -46,10 +46,10 @@ if(verify_hash($opts, $auth)) {
 	        <div class="navigation-header">
 		        <a <?php echo ($opts->type == "0") ? "class=\"active\" " : ""; ?> href="./results.php?q=<?php echo urlencode($opts->query); ?>&a=<?php echo $opts->hash; ?>&t=0"><img src="assets/images/search.png" alt="Search results" />Search</a>
 		        <?php if($opts->enable_image_search == "on") { ?>
-		        <a <?php echo ($opts->type == "1") ? "class=\"active\" " : ""; ?> href="./results.php?q=<?php echo urlencode($opts->query); ?>&a=<?php echo $opts->hash; ?>&t=1"><img src="assets/images/image.png" alt="Image results" />Image</a>
+		        <a <?php echo ($opts->type == "1") ? "class=\"active\" " : ""; ?> href="./results.php?q=<?php echo urlencode($opts->query); ?>&a=<?php echo $opts->hash; ?>&t=1"><img src="assets/images/image.png" alt="Image results" />Images</a>
 		        <?php } ?>
-		        <?php if($opts->enable_torrent_search == "on") { ?>
-		        <a <?php echo ($opts->type == "9") ? "class=\"active\" " : ""; ?> href="./results.php?q=<?php echo urlencode($opts->query); ?>&a=<?php echo $opts->hash; ?>&t=9"><img src="assets/images/torrent.png" alt="Torrent results" />Torrent</a>
+		        <?php if($opts->enable_magnet_search == "on") { ?>
+		        <a <?php echo ($opts->type == "9") ? "class=\"active\" " : ""; ?> href="./results.php?q=<?php echo urlencode($opts->query); ?>&a=<?php echo $opts->hash; ?>&t=9"><img src="assets/images/magnet.png" alt="Magnet results" />Magnet links</a>
 		        <?php } ?>
 	       </div>
 		</form>

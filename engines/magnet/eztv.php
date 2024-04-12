@@ -37,7 +37,7 @@ class EZTVRequest extends EngineRequest {
 		foreach($json_response['torrents'] as $result) {
 			$name = sanitize($result['title']);
 			$magnet = sanitize($result['magnet_url']);
-			$hash = sanitize($result['hash']);
+			$hash = strtolower(sanitize($result['hash']));
 			$seeders = sanitize($result['seeds']);
 			$leechers = sanitize($result['peers']);
 			$size = sanitize($result['size_bytes']);

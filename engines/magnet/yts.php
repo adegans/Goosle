@@ -28,38 +28,38 @@ class YTSRequest extends EngineRequest {
 		if($json_response['status'] != "ok" || $json_response['data']['movie_count'] == 0) return $results;
 		
 		// Use API result
-		foreach ($json_response['data']['movies'] as $movie) {
+		foreach ($json_response['data']['movies'] as $result) {
 			// Prevent gaps
-			if(!array_key_exists("year", $movie)) $movie['year'] = 0;
-			if(!array_key_exists("genres", $movie)) $movie['genres'] = array();
-			if(!array_key_exists("runtime", $movie)) $movie['runtime'] = 0;
-			if(!array_key_exists("url", $movie)) $movie['url'] = '';
+			if(!array_key_exists("year", $result)) $result['year'] = 0;
+			if(!array_key_exists("genres", $result)) $result['genres'] = array();
+			if(!array_key_exists("runtime", $result)) $result['runtime'] = 0;
+			if(!array_key_exists("url", $result)) $result['url'] = '';
 			
 			// Block these categories
-			if(count(array_uintersect($movie['genres'], $this->opts->yts_categories_blocked, "strcasecmp")) > 0) continue;
+			if(count(array_uintersect($result['genres'], $this->opts->yts_categories_blocked, "strcasecmp")) > 0) continue;
 			
-			$name = sanitize($movie['title']);
+			$name = sanitize($result['title']);
 			
 			// Get extra data
-			$year = sanitize($movie['year']);
-			$category = sanitize(implode(', ', $movie['genres']));
-			$runtime = sanitize($movie['runtime']);
-			$url = sanitize($movie['url']);
-			$date_added = sanitize($movie['date_uploaded_unix']);
+			$year = sanitize($result['year']);
+			$category = sanitize(implode(', ', $result['genres']));
+			$runtime = sanitize($result['runtime']);
+			$url = sanitize($result['url']);
+			$date_added = sanitize($result['date_uploaded_unix']);
 
-			foreach ($movie['torrents'] as $torrent) {
-				$hash = sanitize($torrent['hash']);
-				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-				$seeders = sanitize($torrent['seeds']);
-				$leechers = sanitize($torrent['peers']);
-				$size = sanitize($torrent['size']);
+			foreach ($result['torrents'] as $download) {
+				$hash = strtolower(sanitize($download['hash']));
+				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
+				$seeders = sanitize($download['seeds']);
+				$leechers = sanitize($download['peers']);
+				$size = sanitize($download['size']);
 				
 				// Ignore results with 0 seeders?
 				if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
 				
 				// Get extra data
-				$quality = sanitize($torrent['quality']);
-				$codec = sanitize($torrent['video_codec']);
+				$quality = sanitize($download['quality']);
+				$codec = sanitize($download['video_codec']);
 				$id = uniqid(rand(0, 9999));
 			
 				$results[] = array (

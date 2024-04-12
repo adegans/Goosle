@@ -9,46 +9,51 @@
 *  By using this code you agree to indemnify Arnan de Gans from any 
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
-class TorrentSearch extends EngineRequest {
+class MagnetSearch extends EngineRequest {
 	protected $requests, $special_request;
 	
 	public function __construct($opts, $mh) {
 		$this->requests = array();
 
 		if($opts->enable_limetorrents == "on") {
-			require ABSPATH."engines/torrent/lime.php";
+			require ABSPATH."engines/magnet/lime.php";
 			$this->requests[] = new LimeRequest($opts, $mh);
 		}
 
 		if($opts->enable_piratebay == "on") {
-			require ABSPATH."engines/torrent/thepiratebay.php";
+			require ABSPATH."engines/magnet/thepiratebay.php";
 			$this->requests[] = new PirateBayRequest($opts, $mh);
 		}
 
 		if($opts->enable_yts == "on") {
-			require ABSPATH."engines/torrent/yts.php";
+			require ABSPATH."engines/magnet/yts.php";
 			$this->requests[] = new YTSRequest($opts, $mh);
 		}
 
+		if($opts->enable_magnetdl == "on") {
+			require ABSPATH."engines/magnet/magnetdl.php";
+			$this->requests[] = new MagnetDLRequest($opts, $mh);
+		}
+
 		if($opts->enable_nyaa == "on") {
-			require ABSPATH."engines/torrent/nyaa.php";
+			require ABSPATH."engines/magnet/nyaa.php";
 			$this->requests[] = new NyaaRequest($opts, $mh);
 		}
 
 		if($opts->enable_eztv == "on") {
 			if(substr(strtolower($opts->query), 0, 2) == "tt") {
-				require ABSPATH."engines/torrent/eztv.php";
+				require ABSPATH."engines/magnet/eztv.php";
 				$this->requests[] = new EZTVRequest($opts, $mh);
 			}
 		}
 
 		if($opts->enable_l33tx == "on") {
-			require ABSPATH."engines/torrent/1337x.php";
+			require ABSPATH."engines/magnet/1337x.php";
 			$this->requests[] = new LeetxRequest($opts, $mh);
 		}
 		
 		// Special search
-		$this->special_request = special_torrent_request($opts, $mh);
+		$this->special_request = special_magnet_request($opts, $mh);
 	}
 
     public function parse_results($response) {
@@ -63,28 +68,28 @@ class TorrentSearch extends EngineRequest {
 					foreach($engine_result as $result) {
 						if(count($results_temp) > 1 && !is_null($result['hash'])) {
 							$result_urls = array_column($results_temp, "hash", "id");
-							$found_key = array_search($result['hash'], $result_urls);
+							$found_id = array_search($result['hash'], $result_urls);
 						} else {
-							$found_key = false;
+							$found_id = false;
 						}
 
-						if($found_key !== false) {
+						if($found_id !== false) {
 							// Duplicate result from another source
-							// If seeders and/or leechers mismatch, assume they're different users
-							if($results_temp[$found_key]['seeders'] != $result['seeders']) $results_temp[$found_key]['combo_seeders'] += $result['seeders'];
-							if($results_temp[$found_key]['leechers'] != $result['leechers']) $results_temp[$found_key]['combo_leechers'] += $result['leechers'];
+							// If seeders and/or leechers mismatch, assume they're different peers
+							if($results_temp[$found_id]['seeders'] != $result['seeders']) $results_temp[$found_id]['combo_seeders'] += intval($result['seeders']);
+							if($results_temp[$found_id]['leechers'] != $result['leechers']) $results_temp[$found_id]['combo_leechers'] += intval($result['leechers']);
 
-							$results_temp[$found_key]['combo_source'][] = $result['source'];
+							$results_temp[$found_id]['combo_source'][] = $result['source'];
 						} else {
-							// First find, rank and add to results
-							$result['combo_seeders'] = $result['seeders'];
-							$result['combo_leechers'] = $result['leechers'];
+							// First find - rank and add to results
+							$result['combo_seeders'] = intval($result['seeders']);
+							$result['combo_leechers'] = intval($result['leechers']);
 							$result['combo_source'][] = $result['source'];
 
 							$results_temp[$result['id']] = $result;
 						}
 
-						unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+						unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 					}
 				}
 			} else {
@@ -154,19 +159,19 @@ echo '</pre>';
 				echo "<ol class=\"magnet-grid\">";
 		
 				foreach($results['special']['yts'] as $highlight) {
-					echo "<li class=\"result\">";
+					echo "<li class=\"result yts\">";
 					echo "<div class=\"magnet-box\">";
 					echo "<img src=\"".$highlight['thumbnail']."\" alt=\"".$highlight['name']."\" />";
 			       	echo "<p><strong>Genre:</strong> ".$highlight['category']."<br />";
 			       	echo "<strong>Released:</strong> ".$highlight['year']."<br />";
 			       	echo "<strong>Rating:</strong> ".$highlight['rating']." / 10<br />";
 					echo "<strong>Downloads:</strong> ";
-					foreach($highlight['torrents'] as $torrent) {
-						echo "<a href=\"".$torrent['magnet']."\">".$torrent['quality']." ".$torrent['codec']."</a>";
+					foreach($highlight['magnet_links'] as $magnet) {
+						echo "<a href=\"".$magnet['magnet']."\">".$magnet['quality']." ".$magnet['codec']."</a>";
 					}
 					echo "</p>";
 					echo "</div>";
-					echo "<strong>".$highlight['name']."</strong>";
+					echo "<strong><center><a href=\"".$highlight['url']."\" target=\"_blank\">".$highlight['name']."</a></center></strong>";
 					echo "</li>";	
 				}
 				unset($highlight);
@@ -179,11 +184,15 @@ echo '</pre>';
 				echo "<ol class=\"magnet-grid\">";
 		
 				foreach($results['special']['eztv'] as $highlight) {
-					echo "<li class=\"result\">";
+					echo "<li class=\"result eztv\">";
 					echo "<div class=\"magnet-box\">";
-					echo "<img src=\"".$highlight['thumbnail']."\" alt=\"".$highlight['name']."\" />";
+					if(!empty($highlight['thumbnail'])) {
+						echo "<img src=\"".$highlight['thumbnail']."\" alt=\"".$highlight['name']."\" />";
+					} else {
+						echo "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mOUX3LxDAAE4AJiVKIoaQAAAABJRU5ErkJggg==\" style=\"max-height: 80px;\">";
+					}
 			       	echo "<p>".$highlight['quality']."<br />";
-			       	echo "<a href=\"".$highlight['magnet']."\">Download</a></p>";
+			       	echo "<a href=\"".$highlight['magnet_link']."\">Download</a></p>";
 					echo "</div>";
 					echo "<strong>".$highlight['name']." S".$highlight['season']."E".$highlight['episode']."</strong>";
 					echo "</li>";	
@@ -217,7 +226,7 @@ echo '</pre>';
 				if(array_key_exists('runtime', $result)) $meta[] = "<strong>Runtime:</strong> ".date('H:i', mktime(0, $result['runtime']));
 				if(array_key_exists('date_added', $result)) $meta[] = "<strong>Added on:</strong> ".date('M d, Y', $result['date_added']);
 
-				// If available, add the url to the first found torrent result page
+				// If available, add the url to the first found torrent page
 				$url = (array_key_exists('url', $result)) ? " - <a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">torrent page</a>" : "";
 	
 				// Put result together

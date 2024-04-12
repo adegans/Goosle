@@ -34,7 +34,7 @@ function load_opts() {
 	if($opts->cache_type == "file" && !is_dir(ABSPATH.'cache/')) $opts->cache = "off";
 	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache = "off";
 	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
-	if($opts->enable_torrent_search == "off" && $opts->type == 9) $opts->type = 0;
+	if($opts->enable_magnet_search == "off" && $opts->type == 9) $opts->type = 0;
 	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 720 || $opts->cache_time < 1)) $opts->cache_time = 30;
 	if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
 	
@@ -200,11 +200,35 @@ function match_count($string, $query) {
 }
 
 /*--------------------------------------
+// Detect Season and Episodes in results
+--------------------------------------*/
+function is_season_or_episode($search_query, $result_name) {
+	$search_query = strtolower($search_query);
+	$result_name = strtolower($result_name);
+	
+	// Filter by Season (S01) or Season and Episode (S01E01)
+	// Where [0][0] = Season and [0][1] = Episode
+	if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/", $search_query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/", $result_name, $result_episode)) {
+		if($query_episode[0][0] != $result_episode[0][0] 
+			|| (array_key_exists(1, $query_episode[0]) 
+				&& array_key_exists(1, $result_episode[0]) 
+				&& $query_episode[0][1] != $result_episode[0][1]
+			)
+		) {
+			return false;
+		}
+	}
+
+    return true;
+}
+
+/*--------------------------------------
 // Detect social media results
 --------------------------------------*/
 function is_social_media($string) {
 	$string = strtolower($string);
 	
+	// Borrowed from https://github.com/lorey/social-media-profiles-regexs
 	if(preg_match("/(?:https?:)?\/\/(?:www\.)?(?:facebook|fb)\.com\/(?P<profile>(?![A-z]+\.php)(?!marketplace|gaming|watch|me|messages|help|search|groups)[A-z0-9_\-\.]+)\/?/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/(?P<username>[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?P<username>[A-z0-9_]+)\/status\/(?P<tweet_id>[0-9]+)\/?/", $string)
@@ -282,7 +306,7 @@ function replace_last_comma($string) {
 // Human readable file sizes
 --------------------------------------*/
 function human_filesize($bytes, $dec = 2) {
-    $size   = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
+    $size = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
     $factor = floor((strlen($bytes) - 1) / 3);
 
     return sprintf("%.{$dec}f ", $bytes / pow(1024, $factor)) . @$size[$factor];
@@ -296,7 +320,7 @@ function string_generator() {
     $password = array();
     $length = strlen($characters) - 1;
 
-    for ($i = 0; $i < 24; $i++) {
+    for($i = 0; $i < 24; $i++) {
         $n = rand(0, $length);
         $password[] = $characters[$n];
     }
@@ -315,7 +339,10 @@ function show_version() {
 	$cache_file = dirname(__DIR__).'/version.data';
 	
 	// Currently installed version
-	$current_version = "1.2.2";
+	$current_version = "1.3";
+
+	// Format current version for footer
+	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$current_version."</a>.";
 
 	if(!is_file($cache_file)){
 		// Create update cache file
@@ -342,9 +369,6 @@ function show_version() {
 		$version = array('latest' => $json_response['tag_name'], "checked" => time(), "url" => $json_response['html_url']);
 		file_put_contents($cache_file, serialize($version));
 	}
-
-	// Format version for footer
-	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$current_version."</a>.";
 
 	// Check if a newer version is available and add it to the version display
 	if(version_compare($current_version, $version['latest'], "<")) {

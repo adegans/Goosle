@@ -44,12 +44,12 @@ if(verify_hash($opts, $auth)) {
 	        <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>
 	
 	        <div class="search-box-buttons">
-		        <button tabindex="20" name="t" value="0" type="submit">Search</button>
+		        <button tabindex="20" name="t" value="0" type="submit">Web search</button>
 		        <?php if($opts->enable_image_search == "on") { ?>
-		        <button tabindex="40" name="t" value="1" type="submit">Image</button>
+		        <button tabindex="40" name="t" value="1" type="submit">Image search</button>
 		        <?php } ?>
-		        <?php if($opts->enable_torrent_search == "on") { ?>
-		        <button tabindex="50" name="t" value="9" type="submit">Torrent</button>
+		        <?php if($opts->enable_magnet_search == "on") { ?>
+		        <button tabindex="50" name="t" value="9" type="submit">Magnet search</button>
 		        <?php } ?>
 	        </div>
 	

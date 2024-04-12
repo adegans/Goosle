@@ -16,7 +16,7 @@ class ytshighlights extends EngineRequest {
     }
     
     public function parse_results($response) {
-		$results = $torrents = array();
+		$results = array();
 		$response = curl_multi_getcontent($this->ch);
 		$json_response = json_decode($response, true);
 		
@@ -27,36 +27,37 @@ class ytshighlights extends EngineRequest {
 		if($json_response['status'] != "ok" || $json_response['data']['movie_count'] == 0) return $results;
 		
 		// Use API result
-		foreach ($json_response['data']['movies'] as $highlight) {
+		foreach ($json_response['data']['movies'] as $result) {
 			// Prevent gaps
-			if(!array_key_exists("year", $highlight)) $highlight['year'] = "0000";
-			if(!array_key_exists("genres", $highlight)) $highlight['genres'] = array();
-			if(!array_key_exists("rating", $highlight)) $highlight['rating'] = "0";
+			if(!array_key_exists("year", $result)) $result['year'] = "0000";
+			if(!array_key_exists("genres", $result)) $result['genres'] = array();
+			if(!array_key_exists("rating", $result)) $result['rating'] = "0";
 
 			// Block these categories
-			if(count(array_uintersect($highlight['genres'], $this->opts->yts_categories_blocked, "strcasecmp")) > 0) continue;
+			if(count(array_uintersect($result['genres'], $this->opts->yts_categories_blocked, "strcasecmp")) > 0) continue;
 			
-			$name = sanitize($highlight['title']);
-			$thumbnail = sanitize($highlight['medium_cover_image']);
-			$year = sanitize($highlight['year']);
-			$category = sanitize(implode(', ', array_slice($highlight['genres'], 0, 2)));
-			$rating = sanitize($highlight['rating']);
+			$name = sanitize($result['title']);
+			$thumbnail = sanitize($result['medium_cover_image']);
+			$year = sanitize($result['year']);
+			$category = sanitize(implode(', ', array_slice($result['genres'], 0, 2)));
+			$url = sanitize($result['url']);
+			$rating = sanitize($result['rating']);
 
-			foreach($highlight['torrents'] as $torrent) {
-				$hash = sanitize($torrent['hash']);
-				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->torrent_trackers);
-				$quality = sanitize($torrent['quality']);
-				$codec = sanitize($torrent['video_codec']);
+			foreach($result['torrents'] as $download) {
+				$hash = sanitize($download['hash']);
+				$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
+				$quality = sanitize($download['quality']);
+				$codec = sanitize($download['video_codec']);
 			
-				$torrents[] = array (
+				$downloads[] = array (
 					"magnet" => $magnet, "quality" => $quality, "codec" => $codec
 				);
 			}
 
 			$results[] = array (
-				"name" => $name, "thumbnail" => $thumbnail, "year" => $year, "category" => $category, "rating" => $rating, 'torrents' => $torrents
+				"name" => $name, "thumbnail" => $thumbnail, "year" => $year, "category" => $category, "rating" => $rating, "magnet_links" => $downloads, "url" => $url
 			);
-			unset($highlight, $name, $thumbnail, $year, $category, $rating, $hash, $magnet, $quality, $codec, $torrents);
+			unset($result, $name, $thumbnail, $year, $category, $rating, $hash, $download, $quality, $codec, $downloads, $url);
 		}
 		unset($json_response);
 

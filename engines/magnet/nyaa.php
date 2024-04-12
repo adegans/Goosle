@@ -34,7 +34,7 @@ class NyaaRequest extends EngineRequest {
 			$magnet = sanitize($xpath->evaluate(".//a[2]/@href", $meta[0])[0]->textContent);
 			$hash = parse_url($magnet, PHP_URL_QUERY);
 			parse_str($hash, $hash_parameters);
-			$hash = str_replace("urn:btih:", "", $hash_parameters['xt']);
+			$hash = strtolower(str_replace("urn:btih:", "", $hash_parameters['xt']));
 			$seeders = sanitize($meta[3]->textContent);
 			$leechers = sanitize($meta[4]->textContent);
 			$size =  str_replace("GiB", "GB", str_replace("MiB", "MB", sanitize($meta[1]->textContent)));
@@ -50,13 +50,8 @@ class NyaaRequest extends EngineRequest {
 			$date_added = explode("-", substr($date_added, 0, 10));
 			$date_added = mktime(0, 0, 0, intval($date_added[1]), intval($date_added[2]), intval($date_added[0]));
 			
-			// Filter by Season (S01) or Season and Episode (S01E01)
-			// Where [0][0] = Season and [0][1] = Episode
-			if(preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $this->query, $query_episode) && preg_match_all("/(S[0-9]{1,3})|(E[0-9]{1,3})/i", $name, $match_episode)) {
-				if($query_episode[0][0] != $match_episode[0][0] || (array_key_exists(1, $query_episode[0]) && array_key_exists(1, $match_episode[0]) && $query_episode[0][1] != $match_episode[0][1])) {
-					continue;
-				}
-			}
+			// Filter episodes
+			if(!is_season_or_episode($this->query, $name)) continue;
 			
 			$id = uniqid(rand(0, 9999));
 			
