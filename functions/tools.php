@@ -315,7 +315,7 @@ function show_version() {
 	$cache_file = ABSPATH.'cache/version.data';
 	
 	// Currently installed version
-	$current_version = "1.4b3";
+	$current_version = "1.4";
 
 	// Format current version for footer
 	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$current_version."</a>.";
