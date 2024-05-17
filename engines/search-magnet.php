@@ -30,11 +30,6 @@ class MagnetSearch extends EngineRequest {
 			$this->requests[] = new YTSRequest($opts, $mh);
 		}
 
-		if($opts->enable_magnetdl == "on") {
-			require ABSPATH."engines/magnet/magnetdl.php";
-			$this->requests[] = new MagnetDLRequest($opts, $mh);
-		}
-
 		if($opts->enable_nyaa == "on") {
 			require ABSPATH."engines/magnet/nyaa.php";
 			$this->requests[] = new NyaaRequest($opts, $mh);
@@ -45,11 +40,6 @@ class MagnetSearch extends EngineRequest {
 				require ABSPATH."engines/magnet/eztv.php";
 				$this->requests[] = new EZTVRequest($opts, $mh);
 			}
-		}
-
-		if($opts->enable_l33tx == "on") {
-			require ABSPATH."engines/magnet/1337x.php";
-			$this->requests[] = new LeetxRequest($opts, $mh);
 		}
 		
 		// Special search
@@ -81,7 +71,7 @@ class MagnetSearch extends EngineRequest {
 
 							$results_temp[$found_id]['combo_source'][] = $result['source'];
 						} else {
-							// First find - rank and add to results
+							// First find - rank (by combo_seeders instead of internal ranking) and add to results
 							$result['combo_seeders'] = intval($result['seeders']);
 							$result['combo_leechers'] = intval($result['leechers']);
 							$result['combo_source'][] = $result['source'];
@@ -121,8 +111,7 @@ class MagnetSearch extends EngineRequest {
 			$results['search'] = array_slice($results_temp, 0, 50);
 
 			// Count results per source
-			$sources = array_count_values(array_column($results['search'], 'source'));
-			if(count($sources) > 0) $results['sources'] = $sources;
+			$results['sources'] = array_count_values(array_column($results['search'], 'source'));
 
 			unset($sources);
 		} else {
@@ -150,13 +139,13 @@ echo '</pre>';
 
 		// Special results
 		if(array_key_exists("special", $results)) {
-			echo "<div class=\"magnet-wrapper\">";
+			echo "<div class=\"magnet-grid\">";
 			if(array_key_exists("yts", $results['special'])) {
 				if($opts->yts_highlight == "date_added") echo "<h2>Latest releases from YTS</h2>";
 				if($opts->yts_highlight == "rating") echo "<h2>Highest rated on YTS</h2>";
 				if($opts->yts_highlight == "download_count") echo "<h2>Most downloaded from YTS</h2>";
 				if($opts->yts_highlight == "seeds") echo "<h2>Most seeded on YTS</h2>";
-				echo "<ol class=\"magnet-grid\">";
+				echo "<ol>";
 		
 				foreach($results['special']['yts'] as $highlight) {
 					echo "<li class=\"result yts\">";
@@ -181,7 +170,7 @@ echo '</pre>';
 
 			if(array_key_exists("eztv", $results['special'])) {
 				echo "<h2>Latest releases from EZTV</h2>";
-				echo "<ol class=\"magnet-grid\">";
+				echo "<ol>";
 		
 				foreach($results['special']['eztv'] as $highlight) {
 					echo "<li class=\"result eztv\">";
@@ -213,7 +202,7 @@ echo '</pre>';
 			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
 			// Format sources
-	        search_sources($results['sources']);
+			echo "<li class=\"sources\">Includes ".search_sources($results['sources'])."</li>";
 
 			// Search results
 			foreach($results['search'] as $result) {
@@ -230,11 +219,11 @@ echo '</pre>';
 				$url = (array_key_exists('url', $result)) ? " - <a href=\"".$result['url']."\" target=\"_blank\" title=\"Careful - Site may contain intrusive popup ads and malware!\">torrent page</a>" : "";
 	
 				// Put result together
-				echo "<li class=\"result\"><article>";
+				echo "<li class=\"result magnet id-".$result['id']."\">";
 				echo "<div class=\"title\"><a href=\"".$result['magnet']."\"><h2>".stripslashes($result['name'])."</h2></a></div>";
 				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"seeders\">".$result['combo_seeders']."</span> - <strong>Peers:</strong> <span class=\"leechers\">".$result['combo_leechers']."</span> - <strong>Size:</strong> ".$result['size']."<br />".implode(" - ", $meta)."</div>";
-				if($opts->show_search_source == "on") echo "<div class=\"description\"><strong>Found on:</strong> ".replace_last_comma(implode(", ", $result['combo_source'])).$url."</div>";
-				echo "</article></li>";
+				if($opts->show_search_source == "on") echo "<div class=\"description\"><strong>Found on:</strong> ".replace_last_comma(implode(", ", $result['combo_source'])).'.'.$url."</div>";
+				echo "</li>";
 
 				unset($result, $meta, $url);
 			}

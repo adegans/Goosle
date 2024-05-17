@@ -10,7 +10,7 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 abstract class EngineRequest {
-    protected $url, $query, $opts, $mh, $ch;
+    protected $query, $ch, $mh, $opts, $url, $headers;
 
 	function __construct($opts, $mh) {
 		$this->query = $opts->query;
@@ -23,11 +23,52 @@ abstract class EngineRequest {
 		if(!$this->url) return;
 		
 		// Skip if there is a cached result (from earlier search)
-		if($this->opts->cache == "on" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) return;
+		if($this->opts->cache_type !== "off" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) return;
+
+		// Default headers for the curl request
+		$default_headers = array(
+			'Accept' => 'text/html, application/xhtml+xml, application/json;q=0.9, application/xml;q=0.8, */*;q=0.7',
+			'Accept-Language' => 'en-US,en;q=0.5',
+			'Accept-Encoding' => 'gzip, deflate',
+// 			'Connection' => 'keep-alive',
+			'Upgrade-Insecure-Requests' => '1',
+			'User-Agent' => $this->opts->user_agents[array_rand($this->opts->user_agents)],
+			'Sec-Fetch-Dest' => 'document',
+			'Sec-Fetch-Mode' => 'navigate',
+			'Sec-Fetch-Site' => 'none'
+		);
+
+		// Override or remove headers per curl request
+		$extra_headers = $this->get_request_headers();
+		if(count($extra_headers) > 0) {
+			$headers = array_filter(array_replace($default_headers, $extra_headers));
+
+			foreach($headers as $key => $value) {
+				$this->headers[] = $key.': '.$value;
+			}
+
+			unset($key, $value);
+		} else {
+			$this->headers = $default_headers;
+		}
+
+		unset($default_headers, $extra_headers, $key, $value);
 
 		// Curl
 		$this->ch = curl_init();
-		set_curl_options($this->ch, $this->url, $this->opts->user_agents);
+		
+		curl_setopt($this->ch, CURLOPT_URL, $this->url);
+		curl_setopt($this->ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
+		curl_setopt($this->ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+		curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($this->ch, CURLOPT_ENCODING, "gzip,deflate");
+		curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->headers);
+		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($this->ch, CURLOPT_MAXREDIRS, 5);
+		curl_setopt($this->ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+		curl_setopt($this->ch, CURLOPT_TIMEOUT, 3);
+		curl_setopt($this->ch, CURLOPT_VERBOSE, false);
 
 		if($mh) curl_multi_add_handle($mh, $this->ch);
 	}
@@ -63,7 +104,7 @@ abstract class EngineRequest {
 		$ttl = intval($this->opts->cache_time) * 60;
 
 		// If there is a cached result from an earlier search use that instead
-		if($this->opts->cache == "on" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $ttl)) {
+		if($this->opts->cache_type !== "off" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $ttl)) {
 			return fetch_cached_results($this->opts->cache_type, $this->opts->hash, $this->url);
 		}
 
@@ -75,10 +116,12 @@ abstract class EngineRequest {
 		$response = ($this->mh) ? curl_multi_getcontent($this->ch) : curl_exec($this->ch);
 
 		$results = $this->parse_results($response) ?? array();
-	
+
 		// Cache last request
-		if($this->opts->cache == "on") {
+		if($this->opts->cache_type !== "off") {
 			if(!empty($results)) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $ttl);
+
+			// Maybe delete old file cache
 			if($this->opts->cache_type == "file") delete_cached_results($ttl);
 		}
 
@@ -86,52 +129,6 @@ abstract class EngineRequest {
 	}
 	
 	public static function print_results($results, $opts) {}
-}
-
-/*--------------------------------------
-// Try to get some search results
---------------------------------------*/
-function fetch_search_results($opts) {
-    $start_time = microtime(true);
-
-	echo "<section class=\"main-column\">";
-
-	if(!empty($opts->query)) {
-		// Curl
-	    $mh = curl_multi_init();
-
-		// Load search script
-	    if($opts->type == 0) {
-	        require ABSPATH."engines/search.php";
-	        $search = new Search($opts, $mh);
-		} else if($opts->type == 1) {
-		    require ABSPATH."engines/search-image.php";
-	        $search = new ImageSearch($opts, $mh);
-		} else if($opts->type == 9) {
-		    require ABSPATH."engines/search-magnet.php";
-	        $search = new MagnetSearch($opts, $mh);
-	    }
-	
-	    $running = null;
-	
-	    do {
-	        curl_multi_exec($mh, $running);
-	    } while ($running);
-	
-	    $results = $search->get_results();
-
-		curl_multi_close($mh);
-	
-		// Add elapsed time to results
-		$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
-	
-		// Echoes results and special searches
-	    $search->print_results($results, $opts);
-	} else {
-		echo "<div class=\"warning\">Search query can not be empty!<br />Not sure what went wrong? Learn more about <a href=\"./help.php?a=".$opts->hash."\">how to use Goosle</a>.</div>";
-    }
-
-	echo "</section>";
 }
 
 /*--------------------------------------
@@ -176,6 +173,7 @@ function special_magnet_request($opts, $mh) {
         $special_request['yts'] = new ytshighlights($opts, $mh);
 	}
 
+	// Latest additions to eztv
 	if($opts->special['eztv'] == "on") {
         require ABSPATH."engines/special/eztv_highlights.php";
         $special_request['eztv'] = new eztvhighlights($opts, $mh);

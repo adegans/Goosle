@@ -25,19 +25,14 @@ class Search extends EngineRequest {
 			$this->requests[] = new GoogleRequest($opts, $mh);	
 		}
 
-		if($opts->enable_reddit == "on") {
-			require ABSPATH."engines/search/reddit.php";
-			$this->requests[] = new RedditRequest($opts, $mh);	
+		if($opts->enable_qwantnews == "on") {
+			require ABSPATH."engines/search/qwantnews.php";
+			$this->requests[] = new QwantNewsRequest($opts, $mh);	
 		}
-
+		
 		if($opts->enable_wikipedia == "on") {
 			require ABSPATH."engines/search/wikipedia.php";
 			$this->requests[] = new WikiRequest($opts, $mh);	
-		}
-
-		if($opts->enable_ecosia == "on") {
-			require ABSPATH."engines/search/ecosia.php";
-			$this->requests[] = new EcosiaRequest($opts, $mh);	
 		}
 		
 		// Special search
@@ -65,18 +60,18 @@ class Search extends EngineRequest {
 						foreach($engine_result['search'] as $result) {
 							if(array_key_exists('search', $results)) {
 								$result_urls = array_column($results['search'], "url", "id");
-								$found_key = array_search($result['url'], $result_urls);
+								$found_id = array_search($result['url'], $result_urls);
 							} else {
-								$found_key = false;
+								$found_id = false;
 							}
 
 							$social_media_multiplier = (is_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
 							$goosle_rank = floor($result['engine_rank'] * floatval($social_media_multiplier));
 	
-							if($found_key !== false) {
+							if($found_id !== false) {
 								// Duplicate result from another source, merge and rank accordingly
-								$results['search'][$found_key]['goosle_rank'] += $goosle_rank;
-								$results['search'][$found_key]['combo_source'][] = $result['source'];
+								$results['search'][$found_id]['goosle_rank'] += $goosle_rank;
+								$results['search'][$found_id]['combo_source'][] = $result['source'];
 							} else {
 								// First find, rank and add to results
 								$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
@@ -90,7 +85,7 @@ class Search extends EngineRequest {
 								$results['search'][$result['id']] = $result;
 							}
 	
-							unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+							unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 						}
 					}
 				}
@@ -124,8 +119,7 @@ class Search extends EngineRequest {
 			array_multisort($keys, SORT_DESC, $results['search']);
 
 			// Count results per source
-			$sources = array_count_values(array_column($results['search'], 'source'));
-			if(count($sources) > 0) $results['sources'] = $sources;
+			$results['sources'] = array_count_values(array_column($results['search'], 'source'));
 			
 			unset($keys);
 		} else {
@@ -157,20 +151,22 @@ echo '</pre>';
 			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
 			// Format sources
-	        search_sources($results['sources']);
+			echo "<li class=\"sources\">Includes ".search_sources($results['sources'])."</li>";
 
 			// Did you mean/Search suggestion
-			search_suggestion($opts, $results);
+			if(array_key_exists("did_you_mean", $results)) {
+				echo "<li class=\"suggestion\">Did you mean <a href=\"./results.php?q=".urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash."\">".$results['did_you_mean']."</a>?".search_suggestion($opts, $results)."</li>";
+			}
 
 			// Special results
 			if(array_key_exists("special", $results)) {
-				echo "<li class=\"special-result\"><article>";
+				echo "<li class=\"result-special\">";
 				echo "<div class=\"title\"><h2>".$results['special']['title']."</h2></div>";
 				echo "<div class=\"text\">".$results['special']['text']."</div>";
 				if(array_key_exists("source", $results['special'])) {
 					echo "<div class=\"source\"><a href=\"".$results['special']['source']."\" target=\"_blank\">".$results['special']['source']."</a></div>";
 				}
-				echo "</article></li>";
+				echo "</li>";
 			}
 		
 			// Search results
@@ -181,7 +177,7 @@ echo '</pre>';
 					}
 				}
 
-				echo "<li class=\"result rs-".$result['goosle_rank']." id-".$result['id']."\"><article>";
+				echo "<li class=\"result web rs-".$result['goosle_rank']." id-".$result['id']."\">";
 				echo "<div class=\"url\"><a href=\"".$result['url']."\" target=\"_blank\">".get_formatted_url($result['url'])."</a></div>";
 				echo "<div class=\"title\"><a href=\"".$result['url']."\" target=\"_blank\"><h2>".$result['title']."</h2></a></div>";
 				echo "<div class=\"description\">".$result['description']."</div>";
@@ -193,7 +189,7 @@ echo '</pre>';
 					echo "</div>";
 				}
 
-				echo "</article></li>";
+				echo "</li>";
 	        }
 
 			echo "</ol>";

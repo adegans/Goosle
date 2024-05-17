@@ -38,9 +38,15 @@ class YahooImageRequest extends EngineRequest {
 		$args = array("p" => $this->query, "imgsz" => $size);
         $url = "https://images.search.yahoo.com/search/images?".http_build_query($args);
 
-        unset($query_terms, $switch, $args, $size);
+        unset($query_terms, $switch, $size, $args);
 
         return $url;
+	}
+
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'text/html, application/xhtml+xml, application/xml;q=0.8, */*;q=0.7',
+		);
 	}
 
 	public function parse_results($response) {
@@ -62,15 +68,19 @@ class YahooImageRequest extends EngineRequest {
 		// Scrape the results
 //		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'slotting'))][position() < 101]");
 		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'ignore'))][position() < 101]");
+
+		// Set base rank and result amound
 		$rank = $results['amount'] = count($scrape);
 
+		// Nothing found
+		if($results['amount'] == 0) return $results;
 
         foreach($scrape as $result) {
-			$image = $xpath->evaluate(".//img/@src", $result)[0];
-			if($image == null) continue;
+			$image_thumb = $xpath->evaluate(".//img/@src", $result)[0];
+			if(is_null($image_thumb)) continue;
 			
 			$url_data = $xpath->evaluate(".//a/@href", $result)[0];
-			if($url_data == null) continue;
+			if(is_null($url_data)) continue;
 			
 			// Get and prepare meta data
 			// -- Relevant $url_data (there is more, but unused by Goosle)
@@ -92,27 +102,25 @@ class YahooImageRequest extends EngineRequest {
 			}
 
 			// Deal with optional or missing data
-			$dimensions_w = (!array_key_exists('w', $usable_data)) ? "" : htmlspecialchars($usable_data['w']);
-			$dimensions_h = (!array_key_exists('h', $usable_data)) ? "" : htmlspecialchars($usable_data['h']);
-			$link = (!array_key_exists('imgurl', $usable_data)) ? "" : "//".htmlspecialchars($usable_data['imgurl']);
-			$url = (!array_key_exists('rurl', $usable_data)) ? "" : htmlspecialchars($usable_data['rurl']);
-			$filesize = (!array_key_exists('size', $usable_data)) ? "" : htmlspecialchars($usable_data['size']);
-			$alt = (!array_key_exists('tt', $usable_data)) ? "" : htmlspecialchars($usable_data['tt']);
+			$dimensions_w = (!array_key_exists('w', $usable_data)) ? "" : sanitize($usable_data['w']);
+			$dimensions_h = (!array_key_exists('h', $usable_data)) ? "" : sanitize($usable_data['h']);
+			$image_full = (!array_key_exists('imgurl', $usable_data)) ? "" : "//".sanitize($usable_data['imgurl']);
+			$link = (!array_key_exists('rurl', $usable_data)) ? "" : sanitize($usable_data['rurl']);
+			$filesize = (!array_key_exists('size', $usable_data)) ? "" : sanitize($usable_data['size']);
+			$alt = (!array_key_exists('tt', $usable_data)) ? "" : sanitize($usable_data['tt']);
 
 			// Process result
-			$image = htmlspecialchars($image->textContent);
+			$image_thumb = sanitize($image_thumb->textContent);
+			$filesize = intval(preg_replace('/[^0-9.]/', '', $filesize) * 1000);
 
-			// filter duplicate urls/results
+			// filter duplicate IMAGE urls/results
             if(!empty($results['search'])) {
-		        $result_urls = array_column($results['search'], "direct_link");
-                if(in_array($link, $result_urls)) continue;
+                if(in_array($image_full, array_column($results['search'], "image_full"))) continue;
             }
 
-			$id = uniqid(rand(0, 9999));
-
-			$results['search'][] = array ("id" => $id, "source" => "Yahoo! Images", "image" => $image, "alt" => $alt, "url" => $url, "width" => $dimensions_w, "height" => $dimensions_h, "filesize" => $filesize, "direct_link" => $link, "engine_rank" => $rank);
+			$results['search'][] = array ("id" => uniqid(rand(0, 9999)), "source" => "Yahoo! Images", "image_thumb" => $image_thumb, "alt" => $alt, "image_full" => $image_full, "width" => $dimensions_w, "height" => $dimensions_h, "filesize" => $filesize, "webpage_url" => $link, "engine_rank" => $rank);
 			$rank -= 1;
-			unset($url_data, $usable_data, $dimensions_w, $dimensions_h, $filesize, $link, $url, $alt, $image);
+			unset($url_data, $usable_data, $dimensions_w, $dimensions_h, $filesize, $link, $image_full, $alt, $image_thumb);
 		}
 		unset($response, $xpath, $scrape, $rank);
 

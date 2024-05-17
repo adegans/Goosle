@@ -16,9 +16,21 @@ class YTSRequest extends EngineRequest {
         return $url;
 	}
 
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
 	public function parse_results($response) {
 		$results = array();
-		$response = curl_multi_getcontent($this->ch);
+//		$response = curl_multi_getcontent($this->ch);
 		$json_response = json_decode($response, true);
 		
 		// No response
@@ -60,11 +72,10 @@ class YTSRequest extends EngineRequest {
 				// Get extra data
 				$quality = sanitize($download['quality']);
 				$codec = sanitize($download['video_codec']);
-				$id = uniqid(rand(0, 9999));
 			
 				$results[] = array (
 					// Required
-					"id" => $id, "source" => "yts.mx", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+					"id" => uniqid(rand(0, 9999)), "source" => "yts.mx", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
 					// Extra
 					"quality" => $quality, "codec" => $codec, "year" => $year, "category" => $category, "runtime" => $runtime, "url" => $url, "date_added" => $date_added
 				);

@@ -19,6 +19,18 @@ class PirateBayRequest extends EngineRequest {
         return $url;
 	}
 
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
 	public function parse_results($response) {
 		$results = array();
 		$json_response = json_decode($response, true);
@@ -89,24 +101,24 @@ class PirateBayRequest extends EngineRequest {
 		);
 
 		// Use API result
-		foreach($json_response as $response) {
+		foreach($json_response as $result) {
 			// Nothing found
-			if($response['name'] == "No results returned") break;
+			if($result['name'] == "No results returned") break;
 			
-			$name = sanitize($response['name']);
-			$hash = strtolower(sanitize($response['info_hash']));
+			$name = sanitize($result['name']);
+			$hash = strtolower(sanitize($result['info_hash']));
 			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
-			$seeders = sanitize($response['seeders']);
-			$leechers = sanitize($response['leechers']);
-			$size = sanitize($response['size']);
+			$seeders = sanitize($result['seeders']);
+			$leechers = sanitize($result['leechers']);
+			$size = sanitize($result['size']);
 			
 			// Ignore results with 0 seeders?
 			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
 			
 			// Get extra data
-			$category = sanitize($response['category']);
-			$url = "https://thepiratebay.org/description.php?id=".sanitize($response['id']);
-			$date_added = sanitize($response['added']);
+			$category = sanitize($result['category']);
+			$url = "https://thepiratebay.org/description.php?id=".sanitize($result['id']);
+			$date_added = sanitize($result['added']);
 			
 			// Block these categories
 			if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
@@ -114,11 +126,9 @@ class PirateBayRequest extends EngineRequest {
 			// Filter episodes
 			if(!is_season_or_episode($this->query, $name)) continue;
 			
-			$id = uniqid(rand(0, 9999));
-			
 			$results[] = array(
 				// Required
-				"id" => $id, "source" => "thepiratebay.org", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
+				"id" => uniqid(rand(0, 9999)), "source" => "thepiratebay.org", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
 				// Extra
 				"category" => $categories[$category], "url" => $url, "date_added" => $date_added,
  			);

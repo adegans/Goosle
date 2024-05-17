@@ -49,6 +49,12 @@ class DuckDuckGoRequest extends EngineRequest {
         return $url;
     }
 
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'text/html, application/xhtml+xml, application/xml;q=0.8, */*;q=0.7',
+		);
+	}
+
     public function parse_results($response) {
 		$results = array();
 		$xpath = get_xpath($response);
@@ -70,19 +76,23 @@ class DuckDuckGoRequest extends EngineRequest {
 		$rank = $results['amount'] = count($scrape);
 		foreach($scrape as $result) {
 			$url = $xpath->evaluate(".//h2[@class='result__title']//a/@href", $result)[0];
-			if($url == null) continue;
+			if(is_null($url)) continue;
 
 			$title = $xpath->evaluate(".//h2[@class='result__title']", $result)[0];
-			if($title == null) continue;
+			if(is_null($title)) continue;
 			
 			$description = $xpath->evaluate(".//a[@class='result__snippet']", $result)[0];
-			$description = ($description == null) ? "No description was provided for this site." : htmlspecialchars(trim($description->textContent));
+			$description = (is_null($description)) ? "No description was provided for this site." : sanitize($description->textContent);
 
-			$url = htmlspecialchars(trim($url->textContent));
-			$title = htmlspecialchars(trim($title->textContent));
-			$id = uniqid(rand(0, 9999));
+			$url = sanitize($url->textContent);
+			$title = sanitize($title->textContent);
 			
-			$results['search'][] = array ("id" => $id, "source" => "DuckDuckGo", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
+			// filter duplicate urls/results
+            if(!empty($results['search'])) {
+                if(in_array($url, array_column($results['search'], "url"))) continue;
+            }
+
+			$results['search'][] = array("id" => uniqid(rand(0, 9999)), "source" => "DuckDuckGo", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
 			$rank -= 1;
 		}
 		unset($response, $xpath, $scrape, $rank);

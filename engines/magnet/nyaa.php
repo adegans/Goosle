@@ -19,6 +19,12 @@ class NyaaRequest extends EngineRequest {
         return $url;
 	}
 	
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'text/html, application/xhtml+xml, application/xml;q=0.8, */*;q=0.7',
+		);
+	}
+
 	public function parse_results($response) {
 		$results = array();
 		$xpath = get_xpath($response);
@@ -53,11 +59,9 @@ class NyaaRequest extends EngineRequest {
 			// Filter episodes
 			if(!is_season_or_episode($this->query, $name)) continue;
 			
-			$id = uniqid(rand(0, 9999));
-			
 			$results[] = array (
 				// Required
-				"id" => $id, "source" => "nyaa.si", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
+				"id" => uniqid(rand(0, 9999)), "source" => "nyaa.si", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
 				// Extra
 				"category" => $category, "url" => $url, "date_added" => $date_added
 			);

@@ -16,6 +16,12 @@ class PHPnetRequest extends EngineRequest {
 		return "https://www.php.net/manual/function.".urlencode($this->query);
 	}
 	
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'text/html, application/xhtml+xml, application/xml;q=0.8, */*;q=0.7',
+		);
+	}
+
 	public function parse_results($response) {
         $results = array();
         $xpath = get_xpath($response);

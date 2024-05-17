@@ -14,6 +14,18 @@ class CurrencyRequest extends EngineRequest {
         return "https://cdn.moneyconvert.net/api/latest.json";
     }
     
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
     public function parse_results($response) {
         $json_response = json_decode($response, true);
 

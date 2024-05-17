@@ -23,6 +23,18 @@ class EZTVRequest extends EngineRequest {
         return $url;
 	}
 
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
 	public function parse_results($response) {
 		$results = array();
 		$json_response = json_decode($response, true);
@@ -61,11 +73,9 @@ class EZTVRequest extends EngineRequest {
 				}
 			}
 			
-			$id = uniqid(rand(0, 9999));
-			
 			$results[] = array (
 				// Required
-				"id" => $id, "source" => "EZTV", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
+				"id" => uniqid(rand(0, 9999)), "source" => "EZTV", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => human_filesize($size),
 				// Extra
 				"quality" => $quality, "codec" => $codec, "date_added" => $date_added
 			);

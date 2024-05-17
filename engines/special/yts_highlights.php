@@ -11,13 +11,25 @@
 ------------------------------------------------------------------------------------ */
 class ytshighlights extends EngineRequest {
     public function get_request_url() {
-        $url = "https://yts.mx/api/v2/list_movies.json?".http_build_query(array("limit" => "20", "sort_by" => $this->opts->yts_highlight));
+        $url = "https://yts.mx/api/v2/list_movies.json?".http_build_query(array("limit" => "16", "sort_by" => $this->opts->yts_highlight));
         return $url;
     }
     
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
     public function parse_results($response) {
 		$results = array();
-		$response = curl_multi_getcontent($this->ch);
+//		$response = curl_multi_getcontent($this->ch);
 		$json_response = json_decode($response, true);
 		
 		// No response

@@ -17,6 +17,18 @@ class WikiRequest extends EngineRequest {
         return $url;
     }
 
+    public function get_request_headers() {
+		return array(
+			'Accept' => 'application/json, */*;q=0.8',
+			'Accept-Language' => null,
+			'Accept-Encoding' => null,
+			'Connection' => null,
+			'Sec-Fetch-Dest' => null,
+			'Sec-Fetch-Mode' => null,
+			'Sec-Fetch-Site' => null
+		);
+	}
+
 	public function parse_results($response) {
 		$results = array();
 		$json_response = json_decode($response, true);
@@ -28,12 +40,11 @@ class WikiRequest extends EngineRequest {
 		
 		$rank = $results['amount'] = count($json_response['query']['search']);
 		foreach($json_response['query']['search'] as $result) {
-			$title = htmlspecialchars(trim($result['title']));
-			$url = "https://".$this->opts->wikipedia_language.".wikipedia.org/wiki/".htmlspecialchars(str_replace(" ", "_", trim($result['title'])));
-			$description = htmlspecialchars(strip_tags(trim($result['snippet'])));
-			$id = uniqid(rand(0, 9999));
+			$title = sanitize($result['title']);
+			$url = "https://".$this->opts->wikipedia_language.".wikipedia.org/wiki/".sanitize(str_replace(" ", "_", $result['title']));
+			$description = sanitize(strip_tags($result['snippet']));
 		
-			$results['search'][] = array ("id" => $id, "source" => "Wikipedia", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
+			$results['search'][] = array ("id" => uniqid(rand(0, 9999)), "source" => "Wikipedia", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
 			$rank -= 1;
 		}
 		unset($response, $json_response, $rank);

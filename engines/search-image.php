@@ -13,17 +13,27 @@ class ImageSearch extends EngineRequest {
 	protected $requests;
 	
 	public function __construct($opts, $mh) {
-		require ABSPATH."engines/image/yahoo.php";
+		$this->requests = array();
 		
-		$this->requests = array(
-			new YahooImageRequest($opts, $mh),
-		);
+		if($opts->enable_yahooimages == "on") {
+			require ABSPATH."engines/image/yahoo.php";
+			$this->requests[] = new YahooImageRequest($opts, $mh);	
+		}
+
+		if($opts->enable_openverse == "on") {
+			require ABSPATH."engines/image/openverse.php";
+			$this->requests[] = new OpenverseRequest($opts, $mh);	
+		}
+
+		if($opts->enable_qwant == "on") {
+			require ABSPATH."engines/image/qwant.php";
+			$this->requests[] = new QwantImageRequest($opts, $mh);	
+		}
 	}
 
     public function parse_results($response) {
         $results = array();
 
-		// Merge all results together
         foreach($this->requests as $request) {
 			if($request->request_successful()) {
 				$engine_result = $request->get_results();
@@ -41,26 +51,28 @@ class ImageSearch extends EngineRequest {
 						// Merge duplicates and apply relevance scoring
 						foreach($engine_result['search'] as $result) {
 							if(array_key_exists('search', $results)) {
-								$result_urls = array_column($results['search'], "direct_link", "id");
-								$found_key = array_search($result['direct_link'], $result_urls);
+								$result_urls = array_column($results['search'], "webpage_url", "id");
+								$found_id = array_search($result['webpage_url'], $result_urls);
 							} else {
-								$found_key = false;
+								$found_id = false;
 							}
 
-							if($found_key !== false) {
+							if($found_id !== false) {
 								// Duplicate result from another source, merge and rank accordingly
-								$results['search'][$found_key]['goosle_rank'] += $result['engine_rank'];
+								$results['search'][$found_id]['goosle_rank'] += $result['engine_rank'];
 							} else {
 								// First find, rank and add to results
 								$query_terms = explode(" ", preg_replace("/[^a-z0-9 ]+/", "", strtolower($request->query)));
 								$match_rank = match_count($result['alt'], $query_terms);
+//								$match_rank += match_count($result['url'], $query_terms);
+								$match_rank += match_count($result['webpage_url'], $query_terms);
 
 								$result['goosle_rank'] = $result['engine_rank'] + $match_rank;
 
 								$results['search'][$result['id']] = $result;
 							}
 	
-							unset($result, $result_urls, $found_key, $social_media_multiplier, $goosle_rank, $match_rank);
+							unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 						}
 					}
 				}
@@ -115,35 +127,38 @@ echo '</pre>';
 			echo "<li class=\"meta\">Fetched ".$number_of_results." results in ".$results['time']." seconds.</li>";
 
 			// Format sources
-	        search_sources($results['sources']);
+			echo "<li class=\"sources\">Includes ".search_sources($results['sources'])."</li>";
 
 			// Did you mean/Search suggestion
-			search_suggestion($opts, $results);
+			if(array_key_exists("did_you_mean", $results)) {
+				echo "<li class=\"suggestion\">Did you mean <a href=\"./results.php?q=".urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash."\">".$results['did_you_mean']."</a>?".search_suggestion($opts, $results)."</li>";
+			}
 
 			echo "</ol>";
 
 			// Search results
-			echo "<div class=\"image-wrapper\">";
-			echo "<ol class=\"image-grid\">";
+			echo "<div class=\"image-grid\">";
+			echo "<ol>";
 	
 	        foreach($results['search'] as $result) {
 				// Extra data
 				$meta = $links = array();
 				if(!empty($result['height']) && !empty($result['width'])) $meta[] = $result['width']."&times;".$result['height'];
-				if(!empty($result['filesize'])) $meta[] = $result['filesize'];
+				if(!empty($result['filesize'])) $meta[] = human_filesize($result['filesize']);
 
-				$links[] = "<a href=\"".$result['url']."\" target=\"_blank\">Website</a>";
-				if(!empty($result['direct_link'])) $links[] = "<a href=\"".$result['direct_link']."\" target=\"_blank\">Image</a>";
+				$links[] = "<a href=\"".$result['webpage_url']."\" target=\"_blank\">Website</a>";
+				if(!empty($result['image_full'])) $links[] = "<a href=\"".$result['image_full']."\" target=\"_blank\">Image</a>";
 
 				// Put result together
-				echo "<li class=\"result\"><div class=\"image-box\">";
-				echo "<a href=\"".$result['url']."\" target=\"_blank\" title=\"".$result['alt']."\"><img src=\"".$result['image']."\" alt=\"".$result['alt']."\" /></a>";
+				echo "<li class=\"result image rs-".$result['goosle_rank']." id-".$result['id']."\"><div class=\"image-box\">";
+				echo "<a href=\"".$result['webpage_url']."\" target=\"_blank\" title=\"".$result['alt']."\"><img src=\"".$result['image_thumb']."\" alt=\"".$result['alt']."\" /></a>";
 				echo "</div><span>".implode(" - ", $meta)."<br />".implode(" - ", $links)."</span>";
 				echo "</li>";
 	        }
 
 	        echo "</ol>";
 	        echo "</div>";
+			echo "<center><small>Goosle does not store or distribute image files.</small></center>";
 		}
 
 		// No results found

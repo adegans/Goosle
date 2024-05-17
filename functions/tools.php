@@ -31,8 +31,8 @@ function load_opts() {
 	$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : "";
 	
 	// Force a few defaults and safeguards
-	if($opts->cache_type == "file" && !is_dir(ABSPATH.'cache/')) $opts->cache = "off";
-	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache = "off";
+	if($opts->cache_type == "file" && !is_dir(ABSPATH.'cache/')) $opts->cache_type = "off";
+	if($opts->cache_type == "apcu" && !function_exists("apcu_exists")) $opts->cache_type = "off";
 	if($opts->enable_image_search == "off" && $opts->type == 1) $opts->type = 0;
 	if($opts->enable_magnet_search == "off" && $opts->type == 9) $opts->type = 0;
 	if(!is_numeric($opts->cache_time) || ($opts->cache_time > 720 || $opts->cache_time < 1)) $opts->cache_time = 30;
@@ -42,34 +42,6 @@ function load_opts() {
 	if(substr($opts->query, 0, 1) == "!") $opts->query = substr($opts->query, 1);
 	
 	return $opts;
-}
-
-/*--------------------------------------
-// Set curl options
---------------------------------------*/
-function set_curl_options($curl, $url, $user_agents) {
-	curl_setopt($curl, CURLOPT_URL, $url);
-	curl_setopt($curl, CURLOPT_HTTPGET, 1); // Redundant? Probably...
-	curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($curl, CURLOPT_USERAGENT, $user_agents[array_rand($user_agents)]);
-	curl_setopt($curl, CURLOPT_ENCODING, "gzip,deflate");
-	curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-	    'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-	    'Accept-Language: en-US,en;q=0.5',
-	    'Accept-Encoding: gzip, deflate',
-	    'Connection: keep-alive',
-	    'Upgrade-Insecure-Requests: 1',
-	    'Sec-Fetch-Dest: document',
-		'Sec-Fetch-Mode: navigate',
-		'Sec-Fetch-Site: none'
-	));
-	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-	curl_setopt($curl, CURLOPT_MAXREDIRS, 5);
-	curl_setopt($curl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
-	curl_setopt($curl, CURLOPT_TIMEOUT, 3);
-	curl_setopt($curl, CURLOPT_VERBOSE, false);
 }
 
 /*--------------------------------------
@@ -98,6 +70,16 @@ function get_formatted_url($url) {
 }
 
 /*--------------------------------------
+// Get websites url/page
+--------------------------------------*/
+function get_base_url($siteurl) {
+	// Figure out server protocol
+	$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';	
+	
+	return $protocol.'://'.$siteurl;
+}
+
+/*--------------------------------------
 // Result Caching
 --------------------------------------*/
 function has_cached_results($cache_type, $hash, $url, $ttl) {
@@ -106,7 +88,7 @@ function has_cached_results($cache_type, $hash, $url, $ttl) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.result';
 		if(is_file($cache_file)) {
 			if(filemtime($cache_file) >= (time() - $ttl)) {
 				return true;
@@ -123,7 +105,7 @@ function store_cached_results($cache_type, $hash, $url, $results, $ttl) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.result';
 		file_put_contents($cache_file, serialize($results));
 	}
 }
@@ -134,7 +116,7 @@ function fetch_cached_results($cache_type, $hash, $url) {
 	}
 
 	if($cache_type == "file") {
-		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.data';
+		$cache_file = ABSPATH.'cache/'.md5("$hash:$url").'.result';
 		if(is_file($cache_file)) {
 			return unserialize(file_get_contents($cache_file));
 		}
@@ -147,7 +129,7 @@ function delete_cached_results($ttl) {
 	$folder = opendir(ABSPATH.'cache/');	
 	while($file_name = readdir($folder)) {
 		$extension = pathinfo($file_name, PATHINFO_EXTENSION);
-		if($file_name == "." OR $file_name == ".." OR $extension != "data") continue; 
+		if($file_name == "." OR $file_name == ".." OR $extension != "result") continue; 
 	
 		if(is_file($folder.$file_name)) {
 			if(filemtime($folder.$file_name) < (time() - $ttl)) {
@@ -230,6 +212,7 @@ function is_social_media($string) {
 	
 	// Borrowed from https://github.com/lorey/social-media-profiles-regexs
 	if(preg_match("/(?:https?:)?\/\/(?:www\.)?(?:facebook|fb)\.com\/(?P<profile>(?![A-z]+\.php)(?!marketplace|gaming|watch|me|messages|help|search|groups)[A-z0-9_\-\.]+)\/?/", $string)
+		|| preg_match("/(?:https?:)?\/\/(?:www\.)facebook.com\/(?:profile.php\?id=)?(?P<id>[0-9]+)/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/(?P<username>[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?P<username>[A-z0-9_]+)\/status\/(?P<tweet_id>[0-9]+)\/?/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?!home|share|privacy|tos)(?P<username>[A-z0-9_]+)\/?/", $string)
@@ -239,6 +222,9 @@ function is_social_media($string) {
 		|| preg_match("/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/(?P<company_type>(company)|(school))\/(?P<company_permalink>[A-z0-9-À-ÿ\.]+)\/?/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/feed\/update\/urn:li:activity:(?P<activity_id>[0-9]+)\/?/", $string)
 		|| preg_match("/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/in\/(?P<permalink>[\w\-\_À-ÿ%]+)\/?/", $string)
+//		|| preg_match("/(?:https?:)?\/\/(?:[A-z]+\.)?youtube.com\/(?:c(?:hannel)?)\/(?P<id>[A-z0-9-\_]+)\/?/", $string)
+		|| preg_match("/(?:https?:)?\/\/(?:[A-z]+\.)?youtube.com\/(?:u(?:ser)?)\/(?P<username>[A-z0-9]+)\/?/", $string)
+//		|| preg_match("/(?:https?:)?\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)(?P<id>[A-z0-9\-\_]+)/", $string)
 	) return true;
 
     return false;
@@ -248,29 +234,23 @@ function is_social_media($string) {
 // Search suggestions
 --------------------------------------*/
 function search_suggestion($opts, $results) {
-	if(array_key_exists("did_you_mean", $results)) {
-		$specific_result = $specific_result2 = "";
+	$specific_result = $specific_result2 = "";
 
-		if(array_key_exists("search_specific", $results)) {
-			if($opts->type == 3 && count($results['search_specific']) > 1) {
-				// Format query url
-				$search_specific_url2 = "./results.php?q=".urlencode($results['search_specific'][1])."&t=".$opts->type."&a=".$opts->hash;
-				$specific_result2 = " or <a href=\"".$search_specific_url2."\">".$results['search_specific'][1]."</a>";
-			}
-
-			// Format query url			
-			$search_specific_url = "./results.php?q=".urlencode($results['search_specific'][0])."&t=".$opts->type."&a=".$opts->hash;
-			$specific_result = "<br /><small>Or instead search for <a href=\"".$search_specific_url."\">".$results['search_specific'][0]."</a>".$specific_result2.".</small>";
-
-			unset($search_specific, $search_specific_url, $search_specific2, $search_specific_url2);
+	if(array_key_exists("search_specific", $results)) {
+		if($opts->type == 3 && count($results['search_specific']) > 1) {
+			// Format query url
+			$search_specific_url2 = "./results.php?q=".urlencode($results['search_specific'][1])."&t=".$opts->type."&a=".$opts->hash;
+			$specific_result2 = " or <a href=\"".$search_specific_url2."\">".$results['search_specific'][1]."</a>";
 		}
 
-		$didyoumean_url = "./results.php?q=".urlencode($results['did_you_mean'])."&t=".$opts->type."&a=".$opts->hash;
+		// Format query url			
+		$search_specific_url = "./results.php?q=".urlencode($results['search_specific'][0])."&t=".$opts->type."&a=".$opts->hash;
+		$specific_result = "<br /><small>Or instead search for <a href=\"".$search_specific_url."\">".$results['search_specific'][0]."</a>".$specific_result2.".</small>";
 
-		echo "<li class=\"meta\">Did you mean <a href=\"".$didyoumean_url."\">".$results['did_you_mean']."</a>?".$specific_result."</li>";
-
-		unset($didyoumean_url, $specific_result, $specific_result2);
+		unset($search_specific, $search_specific_url, $search_specific2, $search_specific_url2, $specific_result2);
 	}
+
+	return $specific_result;
 }
 
 /*--------------------------------------
@@ -283,11 +263,7 @@ function search_sources($results) {
 		$sources[] = $amount." ".$plural." from ".$source;
 	}
 
-    $sources = replace_last_comma(implode(', ', $sources));
-
-	echo "<li class=\"sources\">Includes ".$sources.".</li>";
-	
-	unset($sources);
+    return $sources = replace_last_comma(implode(', ', $sources)).'.';
 }
 
 /*--------------------------------------
@@ -336,10 +312,10 @@ function string_generator() {
 // Show version in footer and do periodic update check
 --------------------------------------*/
 function show_version() {
-	$cache_file = dirname(__DIR__).'/version.data';
+	$cache_file = ABSPATH.'cache/version.data';
 	
 	// Currently installed version
-	$current_version = "1.3";
+	$current_version = "1.4b3";
 
 	// Format current version for footer
 	$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$current_version."</a>.";
@@ -356,7 +332,20 @@ function show_version() {
 	// Update check, every week
 	if($version['checked'] < time() - 604800) {
 		$ch = curl_init();
-		set_curl_options($ch, "https://api.github.com/repos/adegans/goosle/releases/latest", array("goosle/".$current_version.";"));
+
+		curl_setopt($ch, CURLOPT_URL, 'https://api.github.com/repos/adegans/goosle/releases/latest');
+		curl_setopt($ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
+		curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_ENCODING, "gzip,deflate");
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json, */*;q=0.7', 'User-Agent: goosle/'.$current_version.';'));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+		curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+		curl_setopt($ch, CURLOPT_VERBOSE, false);
+
 		$response = curl_exec($ch);
 		curl_close($ch);
 		
