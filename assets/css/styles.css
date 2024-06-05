@@ -23,7 +23,7 @@ small, sub, sup { padding: 5px 0; color: #666; font-size: 12px; }
 sub, sup { font-style: italic; }
 pre, code { word-wrap: break-word; overflow-wrap: break-word; }
 a:hover { text-decoration: underline; }
-input[type="text"]: invalid ~ input[type="submit"] { opacity: 0.5; pointer-events: none; }
+input[type="text"]:invalid ~ input[type="submit"] { opacity: 0.5; pointer-events: none; }
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; -webkit-mask-image: url("data: image/svg+xml;utf8,<svg xmlns='http: //www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23777'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>"); }
 
 /* Page structure */
@@ -64,7 +64,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .navigation img { margin-right: 5px; height: 16px; vertical-align: middle; }
 .navigation a { margin-right: 20px; border: none; font-size: 1rem; cursor: pointer; text-decoration: none; }
 .navigation a:hover { color: #ebf3fa; }
-.navigation a: visited { color: #1fa4d1; }
+.navigation a:visited { color: #1fa4d1; }
 .navigation .active { padding-bottom: 8px; border-bottom: 4px solid #1fa4d1; }
 
 /* Search results spacing */
@@ -76,24 +76,24 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 .content .result.image { margin: 0; }
 
 /* Search results (web, image and magnet) */
-.content .result { border: 1px solid #fefefe; border-radius: 8px; }
+.content .result { border: 1px solid #00000001; border-radius: 8px; }
 .content .result div.url, .content .result-special div.source { max-width: 100%; font-size: 1rem; line-height: 1.6; letter-spacing: .2px; white-space: nowrap; overflow: hidden; }
 .content .result div.url a, .content .result-special div.source a { color: #3f6e35; cursor: pointer; text-decoration: none; }
 .content .result div.title, .content .result-special div.title { margin-bottom: 5px; }
 .content .result div.title h2 { padding: 0; position: relative; font-size: 1.46rem; letter-spacing: -.01px; }
 .content .result div.title h2:hover { text-decoration: underline; }
 .content .result div.title a { display: block; cursor: pointer; }
-.content .result div.title a: visited { color: #6d59a3; }
+.content .result div.title a:visited { color: #6d59a3; }
 .content .result div.description { line-height: 1.4; font-size: 1rem; color: #494949; }
 .content .result div.engine { padding: 2px 0; font: 12px italic; color: #666; }
 .content .result div.description .seeders { color: #518257; }
 .content .result div.description .leechers { color: #c00; }
 
-.content .result-special { position: relative; background-color: #fefefe; overflow: hidden; border: 1px solid #aeaeae; border-radius: 8px; color: #222; }
+.content .result-special { position: relative; background-color: #00000001; overflow: hidden; border: 1px solid #aeaeae; border-radius: 8px; color: #222; }
 .content .result-special div.title h2 { padding: 0; font-size: 1.5rem; font-weight: 600; word-wrap: break-word; color: #222; }
 .content .result-special div.title h2:hover { text-decoration: none; }
 .content .result-special div.title a { display: block; color: #6c00a2; cursor: pointer; }
-.content .result-special div.title a: visited { color: #6d59a3; }
+.content .result-special div.title a:visited { color: #6d59a3; }
 .content .result-special div.text, .content .result-special div.source { position: relative; font-style: normal; }
 
 /* Grids (image and magnet highlights) */
@@ -231,4 +231,13 @@ a.update { color: #c90; font-weight: bold; }
 
 	/* Misc */
 	.logo { position: relative; float: none; display: block; margin: 0 auto; padding: 10px; font-size: 1.75rem; }
+}
+
+@media (prefers-color-scheme: dark) {
+	/* overwrite bg color and default font color  */
+	body { margin: 0; padding: 0; background-color: #1f242b; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #fff; line-height: 1.2; }
+	p { font-size: 18px; color: #aaa; }
+	.content .result div.description { line-height: 1.4; font-size: 1rem; color: #bbb; }
+	.content .result div.url a, .content .result-special div.source a { color: #548f47; cursor: pointer; text-decoration: none; }
+
 }
