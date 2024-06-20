@@ -1,6 +1,6 @@
 <?php
 /* ------------------------------------------------------------------------------------
-*  Goosle - A meta search engine for private and fast internet fun.
+*  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
@@ -23,7 +23,7 @@ abstract class EngineRequest {
 		if(!$this->url) return;
 		
 		// Skip if there is a cached result (from earlier search)
-		if($this->opts->cache_type !== "off" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) return;
+		if($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time)) return;
 
 		// Default headers for the curl request
 		$default_headers = array(
@@ -52,7 +52,7 @@ abstract class EngineRequest {
 			$this->headers = $default_headers;
 		}
 
-		unset($default_headers, $extra_headers, $key, $value);
+		unset($default_headers, $extra_headers);
 
 		// Curl
 		$this->ch = curl_init();
@@ -61,7 +61,7 @@ abstract class EngineRequest {
 		curl_setopt($this->ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
 		curl_setopt($this->ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
 		curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($this->ch, CURLOPT_ENCODING, "gzip,deflate");
+		curl_setopt($this->ch, CURLOPT_ENCODING, 'gzip,deflate');
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, $this->headers);
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
@@ -77,14 +77,14 @@ abstract class EngineRequest {
 	// Get search engine url
 	--------------------------------------*/
 	public function get_request_url() {
-		return "";
+		return '';
 	}
 	
 	/*--------------------------------------
 	// Check if a request to a search engine was successful
 	--------------------------------------*/
 	public function request_successful() {
-		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, (intval($this->opts->cache_time) * 60))) {
+		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || ($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time))) {
 			return true;
 		}			
 
@@ -101,10 +101,8 @@ abstract class EngineRequest {
 			return $this->parse_results(null);
 		}
 		
-		$ttl = intval($this->opts->cache_time) * 60;
-
 		// If there is a cached result from an earlier search use that instead
-		if($this->opts->cache_type !== "off" && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $ttl)) {
+		if($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time)) {
 			return fetch_cached_results($this->opts->cache_type, $this->opts->hash, $this->url);
 		}
 
@@ -117,68 +115,17 @@ abstract class EngineRequest {
 
 		$results = $this->parse_results($response) ?? array();
 
-		// Cache last request
-		if($this->opts->cache_type !== "off") {
-			if(!empty($results)) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $ttl);
+		// Cache last request if there is something to cache
+		if($this->opts->cache_type !== 'off') {
+			if(count($results) > 0) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $this->opts->cache_time);
 
 			// Maybe delete old file cache
-			if($this->opts->cache_type == "file") delete_cached_results($ttl);
+			if($this->opts->cache_type == 'file') delete_cached_results($this->opts->cache_time);
 		}
 
 		return $results;
 	}
 	
 	public static function print_results($results, $opts) {}
-}
-
-/*--------------------------------------
-// Process special searches
---------------------------------------*/
-function special_search_request($opts) {
-	$special_request = null;
-
-    $query_terms = explode(" ", $opts->query);
-	$query_terms[0] = strtolower($query_terms[0]);
-
-	// Currency converter
-	if($opts->special['currency'] == "on" && count($query_terms) == 4 && (is_numeric($query_terms[0]) && ($query_terms[2] == 'to' || $query_terms[2] == 'in'))) {
-        require ABSPATH."engines/special/currency.php";
-        $special_request = new CurrencyRequest($opts, null);
-	}
-	
-	// Dictionary
-	if($opts->special['definition'] == "on" && count($query_terms) == 2 && ($query_terms[0] == 'define' || $query_terms[0] == 'd' || $query_terms[0] == 'mean' || $query_terms[0] == 'meaning')) {
-        require ABSPATH."engines/special/definition.php";
-        $special_request = new DefinitionRequest($opts, null);
-	}
-
-	// php.net search
-	if($opts->special['phpnet'] == "on" && count($query_terms) == 2 && $query_terms[0] == 'php') {
-        require ABSPATH."engines/special/php.php";
-        $special_request = new PHPnetRequest($opts, null);
-	}
-	
-	return $special_request;
-}
-
-/*--------------------------------------
-// Process special magnet search features
---------------------------------------*/
-function special_magnet_request($opts, $mh) {
-	$special_request = array();
-
-	// Latest additions to yts
-	if($opts->special['yts'] == "on") {
-        require ABSPATH."engines/special/yts_highlights.php";
-        $special_request['yts'] = new ytshighlights($opts, $mh);
-	}
-
-	// Latest additions to eztv
-	if($opts->special['eztv'] == "on") {
-        require ABSPATH."engines/special/eztv_highlights.php";
-        $special_request['eztv'] = new eztvhighlights($opts, $mh);
-	}
-	
-	return $special_request;
 }
 ?>

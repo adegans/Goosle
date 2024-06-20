@@ -1,6 +1,6 @@
 <?php
 /* ------------------------------------------------------------------------------------
-*  Goosle - A meta search engine for private and fast internet fun.
+*  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
@@ -11,35 +11,33 @@
 ------------------------------------------------------------------------------------ */
 class GoogleRequest extends EngineRequest {
     public function get_request_url() {
-		// Split the query
-	    $query_terms = explode(" ", strtolower($this->query), 2);
-	    $query_terms[0] = strtolower($query_terms[0]);
-	
+		$query = str_replace('%22', '\"', $this->query);
+
 		// Safe search override
-		$safe = 1;
-		if(strpos($query_terms[0], "safe") !== false) {
-			$switch = explode(":", $query_terms[0]);
-
-			if(!is_numeric($switch[1])) {
-				$safe = (strtolower($switch[1]) == "off") ? "0" : "2";
-				$this->query = implode(" ", array_slice($query_terms, 1));
-			}
+		$safe = '1';
+		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
+			if($matches[2] == 'on') $safe = '2';
+			if($matches[2] == 'off') $safe = '0';
+			$query = trim(str_replace($matches[0], '', $query));
 		}
+		unset($matches);
 
-		// q = query
-		// safe = Safe search (Default 1) 0 = off (may include nsfw/illegal content), 1 = moderate, 2 = on/strict
-		// pws = Personal search results 0 = off
-		// tbs = In Goosle used for 'verbatim' search, adding this enables it
-		// complete = Instant results related, 0 = off
-		// num = Number of results per page (number, multiple of 10 usually)
-		// sclient = where are you searching from
-		
+		// Is there no query left? Bail!
+		if(empty($query)) return false;
+
 		// Including the preferred language variable breaks the page result, and with that the crawler!
-		
-		$args = array("q" => $this->query, "safe" => $safe, "pws" => "0", "tbs" => "li:1", "complete" => "0", "num" => "30", "sclient" => "web");
-        $url = "https://www.google.com/search?".http_build_query($args);
+        $url = 'https://www.google.com/search?'.http_build_query(array(
+        	'q' => $query, // Search query
+        	'safe' => $safe, // Safe search (0 = off, 1 = moderate, 2 = on/strict)
+        	'num' => 30, // Number of results per page
+        	'pws' => 0, // Personalized search results (0 = off)
+        	'udm' => 14, // A view for simpler/non-ai results
+        	'tbs' => 'li:1', // 'verbatim' search, adding this enables it
+        	'complete' => '0', // Instant results related (0 = off)
+        	'sclient' => 'web' // Where are you searching from
+        ));
 
-        unset($query_terms, $safe, $switch, $args);
+		unset($query, $safe);
 
         return $url;
     }
@@ -51,49 +49,72 @@ class GoogleRequest extends EngineRequest {
 	}
 
     public function parse_results($response) {
-		$results = array();
+		$engine_temp = $engine_result = array();
         $xpath = get_xpath($response);
 
-        if(!$xpath) return $results;
+		// No response
+        if(!$xpath) return $engine_temp;
+
+		// Scrape the results
+		$scrape = $xpath->query("//div[@id='search']//div[@class='MjjYud']");
+
+		// Figure out results and base rank
+		$number_of_results = $rank = count($scrape);
+
+		// No results
+        if($number_of_results == 0) return $engine_temp;
 
 		// Scrape recommended
         $didyoumean = $xpath->query(".//a[@class='gL9Hy']")[0];
         if(!is_null($didyoumean)) {
-			$results['did_you_mean'] = $didyoumean->textContent;
+			$engine_result['did_you_mean'] = $didyoumean->textContent;
         }
         $search_specific = $xpath->query(".//a[@class='spell_orig']")[0];
         if(!is_null($search_specific)) {
 	        // Google doesn't add quotes by itself
-			$results['search_specific'] = "\"".$search_specific->textContent."\"";
+			$engine_result['search_specific'] = "\"".$search_specific->textContent."\"";
 		}
 
-		// Scrape the results
-		$scrape = $xpath->query("//div[@id='search']//div[@class='MjjYud']");
-		$rank = $results['amount'] = count($scrape);
         foreach($scrape as $result) {
-			$url = $xpath->evaluate(".//div[@class='yuRUbf']//a/@href", $result)[0];
-			if(is_null($url)) continue;
-			
-			$title = $xpath->evaluate(".//h3", $result)[0];
-			if(is_null($title)) continue;
-			
-			$description = $xpath->evaluate(".//div[contains(@class, 'VwiC3b')]", $result)[0];
-			$description = (is_null($description)) ? "No description was provided for this site." : sanitize($description->textContent);
+			// Find data
+			$url = $xpath->evaluate(".//div[@class='yuRUbf']//a/@href", $result);
+			$title = $xpath->evaluate(".//h3", $result);
+			$description = $xpath->evaluate(".//div[contains(@class, 'VwiC3b')]", $result);
 
-			$url = sanitize($url->textContent);
-			$title = sanitize($title->textContent);
+			// Skip broken results
+			if($url->length == 0) continue;
+			if($title->length == 0) continue;
 			
+			// Process data
+			$url = sanitize($url[0]->textContent);
+			$title = strip_newlines(sanitize($title[0]->textContent));
+			$description = ($description->length == 0) ? "No description was provided for this site." : limit_string_length(strip_newlines(sanitize($description[0]->textContent)));
+
 			// filter duplicate urls/results
-            if(!empty($results['search'])) {
-                if(in_array($url, array_column($results['search'], "url"))) continue;
+            if(!empty($engine_temp)) {
+                if(in_array($url, array_column($engine_temp, "url"))) continue;
             }
 
-			$results['search'][] = array("id" => uniqid(rand(0, 9999)), "source" => "Google", "title" => $title, "url" => $url, "description" => $description, "engine_rank" => $rank);
+			$engine_temp[] = array(
+				'title' => $title, 
+				'url' => $url, 
+				'description' => $description, 
+				'engine_rank' => $rank
+			);
 			$rank -= 1;
         }
-		unset($response, $xpath, $scrape, $rank);
 
-        return $results;
+		// Base info
+		$number_of_results = count($engine_temp);
+		if($number_of_results > 0) {
+			$engine_result['source'] = 'Google';
+			$engine_result['amount'] = $number_of_results;
+			$engine_result['search'] = $engine_temp;
+		}
+
+		unset($response, $xpath, $scrape, $number_of_results, $rank, $engine_temp);
+
+        return $engine_result;
     }
 }
 ?>

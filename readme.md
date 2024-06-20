@@ -1,10 +1,10 @@
 <h1><center>Goosle</center></h1>
-<h2><center>The best Meta Search Engine to find everything.</center></h2>
+<h2><center>The best Meta Search Engine to find everything</center></h2>
 
 Goosle is a fast, privacy oriented search tool that just works. \
 It's kept simple so everyone can use it and to make sure it works on most webservers.
 
-If you're tired of traditional results from one site like Google search or DuckDuckGo and want to see more at once, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** distractions, **no** trackers, **no** cookies and **no** javascript or other things to slow you down. 
+If you're tired of traditional results from one site like Google search or DuckDuckGo and want to see more at once, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** distractions, **no** trackers, **no** cookies and **no** bloated libraries, frameworks, dependencies or other things that slow you down. 
 
 Goosle does Image search which shows results from Yahoo! Images and Openverse.
 
@@ -18,26 +18,24 @@ After-all, finding things should be easy and not turn into a chore.
 
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
-- Get search results from DuckDuckGo
-- Get search results from Google
-- Get search results from Qwant
-- Get search results from Wikipedia
+- Search results from DuckDuckGo, Google, Qwant, Brave, Wikipedia
 - Image search through Yahoo! Images, Qwant and Openverse
+- Recent news via Qwant news, Yahoo! News, Brave and Hackernews
 - Search for magnet links on popular Torrent sites
-- Algorithm for ranking search results on the results page
+- Algorithm for ranking search results for relevancy
 - Option to down-rank the biggest social media sites such as facebook, instagram, twitter, tiktok, reddit, snapchat and a few others.
-- Special searches for; Currency conversion, Dictionary and php.net
+- Special searches for; Currency conversion, Dictionary, IP Lookup and php.net
 - Randomized user-agents for to prevent profiling by search providers
 - Non-personalized Google results without instant results or other non-sense
-- Optional: Speed up repeat searches with APCu cache if your server has it or a basic file cache
-- Optional: Access key as a basic way to keep your server to yourself
+- Optional: Speed up repeat searches with APCu cache or file cache
+- Optional: Basic access key as a basic way to keep your server to yourself
 - Optional: Instant password generator on the start page
 
 What Goosle does **not** have.
 - Trackers and Cookies
 - Ads, malware and distractions
 - User profiles or user controllable settings
-- Javascripts or Frameworks
+- Libraries, dependencies or Frameworks
 
 And yet it just works... fast!
 
@@ -52,43 +50,39 @@ If you like Goosle, or found a use for it, please support my work and [donate](h
 ## Requirements
 Any basic webserver/webhosting package with PHP7.4 or newer. \
 No special requirements other than APCu for caching (Optional). \
-Tested to work on Apache with PHP8.0.24 and 8.2.x.
+Developed on Apache with PHP8.2.
 
 ## Installation
 1. Download and unzip Goosle.
-2. In the main directory. Copy config.default.php to config.php.
+2. In the main directory copy config.default.php to config.php.
 3. Edit the config.php file and set your preferences.
 4. Upload all files to your webserver. (eg. example.com or search.example.com or a sub-folder such as example.com/search/)
 5. Rename goosle.htaccess to .htaccess or add its contents to your existing .htaccess file.
 6. Load Goosle in your browser. If you've enabled the access hash, add *?a=YOUR_HASH* to the url.
-7. Let me know where you installed Goosle :-)
+7. Set up a background task (Cronjob) as described below. This runs a background task to delete old cache files and renews authorization tokens and checks for updates.
+8. Let me know where you installed Goosle in the 'Show your Goosle' discussion on Github :-)
 
 ## Updating Goosle to a newer version
 1. Download and unzip the latest release of Goosle.
-2. Check your config.php file and compare it to config.default.php. Go over your preferences. Make sure any new settings or changed values are present in your config.php. (Or reconfigure Goosle with a new copy from config.default.php)
-3. Upload all files to your webserver, overwriting all files except perhaps config.php.
+2. Reconfigure Goosle with a new copy from config.default.php (Or, compare your config.php file with config.default.php and make sure any new settings or changed values are present)
+3. Upload all the files to your webserver, overwriting all files except perhaps config.php.
 4. Load Goosle in your browser. If you've enabled the access hash don't forget to add *?a=YOUR_HASH* to the url.
 5. Enjoy your updated search experience!
 
-## Authorizing access to the Openverse search API
-This is required to use Openverse Image Search.
-In your browser navigate to your goosle setup and add /functions/oauth.php to the url (ex. example.com/functions/oauth.php or example.com/functions/oauth.php?a=YOUR_HASH). \
-Follow the onscreen prompts to register Goosle with Openverse.
-
-At the end, please save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file Goosle creates get lost you'll need those strings to continue using Openverse.
-
-This procedure generates an access token, this token expires every 12 hours. Yeah, annoying! \
-To automatically renew the token you can set up the Goosle cronjob as described below.
-
-## Setting up a cronjob
+## Setting up a Cronjob / background task
 For a number of background tasks like clearing up the file cache and/or renewing your Openverse access token you need to set up a cronjob. \
-Execute this cronjob a couple of times per day, recommended is every couple of hours.
+Execute this cronjob a couple of times per day, recommended is every 8 hours.
 
-Without it, Openverse access will expire and you have to generate a new key every day.
-For low traffic setups or if you do not use Openverse a longer interval of two or three times a day is fine.
+Without it, Openverse access will expire and you have to generate a new key every few hours.
+For low traffic setups or if you do not use Openverse a longer interval of once a day is fine.
 
 If you've enabled the access hash as a password, don't forget to include ?a=YOUR_HASH to the url.
+Cron jobs are usually set up from your hosting dashboard, or through something like DirectAdmin, cPanel or WHM.
+Ask your hosting provider where to find the Cron job scheduler or have them set it up for you if you don't see it.
 
+You can also use something like [cron-job.org](https://cron-job.org/) to trigger the background task remotely.
+
+### Usage examples
 Example for 10 minutes past every 3 hours \
 `10 */3 * * * wget -qO - https://example.com/goosle-cron.php?a=YOUR_HASH`
 
@@ -98,24 +92,87 @@ Example for 5 minutes past every 8 hours (I use this on my Goosle) \
 Example for every midnight \
 `0 0 * * * wget -qO - https://example.com/goosle-cron.php?a=YOUR_HASH`
 
-### Notes:
+Why a few minutes past the hour? Because commonly people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes later spreads server load.
+
+## Authorizing access to the Openverse search API
+This is required to use Openverse Image Search.
+In your browser navigate to your goosle setup and add /functions/oauth.php to the url (ex. example.com/functions/oauth.php or example.com/functions/oauth.php?a=YOUR_HASH). \
+Follow the onscreen prompts to get an authorization token to use Openverse.
+
+At the end, please save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file that Goosle creates get lost you'll need these values to continue using Openverse.
+
+This procedure generates an access token which is stored in /cache/token.data, this token expires every 12 hours. Yeah, annoying! \
+To automatically renew the token you can set up the Goosle cronjob as described elsewhere in this readme.
+
+### Notes
 - When using file caching you should set up a cronjob to execute goosle-cron.php every few hours. This deletes 'old' results.
 - When you use Openverse for your image searches you should set up a cron job to execute goosle-cron.php every 11 hours or less. This will automagically renew the access token.
+- If you want update notifications in the footer of Goosle set up the cron job so Goosle can ping Github weekly to see what's new.
 - The .htaccess file has a redirect to force HTTPS, catch 404 errors with a redirect as well as browser caching rules ready to go.
 - The robots.txt has a rule to tell all crawlers to not crawl Goosle. But keep in mind that not every crawler obeys this file.
 - The access hash is NOT meant as a super secure measure and only works for surface level prying eyes.
 
-Have fun finding things! Tell your friends!
+Have fun finding things! And tell your friends!
 
 ## Support
 Goosle comes with limited support. \
 You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or [Telegram](https://t.me/arnandegans).
 
 ### Known "issues"
-- Duckduckgo sometimes returns a 202 header and no results. I'm not sure what causes that but suspect it's something to do with quotas or service limitation on their end.
+- Duckduckgo sometimes returns a 202 header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.
+- Sometimes TV Show episodes on the box office are not properly merged despite all required data matching.
 
 ## Changelog
+1.5 - June ??, 2024
+- NOTICE: config.default.php has changed, re-create your config.php!!
+- [fix] No longer caches empty results
+- [fix] No longer make a request if the search query is empty
+- [fix] Movie highlight/box office cache now works
+- [fix] Language selector for Qwant, Wikipedia and Duckduckgo
+- [fix] Season and Episode filter for tv show searches
+- [fix] Safe search filter now actually works
+- [fix] Magnet Search category exclusion filter now actually works
+- [fix] Image size filter works more reliably
+- [fix] Handling of doublequotes in search queries
+- [fix] Search sources now show result amounts accurately
+- [fix] Old cache files are now actually deleted when expired
+- [fix] Search tabs not properly centered on smaller screens
+- [new] Box Office page with latest/new downloads from a few supported torrent websites
+- [new] News page with the latest news from major outlets
+- [new] Popup with movie info and download links for YTS Movie Highlights
+- [new] CSS colorschemes configurable in config.php
+- [new] Easily share magnet links with other Goosle users
+- [new] Search results from Quant API
+- [new] Search results from Brave
+- [new] Image results from Qwant Image API
+- [new] News results from Hackernews
+- [new] News results from Yahoo! News
+- [new] News results from Brave News
+- [new] News results from Qwant News API
+- [new] Magnet results from Sukebei.nyaa.si
+- [new] Special search for IP Lookups via ipify (Search for "ip" or "myip")
+- [new] Safe search switch for Yahoo! Images
+- [new] Image size switch for Qwant Images
+- [new] Merge missing magnet meta data from duplicate results if it doesn't already exist in the matched previous result
+- [new] Detect meta data for Magnet Search results such as sound and video quality.
+- [tweak] Cache ttl is now in hours (was minutes)
+- [tweak] Optimizations in CSS, HTML separators and more
+- [tweak] Moved icons into CSS so they can be colored using colorschemes
+- [tweak] Better handling of image results
+- [tweak] Better handling of empty/incomplete results for all engines
+- [tweak] Better handling of empty/missing meta data for all magnet engines
+- [tweak] Better category detection for Limetorrent magnets
+- [tweak] Raised Magnet search limit to 200 (was 50)
+- [tweak] Raised Wikipedia search limit to 20 (was 10)
+- [tweak] Hide magnet results with 0 seeders by default
+- [tweak] Uniform array formatting for all engines
+- [tweak] Consistent use of single-quotes and double-qoutes
+- [tweak] File size string conversion and formatting for all image and magnet engines
+- [tweak] Update checks are now done weekly(ish) via the Cron job
+- [tweak] Updated .htaccess caching rules
+- [removed] CSS for 320px viewport
+
 1.4 - May 16, 2024
 - NOTICE: config.default.php has changed, re-create your config.php!!
 - [fix] Footer no longer overlaps results
@@ -123,7 +180,7 @@ You can post your questions on Github Discussions or say hi on [Mastodon](https:
 - [fix] Double search type when searching from start page
 - [new] Filter for additional/different headers per cURL request
 - [new] Image search via Openverse API (Access token and cronjob required, see installation instructions)
-- [new] Image search via Qwant API
+- [new] Image search via Qwant
 - [new] Web (recent news) search via Qwant API
 - [tweak] Merged 'cache' option into 'cache-type', see config.default.php for details
 - [tweak] Better filtering for duplicate web results

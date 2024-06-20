@@ -1,0 +1,33 @@
+:root {
+	/* Main colors */
+    --color-accent: #1fa4d1; /* Blue */
+    --background: #fff; /* White */
+    --background-alt: #1f242b; /* Almost black */
+    --text: #494949; /* Dark grey */
+    --text-alt: #f0f6fc; /* Almost white */
+    --border: #5f6368; /* Grey */
+    --border-alt: #466f82; /* Dark blue */
+    --button-bg: #1fa4d1; /* Blue */
+    --button-text: #f0f6fc; /* Almost white */
+    --button-hover: #466f82; /* Dark blue */
+    --link: #4495d4; /* Blue */
+	--link-visited: #6d59a3; /* Purple */
+	--link-source: #3f6e35; /* Green */
+    --meta: #666; /* Grey */
+	--result-special-background: #ebf3fa; /* Light blue */
+
+	/* Front page (Also used on oAUTH page) */
+	--startpage-border: #545a5f; /* Grey */
+	--startpage-border-alt: #6c747a; /* Lighter grey */
+	--startpage-button-bg: #2b323b; /* Blueish grey */
+	--startpage-button-bg-alt: #363e4a; /* Lighter blueish grey */
+
+	/* Misc */
+	--green: #518257; /* Green */
+	--red: #c00; /* Red */
+	--yellow: #ffb900; /* Golden yellow */
+	--warning: #db9900; /* Dark yellow */
+	--warning-background: #ffffe0; /* Yellow */
+	--error: #c00; /* Red */
+	--error-background: #ffebe8; /* Faded red */
+}

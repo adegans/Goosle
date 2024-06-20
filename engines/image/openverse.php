@@ -1,6 +1,6 @@
 <?php
 /* ------------------------------------------------------------------------------------
-*  Goosle - A meta search engine for private and fast internet fun.
+*  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
@@ -11,29 +11,28 @@
 ------------------------------------------------------------------------------------ */
 class OpenverseRequest extends EngineRequest {
 	public function get_request_url() {
-
-	    $query_terms = substr($this->query, 0, 200);
+		$query = str_replace('%22', '\"', $this->query);
 
 		// Safe search override
-		$safe = "0"; // No mature results
-		if(strpos($query_terms[0], "safe") !== false) {
-			$switch = explode(":", $query_terms[0]);
-
-			if(!is_numeric($switch[1])) {
-				$safe = (strtolower($switch[1]) == "off") ? "1" : "0";
-				$this->query = implode(" ", array_slice($query_terms, 1));
-			}
+		$safe = '0'; // No mature results
+		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
+			if($matches[2] == 'on') $safe = '0';
+			if($matches[2] == 'off') $safe = '1';
+			$query = str_replace($matches[0], '', $query);
 		}
+		unset($matches);
 
-		// q = query
-		// format = json
-		// mature = 1 / 0
-		// page_size = 80 (int)
+		// Is there no query left? Bail!
+		if(empty($query)) return false;
 
-		$args = array("q" => $query_terms, "format" => "json", "mature" => $safe, "page_size" => 50);
-        $url = "https://api.openverse.org/v1/images/?".http_build_query($args);
+        $url = 'https://api.openverse.org/v1/images/?'.http_build_query(array(
+        	'q' => $query, // Search query
+        	'format' => 'json', // Response format
+        	'mature' => $safe, // Safe search (1 = ON, 0 = OFF)
+        	'page_size' => 50 // How many results to get
+        ));
 
-        unset($query_terms, $switch, $safe, $max_results, $args);
+        unset($query, $safe);
 
         return $url;
 	}
@@ -48,7 +47,6 @@ class OpenverseRequest extends EngineRequest {
 			'Authorization' => 'Bearer '.$token['openverse']['access_token'],
 			'Accept-Language' => null,
 			'Accept-Encoding' => null,
-			'Connection' => null,
 			'Sec-Fetch-Dest' => null,
 			'Sec-Fetch-Mode' => null,
 			'Sec-Fetch-Site' => null
@@ -56,56 +54,70 @@ class OpenverseRequest extends EngineRequest {
 	}
 
 	public function parse_results($response) {
-		$results = array();
+		$engine_temp = $engine_result = array();
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $results;
-		
-		// Set base rank and result amound
-		$rank = $results['amount'] = count($json_response['results']);
+		if(empty($json_response)) return $engine_temp;
 
-		// Nothing found
-		if($results['amount'] == 0) return $results;
+		// Figure out results and base rank
+		$number_of_results = $rank = $json_response['result_count'];
+		
+		// No results
+        if($number_of_results == 0) return $engine_temp;
 
 		// Use API result
-		foreach ($json_response['results'] as $result) {
-			// Deal with optional or missing data
-			$dimensions_w = (!empty($result['width'])) ? sanitize($result['width']) : "";
-			$dimensions_h = (!empty($result['height'])) ? sanitize($result['height']) : "";
-			$filesize = (!empty($result['filesize'])) ? sanitize($result['filesize']) : "";
-			$link = (!empty($result['url'])) ? sanitize($result['url']) : "";
-
-			$image_full = (!empty($result['foreign_landing_url'])) ? sanitize($result['foreign_landing_url']) : "";
+		foreach($json_response['results'] as $result) {
+			// Find data and process data
+			$image_full = sanitize($result['url']);
 			$image_thumb = (!empty($result['thumbnail'])) ? sanitize($result['thumbnail']) : $image_full;
-			$alt = (!empty($result['title'])) ? sanitize($result['title']) : "";
+			$url = sanitize($result['foreign_landing_url']);
+			$alt = (!is_null($result['title'])) ? sanitize($result['title']) : null;
+			$dimensions_w = (!is_null($result['width'])) ? sanitize($result['width']) : null;
+			$dimensions_h = (!is_null($result['height'])) ? sanitize($result['height']) : null;
+			$filesize = (!is_null($result['filesize'])) ? sanitize($result['filesize']) : null;
+			$creator = (!empty($result['creator'])) ? " by ".sanitize($result['creator']) : null;
 
-			// Add attribution to alt text?
-			$creator = (!empty($result['creator'])) ? " by ".sanitize($result['creator']) : "";
-			$alt = (!empty($creator)) ? $alt.$creator : $alt;
+			// Skip broken results
+			if(empty($image_thumb)) continue;
+			if(empty($image_full)) continue;
+			if(empty($url)) continue;
 
-			// Process result
-			$filesize = intval(preg_replace('/[^0-9]/', '', $filesize));
+			// Process data
+			if(!is_null($creator)) $alt = $alt.$creator;
+			if(!is_null($filesize)) $filesize = intval(preg_replace('/[^0-9]+/', '', $filesize));
 
-			// filter duplicate IMAGE urls/results
-            if(!empty($results['search'])) {
-                if(in_array($image_full, array_column($results['search'], "image_full"))) continue;
+			// Skip duplicate IMAGE urls/results
+            if(!empty($engine_temp)) {
+                if(in_array($image_full, array_column($engine_temp, 'image_full'))) continue;
             }
 
-			$results['search'][] = array ("id" => uniqid(rand(0, 9999)), "source" => "Openverse", "image_thumb" => $image_thumb, "alt" => $alt, "image_full" => $image_full, "width" => $dimensions_w, "height" => $dimensions_h, "filesize" => $filesize, "webpage_url" => $link, "engine_rank" => $rank);
-			$rank -= 1;
-			unset($url_data, $usable_data, $dimensions_w, $dimensions_h, $filesize, $link, $image_full, $alt, $image_thumb);
-		}
-		unset($json_response, $rank);
-
-		// Add error if there are no search results
-		if(empty($results['search'])) {
-			$results['error'] = array(
-				"message" => "No results found. Please try with less or different keywords!"
+			$engine_temp[] = array (
+				// Required
+				'image_full' => $image_full, // string
+				'image_thumb' => $image_thumb, // string
+				'url' => $url, // string
+				'engine_rank' => $rank, // int
+				// Optional
+				'alt' => $alt, // string | null 
+				'width' => $dimensions_w, // int | null
+				'height' => $dimensions_h, // int | null
+				'filesize' => $filesize, // int | null
 			);
+			$rank -= 1;
 		}
-		
-		return $results;
+
+		// Base info
+		$number_of_results = count($engine_temp);
+		if($number_of_results > 0) {
+			$engine_result['source'] = 'Openverse';
+			$engine_result['amount'] = $number_of_results;
+			$engine_result['search'] = $engine_temp;
+		}
+
+		unset($response, $json_response, $number_of_results, $rank);
+
+		return $engine_result;
 	}
 }
 ?>

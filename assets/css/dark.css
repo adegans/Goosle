@@ -1,0 +1,33 @@
+:root {
+	/* Main colors */
+    --color-accent: #1fa4d1; /* Blue */
+    --background: #232323; /* Almost black */
+    --background-alt: #1f242b; /* Almost black */
+    --text: #eff1f7; /* Almost white */
+    --text-alt: #eff1f7; /* Almost white */
+    --border: #5f6368; /* Grey */
+    --border-alt: #466f82; /* Dark blue */
+    --button-bg: #1fa4d1; /* Blue */
+    --button-text: #f0f6fc; /* Almost white */
+    --button-hover: #466f82; /* Dark blue */
+    --link: #2f8ad0; /* Blue */
+	--link-visited: #6d59a3; /* Purple */
+	--link-source: #eff1f7; /* Almost white */
+    --meta: #999; /* Grey */
+	--result-special-background: #ebf3fa; /* Light blue */
+
+	/* Front page (Also used on oAUTH page) */
+	--startpage-border: #545a5f; /* Grey */
+	--startpage-border-alt: #6c747a; /* Lighter grey */
+	--startpage-button-bg: #2b323b; /* Blueish grey */
+	--startpage-button-bg-alt: #363e4a; /* Lighter blueish grey */
+
+	/* Misc */
+	--green: #518257; /* Green */
+	--red: #b30000; /* Red */
+	--yellow: #ffb900; /* Golden yellow */
+	--warning: #b37d00; /* Dark yellow */
+	--warning-background: #ffffb3; /* Yellow */
+	--error: #b30000; /* Red */
+	--error-background: #ffcccc; /* red */
+}

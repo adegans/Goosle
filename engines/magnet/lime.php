@@ -1,6 +1,6 @@
 <?php
 /* ------------------------------------------------------------------------------------
-*  Goosle - A meta search engine for private and fast internet fun.
+*  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
@@ -11,10 +11,18 @@
 ------------------------------------------------------------------------------------ */
 class LimeRequest extends EngineRequest {
 	public function get_request_url() {
-		$this->query = preg_replace("/[^a-z0-9- ]+/", "", $this->query);
-		$this->query = str_replace(" ", "-", $this->query);
-		$url = "https://www.limetorrents.lol/search/all/".$this->query."/";
-        return $url;
+		$query = str_replace('%22', '\"', $this->query);
+		$query = preg_replace('/[^a-z0-9- ]+/', '', $query);
+		$query = strtolower(str_replace(' ', '-', $query));
+
+		// Is there no query left? Bail!
+		if(empty($query)) return false;
+
+		$url = 'https://www.limetorrents.lol/search/all/'.$query.'/';
+		
+		unset($query);
+
+		return $url;
 	}
 	
     public function get_request_headers() {
@@ -24,44 +32,106 @@ class LimeRequest extends EngineRequest {
 	}
 
 	public function parse_results($response) {
-		$results = array();
+		$engine_temp = $engine_result = array();
 		$xpath = get_xpath($response);
 		
-		// Failed to load page
-		if(!$xpath) return $results;
+		// No response
+		if(!$xpath) return $engine_temp;
 
-		// Scrape the page
-		foreach($xpath->query("//table[@class='table2']//tr[position()>1]") as $result) {
-			$name = sanitize($xpath->evaluate(".//td[@class='tdleft']//a[2]", $result)[0]->textContent);
-			$hash = sanitize($xpath->evaluate(".//td[@class='tdleft']//a[1]/@href", $result)[0]->textContent);
-			$hash = explode("/", substr($hash, 0, strpos($hash, ".torrent?")));
+		// Scrape the results
+		$scrape = $xpath->query("//table[@class='table2']//tr[position() > 1]");
+
+		// No results
+        if(count($scrape) == 0) return $engine_temp;
+
+		foreach($scrape as $result) {
+			// Find data
+			$name = $xpath->evaluate(".//td[@class='tdleft']//a[2]", $result);
+			$hash = $xpath->evaluate(".//td[@class='tdleft']//a[1]/@href", $result);
+			$seeders = $xpath->evaluate(".//td[@class='tdseed']", $result);
+			$leechers = $xpath->evaluate(".//td[@class='tdleech']", $result);
+			$filesize = $xpath->evaluate(".//td[@class='tdnormal'][2]", $result);
+
+			// Skip broken results
+			if($name->length == 0) continue;
+			if($hash->length == 0) continue;
+
+			// Process data
+			$name = sanitize($name[0]->textContent);
+			$hash = sanitize($hash[0]->textContent);
+			$hash = explode('/', substr($hash, 0, strpos($hash, '.torrent?')));
 			$hash = strtolower($hash[array_key_last($hash)]);
-			$magnet = "magnet:?xt=urn:btih:".$hash."&dn=".urlencode($name)."&tr=".implode("&tr=", $this->opts->magnet_trackers);
-			$seeders = sanitize($xpath->evaluate(".//td[@class='tdseed']", $result)[0]->textContent);
-			$leechers = sanitize($xpath->evaluate(".//td[@class='tdleech']", $result)[0]->textContent);
-			$size = sanitize($xpath->evaluate(".//td[@class='tdnormal'][2]", $result)[0]->textContent);
+			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($name).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
+			$seeders = ($seeders->length > 0) ? sanitize($seeders[0]->textContent) : 0;
+			$leechers = ($leechers->length > 0) ? sanitize($leechers[0]->textContent) : 0;
+			$filesize = ($filesize->length > 0) ? human_filesize(filesize_to_bytes(sanitize($filesize[0]->textContent))) : 0;
 
 			// Ignore results with 0 seeders?
-			if($this->opts->show_zero_seeders == "off" AND $seeders == 0) continue;
+			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
 			
-			// Get extra data
-			$category = explode(" ", trim(sanitize($xpath->evaluate(".//td[@class='tdnormal'][1]", $result)[0]->textContent), ".,"));
-			$category = $category[array_key_last($category)];
-			$url = "https://www.limetorrents.lol".sanitize($xpath->evaluate(".//td[@class='tdleft']//a[2]/@href", $result)[0]->textContent);
-			
-			// Filter episodes
+			// Throw out mismatched tv-show episodes when searching for tv shows
 			if(!is_season_or_episode($this->query, $name)) continue;
 			
-			$results[] = array (
+			// Find extra data
+			$category = $xpath->evaluate(".//td[@class='tdnormal'][1]", $result);
+			$url = $xpath->evaluate(".//td[@class='tdleft']//a[2]/@href", $result);
+
+			// Process extra data
+			if($category->length > 0) {
+				$category = explode(' - ', sanitize($category[0]->textContent));
+				$category = str_replace('in ', '', $category[array_key_last($category)]);
+				$category = (preg_match('/[a-z0-9 -]+/i', $category, $category)) ? $category[0] : null;
+			} else {
+				$category = null;
+			}
+			$url = ($url->length > 0) ? 'https://www.limetorrents.lol'.sanitize($url[0]->textContent) : null;
+
+			$quality = $codec = $audio = null;
+			if(in_array(strtolower($category), array('movies', 'tv shows', 'anime'))) {
+				$quality = find_video_quality($name);
+				$codec = find_video_codec($name);
+
+				// Add codec to quality
+				if(!empty($codec)) $quality = $quality.' '.$codec;
+			}
+
+			if(in_array(strtolower($category), array('music', 'movies', 'tv shows', 'anime'))) {
+				$audio = find_audio_codec($name);
+			}
+
+			$engine_temp[] = array (
 				// Required
-				"id" => uniqid(rand(0, 9999)), "source" => "limetorrents.lol", "name" => $name, "magnet" => $magnet, "hash" => $hash, "seeders" => $seeders, "leechers" => $leechers, "size" => $size,
-				// Extra
-				"category" => $category, "url" => $url
+				'hash' => $hash, // string
+				'name' => $name, // string
+				'magnet' => $magnet, // string
+				'seeders' => $seeders, // int
+				'leechers' => $leechers, // int
+				'filesize' => $filesize, // int
+				// Optional
+				'quality' => $quality, // string|null
+				'type' => null, // string|null
+				'audio' => $audio, // string|null
+				'runtime' => null, // int(timestamp)|null
+				'year' => null, // int(4)|null
+				'date_added' => null, // int(timestamp)|null
+				'category' => $category, // string|null
+				'url' => $url // string|null
 			);
+
+			unset($result, $name, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $audio, $category, $url);
 		}
-		unset($response, $xpath);
-		
-		return $results;
+
+		// Base info
+		$number_of_results = count($engine_temp);
+		if($number_of_results > 0) {
+			$engine_result['source'] = 'limetorrents.lol';
+			$engine_result['amount'] = $number_of_results;
+			$engine_result['search'] = $engine_temp;
+		}
+
+		unset($response, $xpath, $scrape, $number_of_results, $engine_temp);
+
+		return $engine_result;
 	}
 }
 ?>
