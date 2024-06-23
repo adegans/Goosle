@@ -26,7 +26,7 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
 if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 	// Check for updates
 	check_update();
-	echo "Update cached updated!<br />";
+	echo "Update cache updated!<br />";
 
 	// Clear out old cached files?
 	if($opts->cache_type == 'file') {
@@ -45,19 +45,27 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 	
 			// Is the token expired?
 			if($registration['expires'] < time()) {
-				$new_token = do_curl_request(
+				$response = do_curl_request(
 					'https://api.openverse.org/v1/auth_tokens/token/', // (string) Where?
 					array('Accept: application/json, */*;q=0.8', 'User-Agent: '.$opts->user_agents[0].';', 'Authorization: Bearer'.$registration['client_id']), // (array) Headers
 					'post', // (string) post/get
 					array('grant_type' => 'client_credentials', 'client_id' => $registration['client_id'], 'client_secret' => $registration['client_secret']) // (assoc array) Post body
 				);
-				$new_token = json_decode($new_token, true);
+				$json_response = json_decode($response, true);
 				
-				$new_token['expires_in'] = time() + ($new_token['expires_in'] - 3600);
-		
-				oauth_store_token($token_file, 'openverse', array('client_id' => $registration['client_id'], 'client_secret' => $registration['client_secret'], 'access_token' => $new_token['access_token'], 'expires' => $new_token['expires_in']));
-	
-				echo "New Openverse token stored!<br />";
+				// Got a response
+				if(!empty($json_response)) {
+					// Got some data?
+			        if(array_key_exists('access_token', $json_response)) {
+
+						$json_response['expires_in'] = time() + ($json_response['expires_in'] - 3600);
+				
+						oauth_store_token($token_file, 'openverse', array('client_id' => $registration['client_id'], 'client_secret' => $registration['client_secret'], 'access_token' => $json_response['access_token'], 'expires' => $json_response['expires_in']));
+			
+						echo "New Openverse token stored!<br />";
+					}
+				}
+				unset($response, $json_response);
 			}
 		}
 	}

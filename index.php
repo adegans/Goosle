@@ -50,7 +50,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 	<h1><span class="goosle-g">G</span>oosle</h1>
     
     <form action="results.php" method="get" autocomplete="off">
-        <input tabindex="10" type="search" class="search-field" name="q" autofocus />
+        <input tabindex="10" type="search" class="search-field" name="q" required autofocus />
         <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>
 
         <div class="search-buttons">

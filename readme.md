@@ -124,7 +124,13 @@ You can post your questions on Github Discussions or say hi on [Mastodon](https:
 - Sometimes TV Show episodes on the box office are not properly merged despite all required data matching.
 
 ## Changelog
-1.5 - June ??, 2024
+1.5.1 - June 22, 2024
+- [fix] Updated help.php, removed incorrect colorscheme information
+- [fix] Typo in text output for goosle-cron.php
+- [fix] Various php errors/warnings in goosle-cron.php
+- [fix] Url formatting for php function special searches
+
+1.5 - June 19, 2024
 - NOTICE: config.default.php has changed, re-create your config.php!!
 - [fix] No longer caches empty results
 - [fix] No longer make a request if the search query is empty

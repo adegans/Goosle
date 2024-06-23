@@ -23,8 +23,8 @@ button { cursor:pointer; }
 a { text-decoration:none; color:var(--link); }
 a:hover { text-decoration:underline; }
 small { padding:5px 0; color:var(--meta); font-size:.8rem; }
-
 input[type="text"]:invalid ~ input[type="submit"] { opacity:0.5; pointer-events:none; }
+
 input[type="search"]::-webkit-search-cancel-button { -webkit-appearance:none; -webkit-mask-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pjxzdmcgdmlld0JveD0iMCAwIDI0IDI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMy40MSwxMmw0LjMtNC4yOWExLDEsMCwxLDAtMS40Mi0xLjQyTDEyLDEwLjU5LDcuNzEsNi4yOUExLDEsMCwwLDAsNi4yOSw3LjcxTDEwLjU5LDEybC00LjMsNC4yOWExLDEsMCwwLDAsMCwxLjQyLDEsMSwwLDAsMCwxLjQyLDBMMTIsMTMuNDFsNC4yOSw0LjNhMSwxLDAsMCwwLDEuNDIsMCwxLDEsMCwwLDAsMC0xLjQyWiIgZmlsbD0iIzY1NjNmZiIvPjwvc3ZnPg=="); }
 
 /* Page structure */

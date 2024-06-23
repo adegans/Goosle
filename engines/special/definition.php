@@ -46,7 +46,7 @@ class DefinitionRequest extends EngineRequest {
 		if(empty($json_response)) return $engine_result;
 
 		// No results
-        if(array_key_exists('title', $json_response)) return $engine_result;
+        if(!array_key_exists('title', $json_response)) return $engine_result;
 
 		// Grab first result if there are multiple
 		$result = $json_response[0];

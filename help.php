@@ -170,8 +170,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 	<p>Most browsers ask that you add <strong>%s</strong> for the search query as shown in the examples. If your browser has a different value for this simply replace %s with what your browser requires.
 
 	<h2>Colorschemes</h2>
-	<p>Goose comes with several colorschemes. If you don't like the selected colorscheme you can override it with the <strong>c</strong> argument in your search url. For example: <strong>https://example.com/?c=dark</strong>.</p>
-	<p>You can add this to your bookmark too to always override the colorscheme.</p>
+	<p>Goose comes with several colorschemes, configurable through the config.php file.</p>
 	
 	<h3>Available colorschemes are:</h3>
 	<ol>

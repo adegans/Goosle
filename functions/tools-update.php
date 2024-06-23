@@ -17,7 +17,7 @@ function check_update() {
 	$cache_file = ABSPATH.'cache/version.data';
 	
 	// Currently installed version
-	$current_version = "1.5";
+	$current_version = "1.5.1";
 
 	if(!is_file($cache_file)) {
 		// Create update cache file if it doesn't exist
@@ -27,6 +27,9 @@ function check_update() {
 		// Get update information
 		$version = unserialize(file_get_contents($cache_file));
 	}
+
+	// TODO: Remove in a future version
+	if(!isset($version['current'])) $version['current'] = "1.5.1";
 
 	// Update check, every week
 	if($version['checked'] < time() - 604800) {
@@ -58,7 +61,7 @@ function show_version() {
 		$version = unserialize(file_get_contents($cache_file));
 
 		// TODO: Remove in a future version
-		if(!isset($version['current'])) $version['current'] = "1.5";
+		if(!isset($version['current'])) $version['current'] = "1.5.1";
 
 		// Format current version for footer
 		$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$version['current']."</a>.";

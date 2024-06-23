@@ -12,13 +12,15 @@
 class PHPnetRequest extends EngineRequest {
 	public function get_request_url() {
 		$query = str_replace('%22', '\"', $this->query);
+
+		// Format query/url for php.net
 		$query = str_replace('php ', '', $query);
 		$query = str_replace('_', '-', $query);
 
 		// Is there no query left? Bail!
 		if(empty($query)) return false;
 
-		$url = 'https://www.php.net/manual/function.'.urlencode($query);
+		$url = 'https://www.php.net/manual/function.'.urlencode($query).'.php';
 		
 		unset($query);
 		
@@ -61,7 +63,7 @@ class PHPnetRequest extends EngineRequest {
                 // Required
 				'title' => "Function: ".sanitize($title),
 				'text' => "<p><em><small>".sanitize($php_versions)."</small></em></p><p>".sanitize($purpose)."</p><p>".highlight_string("<?php ".sanitize($usage)." ?>", 1)."</p><p>".$summary."</p>",
-				'source' => "https://www.php.net/manual/function.".urlencode($query)
+				'source' => "https://www.php.net/manual/function.".urlencode($query).".php"
 			);
 		}
 		unset($response, $xpath, $scrape);
