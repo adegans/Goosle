@@ -11,14 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class YTSRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
- 		$url = 'https://yts.mx/api/v2/list_movies.json?query_term='.urlencode($query);
-        
-        unset($query);
+ 		$url = 'https://yts.mx/api/v2/list_movies.json?query_term='.urlencode($this->search->query);
         
         return $url;
 	}
@@ -46,17 +39,19 @@ class YTSRequest extends EngineRequest {
 
 		foreach($json_response['data']['movies'] as $result) {
 			// Find and process data
-			$name = sanitize($result['title']);
+			$title = sanitize($result['title']);
 
 			// Find extra data
-			$year = (array_key_exists('year', $result)) ? sanitize($result['year']) : null;
-			$category = (array_key_exists('genres', $result)) ? $result['genres'] : null; // Sanitized later
-			$runtime = (array_key_exists('runtime', $result)) ? date('H:i', mktime(0, sanitize($result['runtime']))) : null;
-			$url = (array_key_exists('url', $result)) ? sanitize($result['url']) : null;
-			$date_added = (array_key_exists('date_uploaded_unix', $result)) ? timezone_offset(sanitize($result['date_uploaded_unix']), $this->opts->timezone) : null;
+			$runtime = (!empty($result['runtime'])) ? date('H:i', mktime(0, sanitize($result['runtime']))) : null;
+			$year = (!empty($result['year'])) ? sanitize($result['year']) : 0;
+			$category = (!empty($result['genres'])) ? $result['genres'] : null;
+			$mpa_rating = (!empty($result['mpa_rating'])) ? sanitize($result['mpa_rating']) : null;
+			$timestamp = (!empty($result['date_uploaded_unix'])) ? sanitize($result['date_uploaded_unix']) : null;
+			$language = (!empty($result['language'])) ? sanitize($result['language']) : null;
+			$url = (!empty($result['url'])) ? sanitize($result['url']) : null;
 			
 			// Process extra data
-			if(!is_null($category)) {
+			if(is_array($category)) {
 				// Block these categories
 				if(count(array_uintersect($category, $this->opts->yts_categories_blocked, 'strcasecmp')) > 0) continue;
 				
@@ -67,7 +62,7 @@ class YTSRequest extends EngineRequest {
 			foreach ($result['torrents'] as $download) {
 				// Find and process data
 				$hash = strtolower(sanitize($download['hash']));
-				$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($name).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
+				$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
 				$seeders = sanitize($download['seeds']);
 				$leechers = sanitize($download['peers']);
 				$filesize = human_filesize(filesize_to_bytes(sanitize($download['size'])));
@@ -76,42 +71,45 @@ class YTSRequest extends EngineRequest {
 				if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
 				
 				// Find extra data
-				$quality = (array_key_exists('quality', $download)) ? sanitize(strtolower($download['quality'])) : null;
-				$codec = (array_key_exists('video_codec', $download)) ? sanitize(strtolower($download['video_codec'])) : null;
-				$type = (array_key_exists('type', $download)) ? ucfirst(sanitize(strtolower($download['type']))) : null;
-				$audio = (array_key_exists('audio_channels', $download)) ? sanitize('AAC '.$download['audio_channels']) : null;
+				$quality = (!empty($download['quality'])) ? sanitize(strtolower($download['quality'])) : null;
+				$codec = (!empty($download['video_codec'])) ? sanitize(strtolower($download['video_codec'])) : null;
+				$bitrate = (!empty($download['bit_depth'])) ? sanitize($download['bit_depth']) : null;
+				$type = (!empty($download['type'])) ? ucfirst(sanitize(strtolower($download['type']))) : null;
+				$audio = (!empty($download['audio_channels'])) ? sanitize('AAC '.$download['audio_channels']) : null;
 
 				// Process extra data
 				if(!empty($codec)) $quality = $quality.' '.$codec;
+				if(!empty($bitrate)) $quality = $quality.' '.$bitrate.'bit';
 
 				$engine_temp[] = array (
 					// Required
 					'hash' => $hash, // string
-					'name' => $name, // string
+					'title' => $title, // string
 					'magnet' => $magnet, // string
 					'seeders' => $seeders, // int
 					'leechers' => $leechers, // int
 					'filesize' => $filesize, // int
 					// Optional
+					'nsfw' => false, // bool
 					'quality' => $quality, // string|null
 					'type' => $type, // string|null
 					'audio' => $audio, // string|null
-					'year' => $year, // int(4)|null
-					'category' => $category, // string|null
 					'runtime' => $runtime, // int(timestamp)|null
-					'url' => $url, // string|null
-					'date_added' => $date_added // int(timestamp)|null
+					'year' => $year, // int(4)|null
+					'timestamp' => $timestamp, // int(timestamp)|null
+					'category' => $category, // string|null
+					'mpa_rating' => $mpa_rating, // string|null
+					'language' => $language, // string|null
+					'url' => $url // string|null
 				);
-				unset($download, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $type, $audio);
+				unset($download, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $bitrate, $type, $audio);
 			}
-			unset($result, $name, $year, $category, $runtime, $url, $date_added);
+			unset($result, $title, $year, $category, $language, $runtime, $url, $date_added);
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'yts.mx';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

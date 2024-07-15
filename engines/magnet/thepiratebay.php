@@ -11,14 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class PirateBayRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
-        $url = 'https://apibay.org/q.php?q='.urlencode($query);
-        
-        unset($query);
+        $url = 'https://apibay.org/q.php?q='.urlencode($this->search->query);
         
         return $url;
 	}
@@ -108,9 +101,9 @@ class PirateBayRequest extends EngineRequest {
 
 		foreach($json_response as $result) {
 			// Find and process data
-			$name = sanitize($result['name']);
+			$title = sanitize($result['name']);
 			$hash = strtolower(sanitize($result['info_hash']));
-			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($name).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
+			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
 			$seeders = sanitize($result['seeders']);
 			$leechers = sanitize($result['leechers']);
 			$filesize = human_filesize(sanitize($result['size']));
@@ -119,30 +112,30 @@ class PirateBayRequest extends EngineRequest {
 			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
 			
 			// Throw out mismatched tv-show episodes when searching for tv shows
-			if(!is_season_or_episode($this->query, $name)) continue;
+			if(!is_season_or_episode($this->search->query, $title)) continue;
 			
 			// Find extra data
 			$category = (array_key_exists('category', $result)) ? sanitize($result['category']) : null;
 			$url = (array_key_exists('id', $result)) ? 'https://thepiratebay.org/description.php?id='.sanitize($result['id']) : null;
-			$date_added = (array_key_exists('added', $result)) ? timezone_offset(sanitize($result['added']), $this->opts->timezone) : null;
+			$timestamp = (isset($result['added'])) ? sanitize($result['added']) : null;
 
 			// Process extra data
 			if(!is_null($category)) {
 				// Block these categories
 				if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
 
-				// Detect technical data
+				// Find meta data for certain categories
+				$nsfw = ($category >= 500 && $category <= 599) ? true : false;
 				$quality = $codec = $audio = null;
-				if(($category >= 200 && $category < 300) || ($category >= 500 && $category < 600)) {
-					$quality = find_video_quality($name);
-					$codec = find_video_codec($name);
+				if(($category >= 200 && $category <= 299) || ($category >= 500 && $category <= 599)) {
+					$quality = find_video_quality($title);
+					$codec = find_video_codec($title);
+					$audio = find_audio_codec($title);
 	
 					// Add codec to quality
 					if(!empty($codec)) $quality = $quality.' '.$codec;
-				}
-	
-				if(($category >= 100 && $category < 200) || ($category >= 200 && $category < 300) || ($category >= 500 && $category < 600)) {
-					$audio = find_audio_codec($name);
+				} else if($category >= 100 && $category <= 199) {
+					$audio = find_audio_codec($title);
 				}
 
 				// Set actual category
@@ -152,30 +145,31 @@ class PirateBayRequest extends EngineRequest {
 			$engine_temp[] = array(
 				// Required
 				'hash' => $hash, // string
-				'name' => $name, // string
+				'title' => $title, // string
 				'magnet' => $magnet, // string
 				'seeders' => $seeders, // int
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
+				'nsfw' => $nsfw, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null
 				'audio' => $audio, // string|null
 				'runtime' => null, // int(timestamp)|null
 				'year' => null, // int(4)|null
-				'date_added' => $date_added, // int(timestamp)|null
+				'timestamp' => $timestamp, // int(timestamp)|null
 				'category' => $category, // string|null
+				'language' => null, // string|null
+				'mpa_rating' => null, // string|null
 				'url' => $url // string|null
  			);
 
-			unset($result, $name, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $audio, $category, $url, $date_added);
+			unset($result, $title, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $audio, $category, $url, $date_added);
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'thepiratebay.org';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

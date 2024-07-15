@@ -11,30 +11,19 @@
 ------------------------------------------------------------------------------------ */
 class WikiRequest extends EngineRequest {
     public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Safe search ignore
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			$query = trim(str_replace($matches[0], '', $query));
-		}
-		unset($matches);
-
 	    // Set locale
 		$language = (strlen($this->opts->wikipedia_language) == 2) ? strtolower($this->opts->wikipedia_language) : 'en';
 
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
 		// Variables based on https://www.mediawiki.org/wiki/API:Search
         $url = 'https://'.$language.'.wikipedia.org/w/api.php?'.http_build_query(array(
-        	'srsearch' => $query, // Search query
+        	'srsearch' => $this->search->query, // Search query
         	'action' => 'query', // Search type (via a query?)
         	'list' => 'search', // Full text search
         	'format' => 'json', // Return format (Must be json)
         	'srlimit' => 10 // How many search results to get, ideally as few as possible since it's just static wiki pages (max 500)
         ));
 
-		unset($query, $language);
+		unset($language);
 
         return $url;
     }
@@ -79,10 +68,8 @@ class WikiRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Wikipedia';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

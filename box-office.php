@@ -1,20 +1,4 @@
 <?php
-if(!defined('ABSPATH')) define('ABSPATH', $_SERVER['DOCUMENT_ROOT'] . '/');
-date_default_timezone_set('UTC');
-
-require ABSPATH.'functions/tools.php';
-require ABSPATH.'functions/tools-magnet.php';
-require ABSPATH.'functions/tools-update.php';
-require ABSPATH.'engines/boxoffice/yts.php';
-require ABSPATH.'engines/boxoffice/eztv.php';
-require ABSPATH.'engines/boxoffice/thepiratebay.php';
-require ABSPATH.'engines/boxoffice/nyaa.php';
-
-// Blue pixel
-$blank_thumb = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mOUX3LxDAAE4AJiVKIoaQAAAABJRU5ErkJggg==';
-
-$opts = load_opts();
-$auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
 /* ------------------------------------------------------------------------------------
 *  Goosle - The fast, privacy oriented search tool that just works.
 *
@@ -25,6 +9,17 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
 *  By using this code you agree to indemnify Arnan de Gans from any 
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
+
+if(!defined('ABSPATH')) define('ABSPATH', $_SERVER['DOCUMENT_ROOT'] . '/');
+date_default_timezone_set('UTC');
+
+require ABSPATH.'functions/tools.php';
+require ABSPATH.'functions/tools-magnet.php';
+require ABSPATH.'engines/boxoffice/yts.php';
+require ABSPATH.'engines/boxoffice/eztv.php';
+
+$opts = load_opts();
+$search = load_search();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,7 +32,7 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
     <meta name="referrer" content="no-referrer"/>
 	<meta name="description" content="View the latest magnet links available for download!" />
 
-	<meta property="og:site_name" content="Goosle Search Box Office" />
+	<meta property="og:site_name" content="Goosle Search" />
 	<meta property="og:title" content="Goosle Search Box Office" />
 	<meta property="og:description" content="View the latest magnet links available for download!" />
 	<meta property="og:url" content="<?php echo get_base_url($opts->siteurl); ?>/box-office.php" />
@@ -55,30 +50,30 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
 
 <body class="boxofficepage">
 <?php
-if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
+if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 ?>
 <div class="header">
 	<form action="results.php" method="get" autocomplete="off">
-	    <h1 class="logo"><a href="./?a=<?php echo $opts->hash; ?>"><span class="goosle-g">G</span>oosle</a></h1>        
-	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($opts->query) > 0) ? htmlspecialchars($opts->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+	    <h1 class="logo"><a href="./?a=<?php echo $opts->user_auth; ?>"><span class="goosle-g">G</span>oosle</a></h1>        
+	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->query) > 0) ? htmlspecialchars($search->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
 	
-        <input type="hidden" name="t" value="<?php echo $opts->type; ?>"/>
-	    <input type="hidden" name="a" value="<?php echo $opts->hash; ?>">
+        <input type="hidden" name="t" value="<?php echo $search->type; ?>"/>
+	    <input type="hidden" name="a" value="<?php echo $opts->user_auth; ?>">
 	</form>
  
     <div class="navigation">
-        <a class="<?php echo ($opts->type == '0') ? 'active ' : ''; ?>tab-search" href="./results.php?q=<?php echo $opts->query; ?>&a=<?php echo $opts->hash; ?>&t=0">Search</a>
+        <a class="<?php echo ($search->type == '0') ? 'active ' : ''; ?>tab-search" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=0">Search</a>
 
         <?php if($opts->enable_image_search == 'on') { ?>
-        <a class="<?php echo ($opts->type == '1') ? 'active ' : ''; ?>tab-image" href="./results.php?q=<?php echo $opts->query; ?>&a=<?php echo $opts->hash; ?>&t=1" >Images</a>
+        <a class="<?php echo ($search->type == '1') ? 'active ' : ''; ?>tab-image" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=1" >Images</a>
         <?php } ?>
 
         <?php if($opts->enable_news_search == 'on') { ?>
-        <a class="<?php echo ($opts->type == '2') ? 'active ' : ''; ?>tab-news" href="./results.php?q=<?php echo $opts->query; ?>&a=<?php echo $opts->hash; ?>&t=2">News</a>
+        <a class="<?php echo ($search->type == '2') ? 'active ' : ''; ?>tab-news" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=2">News</a>
         <?php } ?>
 
         <?php if($opts->enable_magnet_search == 'on') { ?>
-        <a class="<?php echo ($opts->type == '9') ? 'active ' : ''; ?>tab-magnet" href="./results.php?q=<?php echo $opts->query; ?>&a=<?php echo $opts->hash; ?>&t=9">Magnet links</a>
+        <a class="<?php echo ($search->type == '9') ? 'active ' : ''; ?>tab-magnet" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=9">Magnet links</a>
         <?php } ?>
 	</div>
 </div>
@@ -86,156 +81,76 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 <div class="content">
 	<h2>The Box Office</h2>
 
-	<div class="result-grid">
-		<p>Click on any movie poster for more information and available download links. All other results are direct download links.</p>
+	<p>Click on any movie poster for more information and available download links.</p>
 
-		<h3>Recently added movies on YTS</h3>
+	<h3>Recently added movies on YTS</h3>
+	<?php
+	$highlights = array_slice(yts_boxoffice($opts, 'date_added'), 0, 24);
+	?>
+	<ul class="result-grid">
 		<?php
-		$highlights = array_slice(yts_boxoffice($opts, 'date_added'), 0, 24);
-		?>
-		<ul>
-			<?php
-			foreach($highlights as $highlight) {
-				$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $blank_thumb;
-				$search_query = urlencode($highlight['name']." ".$highlight['year']);
+		foreach($highlights as $highlight) {
+			$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $opts-pixel;
 
-				echo "<li class=\"result highlight yts id-".$highlight['id']."\">";
-				echo "	<div class=\"result-box\">";
-				echo "		<a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['name']."\"><img src=\"".$thumb."\" alt=\"".$highlight['name']."\" /></a>";
-				echo "	</div>";
-				echo "	<span><center><a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['name']."\">".$highlight['name']."</a></center></span>";
+			echo "<li class=\"result highlight yts id-".$highlight['id']."\">";
+			echo "	<div class=\"thumb\">";
+			echo "		<a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['title']."\"><img src=\"".$thumb."\" alt=\"".$highlight['title']."\" /></a>";
+			echo "	</div>";
+			echo "	<span><center><a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['title']."\">".$highlight['title']."</a></center></span>";
 
-				// HTML for popup
-				echo "	<div id=\"highlight-".$highlight['id']."\" class=\"goosebox\">";
-				echo "		<div class=\"goosebox-body\">";
-				echo "			<h2>".$highlight['name']."</h2>";
-				echo "			<p>".$highlight['summary']."</p>";
-				echo "			<p><a href=\"./results.php?q=".$search_query."&a=".$opts->hash."&t=0\" title=\"Search on Goosle Web Search!\">Search on Goosle</a> &bull; <a href=\"./results.php?q=".$search_query."&a=".$opts->hash."&t=9\" title=\"Search on Goosle Magnet Search! For new additions results may be limited.\">Find more Magnet links</a></p>";
-				echo "			<p><strong>Genre:</strong> ".$highlight['category']."<br /><strong>Released:</strong> ".$highlight['year']."<br /><strong>Rating:</strong> ".movie_star_rating($highlight['rating'])." <small>(".$highlight['rating']." / 10)</small></p>";
+			// HTML for popup
+			echo highlight_popup($opts->user_auth, $highlight);
 
-				// List downloads
-				echo "			<h3>Downloads:</h3>";
-				echo "			<p>";
-				foreach($highlight['magnet_links'] as $magnet) {
-					if(!is_null($magnet['quality'])) $meta[] = $magnet['quality'];
-					if(!is_null($magnet['type'])) $meta[] = $magnet['type'];
-					$meta[] = human_filesize($magnet['filesize']);
-		
-					echo "<button class=\"download\" onclick=\"location.href=".$magnet['magnet']."\">".implode(' / ', $meta)."</button>";
-					unset($meta);
-				}
-				echo "			</p>";
-
-				echo "			<p><a onclick=\"closepopup()\">Close</a></p>";
-				echo "		</div>";
-				echo "	</div>";
-
-				echo "</li>";
-		
-				unset($highlight, $thumb, $search_query, $magnet);
-			}
-			unset($highlights);
-			?>
-	    </ul>
+			echo "</li>";
 	
-		<h3>Latest TV Show releases from EZTV</h3>
-		<?php
-		$highlights = array_slice(eztv_boxoffice($opts), 0, 24);
+			unset($highlight, $thumb);
+		}
+		unset($highlights);
 		?>
-		<ul>
-			<?php
-			foreach($highlights as $highlight) {
-				$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $blank_thumb;
-				
-				echo "<li class=\"result highlight eztv id-".$highlight['id']."\">";
-				echo "	<div class=\"result-box\">";
-				echo "		<a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['name']."\"><img src=\"".$thumb."\" alt=\"".$highlight['name']."\" /></a>";
-				echo "	</div>";
-				echo "	<span><center><a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['name']."\">".$highlight['name']."</a></center></span>";
+    </ul>
 
-				// HTML for popup
-				echo "	<div id=\"highlight-".$highlight['id']."\" class=\"goosebox\">";
-				echo "		<div class=\"goosebox-body\">";
-				echo "			<h2>".$highlight['name']."</h2>";
-				echo "			<p><a href=\"./results.php?q=".urlencode($highlight['name'])."&a=".$opts->hash."&t=0\" title=\"Search on Goosle Web Search!\">Search on Goosle</a> &bull; <a href=\"./results.php?q=".urlencode($highlight['name'])."&a=".$opts->hash."&t=9\" title=\"Search on Goosle Magnet Search! For new additions results may be limited.\">Find more Magnet links</a></p>";
+	<h3>Latest TV Show releases from EZTV</h3>
+	<?php
+	$highlights = array_slice(eztv_boxoffice($opts), 0, 24);
+	?>
+	<ul class="result-grid">
+		<?php
+		foreach($highlights as $highlight) {
+			$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $opts->pixel;
+			
+			echo "<li class=\"result highlight eztv id-".$highlight['id']."\">";
+			echo "	<div class=\"thumb\">";
+			echo "		<a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['title']."\"><img src=\"".$thumb."\" alt=\"".$highlight['title']."\" /></a>";
+			echo "	</div>";
+			echo "	<span><center><a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['title']."\">".$highlight['title']."</a></center></span>";
 
-				// List downloads
-				echo "			<h3>Downloads:</h3>";
-				echo "			<p>";
-				foreach($highlight['magnet_links'] as $magnet) {
-					if(!is_null($magnet['quality'])) $meta[] = $magnet['quality'];
-					$meta[] = human_filesize($magnet['filesize']);
-		
-					echo "<button class=\"download\" onclick=\"location.href=".$magnet['magnet']."\">".implode(' / ', $meta)."</button>";
-					unset($meta);
-				}
-				echo "			</p>";
+			// HTML for popup
+			echo highlight_popup($opts->user_auth, $highlight);
 
-				echo "			<p><a onclick=\"closepopup()\">Close</a></p>";
-				echo "		</div>";
-				echo "	</div>";
+			echo "</li>";
+	
+			unset($highlight, $thumb);
+		}
+		unset($highlights);
+		?>
+    </ul>
 
-				echo "</li>";
-		
-				unset($highlight, $thumb, $magnet);
-			}
-			unset($highlights);
-			?>
-	    </ul>
-    </div>
-
-	<div class="grid-container">
-
-		<div class="list-grid piratebay">
-			<h3>Newest downloads on ThePirateBay</h3>
-			<ol>
-			<?php
-			foreach(piratebay_boxoffice($opts, 10) as $highlight) {
-				echo "<li class=\"result magnet id-".$highlight['id']."\">";
-				echo "<div class=\"title\"><a href=\"".$highlight['magnet']."\"><h2>".stripslashes($highlight['name'])."</h2></a></div>";
-				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"green\">".$highlight['seeders']."</span> - <strong>Peers:</strong> <span class=\"red\">".$highlight['leechers']."</span> - <strong>Size:</strong> ".human_filesize($highlight['filesize'])."<br /><strong>Category:</strong> ".$highlight['category']."</div>";
-				echo "</li>";
-		
-				unset($highlight);
-			}
-			?>
-    		</ol>
-		</div>
-
-		<div class="list-grid nyaa">
-			<h3>Newest downloads on Nyaa</h3>
-			<ol>
-			<?php
-			foreach(nyaa_boxoffice($opts, 10) as $highlight) {
-				echo "<li class=\"result magnet id-".$highlight['id']."\">";
-				echo "<div class=\"title\"><a href=\"".$highlight['magnet']."\"><h2>".stripslashes($highlight['name'])."</h2></a></div>";
-				echo "<div class=\"description\"><strong>Seeds:</strong> <span class=\"green\">".$highlight['seeders']."</span> - <strong>Peers:</strong> <span class=\"red\">".$highlight['leechers']."</span> - <strong>Size:</strong> ".human_filesize($highlight['filesize'])."<br /><strong>Category:</strong> ".$highlight['category']."</div>";
-				echo "</li>";
-		
-				unset($highlight);
-			}
-			?>
-			</ol>
-		</div>
-
-	</div>
-
-	<center><small>Goosle does not index, offer or distribute torrent files.</small></center>
+	<p class="text-center"><small>Goosle does not index, offer or distribute torrent files.</small></p>
 </div>
 
 <div class="footer grid-container">
 	<div class="footer-grid">
-		&copy; <?php echo date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
+		&copy; <?php echo the_date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
 	</div>
 	<div class="footer-grid">
-		<a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->hash; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a>
+		<a href="./?a=<?php echo $opts->user_auth; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->user_auth; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->user_auth; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>
 	</div>
 </div>
 
-<?php 
-} else {
-	echo "<div class=\"auth-error\">Goosle</div>";
-} 
-?>
+<?php } else { ?>
+	<div class="auth-error">Redirecting</div>
+	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
+<?php } ?>
+
 </body>
 </html>

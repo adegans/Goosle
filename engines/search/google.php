@@ -11,24 +11,10 @@
 ------------------------------------------------------------------------------------ */
 class GoogleRequest extends EngineRequest {
     public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Safe search override
-		$safe = '1';
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			if($matches[2] == 'on') $safe = '2';
-			if($matches[2] == 'off') $safe = '0';
-			$query = trim(str_replace($matches[0], '', $query));
-		}
-		unset($matches);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
 		// Including the preferred language variable breaks the page result, and with that the crawler!
         $url = 'https://www.google.com/search?'.http_build_query(array(
-        	'q' => $query, // Search query
-        	'safe' => $safe, // Safe search (0 = off, 1 = moderate, 2 = on/strict)
+        	'q' => $this->search->query, // Search query
+        	'safe' => $this->search->safe, // Safe search (0 = off, 1 = moderate, 2 = on/strict)
         	'num' => 30, // Number of results per page
         	'pws' => 0, // Personalized search results (0 = off)
         	'udm' => 14, // A view for simpler/non-ai results
@@ -36,8 +22,6 @@ class GoogleRequest extends EngineRequest {
         	'complete' => '0', // Instant results related (0 = off)
         	'sclient' => 'web' // Where are you searching from
         ));
-
-		unset($query, $safe);
 
         return $url;
     }
@@ -105,10 +89,8 @@ class GoogleRequest extends EngineRequest {
         }
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Google';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

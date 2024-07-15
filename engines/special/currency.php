@@ -43,11 +43,10 @@ class CurrencyRequest extends EngineRequest {
 		// [2] = (to|in)
 		// [3] = TO CURRENCY
 		
-        $query_terms = explode(' ', $this->query);
-        $amount = floatval($query_terms[0]);
-        $amount_currency = strtoupper($query_terms[1]);
-        $conversion_currency = strtoupper($query_terms[3]);
-        $last_update = date('M d, Y H:i:s', timezone_offset(strtotime(sanitize($json_response['lastupdate'])), $this->opts->timezone));
+        $amount = floatval($this->search->query_terms[0]);
+        $amount_currency = strtoupper($this->search->query_terms[1]);
+        $conversion_currency = strtoupper($this->search->query_terms[3]);
+        $last_update = the_date('M d, Y H:i', strtotime(sanitize($json_response['lastupdate'])));
 
 		// Unknown/misspelled currencies
         if(!array_key_exists($amount_currency, $json_response['rates']) || !array_key_exists($conversion_currency, $json_response['rates'])) {
@@ -58,13 +57,14 @@ class CurrencyRequest extends EngineRequest {
         $conversion = round(($json_response['rates'][$conversion_currency] / $json_response['rates'][$amount_currency]) * $amount, 2);
         $one_to_n = round(($json_response['rates'][$conversion_currency] / $json_response['rates'][$amount_currency]) * 1, 2);
 
+		// Return result
         $engine_result = array(
             'title' => "Currency conversion: ".$amount." ".$amount_currency." = ".$conversion." ".$conversion_currency,
-            'text' => "<p>1 $amount_currency = $one_to_n $conversion_currency</p><p><small>Updated: $last_update (GMT/UTC+0)</small></p>",
+            'text' => "<p>1 ".$amount_currency." = ".$one_to_n." ".$conversion_currency."</p><p><small>Updated: ".$last_update."</small></p>",
             'source' => "https://moneyconvert.net/"
         );
 
-		unset($response, $json_response, $query_terms, $amount, $amount_currency, $conversion, $one_to_n, $conversion_currency, $last_update);
+		unset($response, $json_response, $amount, $amount_currency, $conversion, $one_to_n, $conversion_currency, $last_update);
 
 		return $engine_result;
     }

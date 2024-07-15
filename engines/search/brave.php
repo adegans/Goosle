@@ -11,27 +11,14 @@
 ------------------------------------------------------------------------------------ */
 class BraveRequest extends EngineRequest {
     public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
- 
-		// Safe search ignore (not supported)
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			$query = trim(str_replace($matches[0], '', $query));
-		}
-		unset($matches);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
 		$url = 'https://search.brave.com/search?'.http_build_query(array(
-        	'q' => $query, // Search query
+        	'q' => $this->search->query, // Search query
         	'offset' => 0, // Start on 'page' 1 of results (0 = 1)
         	'show_local' => 0, // Localize results (0 = no localization)
         	'spellcheck' => 0, // No spellcheck on your query
         	'source' => 'web' // Where are you searching from? (Web)
         ));
         
-        unset($query);
-
         return $url;
     }
 
@@ -88,10 +75,8 @@ class BraveRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Brave';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

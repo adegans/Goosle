@@ -11,34 +11,20 @@
 ------------------------------------------------------------------------------------ */
 class QwantRequest extends EngineRequest {
     public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Safe search override
-		$safe = '1'; // Moderate results
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			if($matches[2] == 'on') $safe = '2';
-			if($matches[2] == 'off') $safe = '0';
-			$query = trim(str_replace($matches[0], '', $query));
-		}
-		unset($matches);
-
 		// Set locale
 		$language = (preg_match('/[a-z]{2}_[a-z]{2}/i', $this->opts->qwant_language) && strlen($this->opts->qwant_language) == 5) ? strtolower($this->opts->qwant_language) : 'en_gb';
 
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
 		// Based on https://github.com/locness3/qwant-api-docs and variables from qwant website
         $url = 'https://api.qwant.com/v3/search/web?'.http_build_query(array(
-        	'q' => $query, // Search query
+        	'q' => $this->search->query, // Search query
         	't' => 'web', // Type of search, web search
-        	'safesearch' => $safe, // Safe search filter (0 = off, 1 = normal, 2 = strict)
+        	'safesearch' => $this->search->safe, // Safe search filter (0 = off, 1 = normal, 2 = strict)
         	'locale' => $language, // In which language should the search be done
         	'count' => 10, // How many results? (Maximum 10)
         	'device' => 'desktop' // What kind of device are we searching from?
         ));
 
-        unset($query, $safe, $language);
+        unset($query, $language);
 
         return $url;
     }
@@ -89,10 +75,8 @@ class QwantRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Qwant';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

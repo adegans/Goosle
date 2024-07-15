@@ -11,14 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class SukebeiRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
-        $url = 'https://sukebei.nyaa.si/?q='.urlencode($query);
-        
-        unset($query);
+        $url = 'https://sukebei.nyaa.si/?q='.urlencode($this->search->query);
         
         return $url;
 	}
@@ -45,16 +38,16 @@ class SukebeiRequest extends EngineRequest {
 		foreach($scrape as $result) {
 			// Find data
 			$meta = $xpath->evaluate(".//td[@class='text-center']", $result);
-			$name = $xpath->evaluate(".//td[@colspan='2']//a[not(contains(@class, 'comments'))]/@title", $result);
+			$title = $xpath->evaluate(".//td[@colspan='2']//a[not(contains(@class, 'comments'))]/@title", $result);
 			$magnet = $xpath->evaluate(".//a[2]/@href", $meta[0]);
 
 			// Skip broken results
-			if($name->length == 0) continue;
-			if($magnet->length == 0) $magnet = $xpath->evaluate(".//a/@href", $meta[0]); // This matches if no torrent file is provided on the page
+			if($title->length == 0) continue;
+			if($magnet->length == 0) $magnet = $xpath->evaluate(".//a/@href", $meta[0]); // This matches if no torrent file is provided
 			if($magnet->length == 0) continue;
 
 			// Process data
-			$name = sanitize($name[0]->textContent);
+			$title = sanitize($title[0]->textContent);
 			$magnet = sanitize($magnet[0]->textContent);
 			parse_str(parse_url($magnet, PHP_URL_QUERY), $hash_parameters);
 			$hash = strtolower(str_replace('urn:btih:', '', $hash_parameters['xt']));
@@ -66,23 +59,24 @@ class SukebeiRequest extends EngineRequest {
 			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
 			
 			// Throw out mismatched tv-show episodes when searching for tv shows
-			if(!is_season_or_episode($this->query, $name)) continue;
+			if(!is_season_or_episode($this->search->query, $title)) continue;
 			
 			// Find extra data
 			$category = $xpath->evaluate(".//td[1]//a/@title", $result);
 			$url = $xpath->evaluate(".//td[@colspan='2']//a[not(contains(@class, 'comments'))]/@href", $result);
+			$date_added = $xpath->evaluate(".//td[@class='text-center']/@data-timestamp", $result);
 
 			// Process extra data
 			$category = ($category->length > 0) ? str_replace(' - ', '/', sanitize($category[0]->textContent)) : null;
 			$url = ($url->length > 0) ? 'https://sukebei.nyaa.si'.sanitize($url[0]->textContent) : null;
-			$date_added = explode('-', substr(sanitize($meta[2]->textContent), 0, 10));
-			$date_added = timezone_offset(gmmktime(0, 0, 0, intval($date_added[1]), intval($date_added[2]), intval($date_added[0])), $this->opts->timezone);
+			$timestamp = sanitize($date_added[0]->textContent);
 
+			// Find meta data for certain categories
 			$quality = $codec = $audio = null;
 			if(in_array(strtolower($category), array('art/anime', 'real life/videos'))) {
-				$quality = find_video_quality($name);
-				$codec = find_video_codec($name);
-				$audio = find_audio_codec($name);
+				$quality = find_video_quality($title);
+				$codec = find_video_codec($title);
+				$audio = find_audio_codec($title);
 
 				// Add codec to quality
 				if(!empty($codec)) $quality = $quality.' '.$codec;
@@ -91,30 +85,31 @@ class SukebeiRequest extends EngineRequest {
 			$engine_temp[] = array (
 				// Required
 				'hash' => $hash, // string
-				'name' => $name, // string
+				'title' => $title, // string
 				'magnet' => $magnet, // string
 				'seeders' => $seeders, // int
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
+				'nsfw' => true, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null
 				'audio' => $audio, // string|null
 				'runtime' => null, // int(timestamp)|null
 				'year' => null, // int(4)|null
-				'date_added' => $date_added, // int(timestamp)|null
+				'timestamp' => $timestamp, // int(timestamp)|null
 				'category' => $category, // string|null
+				'mpa_rating' => null, // string|null
+				'language' => null, // string|null
 				'url' => $url // string|null
 			);
 
-			unset($result, $name, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $audio, $category, $url, $date_added);
+			unset($result, $title, $hash, $magnet, $seeders, $leechers, $filesize, $quality, $codec, $audio, $category, $url, $date_added);
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'sukebei.nyaa.si';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

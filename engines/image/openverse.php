@@ -11,28 +11,21 @@
 ------------------------------------------------------------------------------------ */
 class OpenverseRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
 		// Safe search override
-		$safe = '0'; // No mature results
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			if($matches[2] == 'on') $safe = '0';
-			if($matches[2] == 'off') $safe = '1';
-			$query = str_replace($matches[0], '', $query);
+		if($this->search->safe == 0) {
+			$safe = '1';
+		} else {
+			$safe = '0';
 		}
-		unset($matches);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
 
         $url = 'https://api.openverse.org/v1/images/?'.http_build_query(array(
-        	'q' => $query, // Search query
+        	'q' => $this->search->query, // Search query
         	'format' => 'json', // Response format
-        	'mature' => $safe, // Safe search (1 = ON, 0 = OFF)
-        	'page_size' => 50 // How many results to get
+        	'page_size' => 50, // How many results to get
+        	'mature' => $safe // Safe search (1 = ON, 0 = OFF)
         ));
 
-        unset($query, $safe);
+        unset($safe);
 
         return $url;
 	}
@@ -108,10 +101,8 @@ class OpenverseRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Openverse';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

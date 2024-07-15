@@ -33,53 +33,69 @@ function yts_boxoffice($opts, $what) {
     if($json_response['data']['movie_count'] == 0) return $results;
 
 	foreach($json_response['data']['movies'] as $result) {
-		$name = sanitize($result['title']);
+		$title = sanitize($result['title']);
 
-		$year = (array_key_exists('year', $result)) ? sanitize($result['year']) : 0;
-		$category = (array_key_exists('genres', $result)) ? $result['genres'] : array();
-		$rating = (array_key_exists('rating', $result)) ? sanitize($result['rating']) : 0;
-		$summary = (array_key_exists('summary', $result)) ? sanitize($result['summary']) : "No summary provided";
-		$thumbnail = (array_key_exists('medium_cover_image', $result)) ? sanitize($result['medium_cover_image']) : "";
+		$year = (!empty($result['year'])) ? sanitize($result['year']) : 0;
+		$category = (!empty($result['genres'])) ? $result['genres'] : null;
+		$language = (!empty($result['language'])) ? sanitize($result['language']) : null;
+		$rating = (!empty($result['rating'])) ? sanitize($result['rating']) : null;
+		$mpa_rating = (!empty($result['mpa_rating'])) ? sanitize($result['mpa_rating']) : null;
+		$summary = (!empty($result['summary'])) ? sanitize($result['summary']) : null;
+		if(is_null($summary)) $summary = (!empty($result['synopsis'])) ? sanitize($result['synopsis']) : "No summary provided";
+		$thumbnail = (!empty($result['medium_cover_image'])) ? sanitize($result['medium_cover_image']) : null;
+		if(is_null($thumbnail)) $thumbnail = (!empty($result['small_cover_image'])) ? sanitize($result['small_cover_image']) : "";
 
-		// Block these categories
-		if(count(array_uintersect($category, $opts->yts_categories_blocked, 'strcasecmp')) > 0) continue;		
-		// Set actual category
-		$category = sanitize(implode(', ', $category));
+		// Process extra data
+		if(is_array($category)) {
+			// Block these categories
+			if(count(array_uintersect($category, $opts->yts_categories_blocked, 'strcasecmp')) > 0) continue;
+			
+			// Set actual category
+			$category = sanitize(implode(', ', $category));
+		}
 
 		foreach($result['torrents'] as $download) {
 			$hash = strtolower(sanitize($download['hash']));
-			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($name).'&tr='.implode('&tr=', $opts->magnet_trackers);
+			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $opts->magnet_trackers);
 			$filesize = filesize_to_bytes(sanitize($download['size']));
 
-			$type = (array_key_exists('type', $download)) ? sanitize(strtolower($download['type'])) : null;
-			$quality = (array_key_exists('quality', $download)) ? sanitize($download['quality']) : null;
-			$codec = (array_key_exists('video_codec', $download)) ? sanitize($download['video_codec']) : null;
+			$type = (!empty($download['type'])) ? sanitize(strtolower($download['type'])) : null;
+			$quality = (!empty($download['quality'])) ? sanitize($download['quality']) : null;
+			$codec = (!empty($download['video_codec'])) ? sanitize($download['video_codec']) : null;
+			$bitrate = (!empty($download['bit_depth'])) ? sanitize($download['bit_depth']) : null;
+			$audio = (!empty($download['audio_channels'])) ? sanitize('AAC '.$download['audio_channels']) : null;
 
-			// Add codec to quality
+			// Add codec and bitrate to quality
 			if(!empty($codec)) $quality = $quality.' '.$codec;
-		
+			if(!empty($bitrate)) $quality = $quality.' '.$bitrate.'bit';
+
 			$downloads[] = array (
 				'hash' => $hash, 
 				'magnet' => $magnet, 
 				'filesize' => $filesize, 
 				'type' => $type, 
-				'quality' => $quality
+				'quality' => $quality,
+				'audio' => $audio
 			);
-			unset($download, $hash, $magnet, $filesize, $type, $quality, $codec);
+			unset($download, $hash, $magnet, $filesize, $type, $quality, $codec, $bitrate, $audio);
 		}
 
-		$results[] = array (
-			'id' => uniqid(rand(0, 9999)), // Semi random string to separate results on the results page
-			'name' => $name, // string
+		$result_id = md5($title);
+
+		$results[$result_id] = array (
+			'id' => $result_id, // Semi random string to separate results
+			'title' => $title, // string
 			'year' => $year, // int(4)
-			'category' => $category, // string
-			'rating' => $rating, // float|int
+			'category' => $category, // string|null
+			'language' => $language, // string|null
+			'rating' => $rating, // float|null
+			'mpa_rating' => $mpa_rating, // string|null
 			'summary' => $summary, // string
 			'thumbnail' => $thumbnail, // string|empty
 			'magnet_links' => $downloads // array
 		);
 		
-		unset($result, $name, $thumbnail, $year, $category, $rating, $url, $summary, $downloads);
+		unset($result, $title, $thumbnail, $year, $category, $language, $rating, $url, $summary, $downloads);
 	}
 	unset($response, $json_response);
 

@@ -10,12 +10,11 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 abstract class EngineRequest {
-    protected $query, $ch, $mh, $opts, $url, $headers;
+    protected $ch, $mh, $search, $opts, $url, $headers;
 
-	function __construct($opts, $mh) {
-		$this->query = $opts->query;
+	function __construct($search, $opts, $mh) {
 		$this->mh = $mh;
-		// Must be in this order :-/
+		$this->search = $search;
 		$this->opts = $opts;
 		$this->url = $this->get_request_url();
 
@@ -126,6 +125,6 @@ abstract class EngineRequest {
 		return $results;
 	}
 	
-	public static function print_results($results, $opts) {}
+	public static function print_results($results, $search, $opts) {}
 }
 ?>

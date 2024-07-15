@@ -11,30 +11,25 @@
 ------------------------------------------------------------------------------------ */
 class YahooImageRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
+		$query = $this->search->query;
 
 		// Safe search override
-		$safe = ''; // No mature results
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			if($matches[2] == 'on') $safe = '';
-			if($matches[2] == 'off') $safe = '0';
-			$query = str_replace($matches[0], '', $query);
+		if($this->search->safe == 0) {
+			$safe = '0';
+		} else {
+			$safe = '';
 		}
-		unset($matches);
 
 		// Size override
 		$size = ''; // All sizes
-		if(preg_match('/(size:)(small|medium|large|xlarge)/i', $query, $matches)) {
+		if(preg_match('/(size:)(small|medium|large|xlarge)/i', $this->search->query_terms[0], $matches)) {
 			$size = $matches[1];
-			$query = str_replace($matches[0], '', $query);
+			$query = str_replace($this->search->query_terms[0], '', $query);
 
 			// Engine specific
 			if($size == 'xlarge') $size = 'wallpaper';
 		}
 		unset($matches);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
 
         $url = 'https://images.search.yahoo.com/search/images?'.http_build_query(array(
         	'p' => $query, // Search query
@@ -154,10 +149,8 @@ class YahooImageRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'Yahoo! Images';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

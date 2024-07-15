@@ -1,10 +1,10 @@
-<h1><center>Goosle</center></h1>
-<h2><center>The best Meta Search Engine to find everything</center></h2>
+<h1>Goosle</h1>
+<h2>The best Meta Search Engine to find everything</h2>
 
 Goosle is a fast, privacy oriented search tool that just works. \
 It's kept simple so everyone can use it and to make sure it works on most webservers.
 
-If you're tired of traditional results from one site like Google search or DuckDuckGo and want to see more at once, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** distractions, **no** trackers, **no** cookies and **no** bloated libraries, frameworks, dependencies or other things that slow you down. 
+If you're tired of traditional results from one site like Google search or DuckDuckGo and want to see more at once, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** distractions, **no** trackers, **no** cookies and **no** bloated libraries, frameworks, dependencies or other things that slow you down.
 
 Goosle does Image search which shows results from Yahoo! Images and Openverse.
 
@@ -76,11 +76,12 @@ Execute this cronjob a couple of times per day, recommended is every 8 hours.
 Without it, Openverse access will expire and you have to generate a new key every few hours.
 For low traffic setups or if you do not use Openverse a longer interval of once a day is fine.
 
-If you've enabled the access hash as a password, don't forget to include ?a=YOUR_HASH to the url.
-Cron jobs are usually set up from your hosting dashboard, or through something like DirectAdmin, cPanel or WHM.
+The access hash is always required as an access token, don't forget to include ?a=YOUR_HASH to the url.
+Cron jobs are commonly set up from your hosting dashboard, or through something like DirectAdmin, cPanel or WHM.
 Ask your hosting provider where to find the Cron job scheduler or have them set it up for you if you don't see it.
 
 You can also use something like [cron-job.org](https://cron-job.org/) to trigger the background task remotely.
+To test, you can also load the url in your browser and trigger the script that way. Look for the onscreen prompts to see what routines are executed.
 
 ### Usage examples
 Example for 10 minutes past every 3 hours \
@@ -92,7 +93,7 @@ Example for 5 minutes past every 8 hours (I use this on my Goosle) \
 Example for every midnight \
 `0 0 * * * wget -qO - https://example.com/goosle-cron.php?a=YOUR_HASH`
 
-Why a few minutes past the hour? Because commonly people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes later spreads server load.
+Why a few minutes past the hour? Because most people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes later spreads server load.
 
 ## Authorizing access to the Openverse search API
 This is required to use Openverse Image Search.
@@ -121,9 +122,39 @@ You can post your questions on Github Discussions or say hi on [Mastodon](https:
 ### Known "issues"
 - Duckduckgo sometimes returns a 202 header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.
-- Sometimes TV Show episodes on the box office are not properly merged despite all required data matching.
 
 ## Changelog
+1.6 - July 15, 2024
+- NOTICE: config.default.php has changed, update your config.php!!
+- [change] Moved magnet popups into combined function
+- [change] Better handling of EZTV TV Show data
+- [change] Better handling of YTS movie data
+- [change] Added 6 new public trackers for Magnets
+- [change] Removed regularly unresponsive trackers for Magnets
+- [change] Search query string processed before search so all engines don't have to do it individually
+- [change] Updated help page
+- [new] Special searches can have a note/disclaimer in the lower right corner
+- [new] Results pagination for all search tabs (Requires caching to be enabled)
+- [new] WordPress function, hook and filter lookup as a special search (See help page)
+- [new] Language meta data for some Magnet results
+- [new] Try to detect audio codec for EZTV results
+- [new] Show MPA Rating for some movie results
+- [new] Filter to include NSFW Magnet results or not
+- [new] Override NSFW filter with prefix keywords (see config.php)
+- [new] Simple search stat counter (Link in footer)
+- [tweak] Muted the blue and white text in dark theme a tiny bit
+- [tweak] Better light blue header in light theme
+- [tweak] Added title and alt attributes to relevant links/images
+- [tweak] Removed Magnet search limit of 200 results
+- [fix] HTML rendering issues for `<center>` tags in paragraphs
+- [fix] Start page buttons in light theme now use the right css variables
+- [fix] Properly decode quotes in code snippers for PHP special search
+- [fix] Image, News and Magnet search no longer work if they're disabled in config.php
+- [fix] 2nd search suggestion not showing if it's available
+- [fix] Removed non-functional checking if query is empty in every engine
+- [fix] Correctly uses user provided auth hash to keep searching
+- [fix] Correctly 'expire' share links for guests so they can not use Goosle beyond seeing the shared results
+
 1.5.1 - June 22, 2024
 - [fix] Updated help.php, removed incorrect colorscheme information
 - [fix] Typo in text output for goosle-cron.php

@@ -11,18 +11,9 @@
 ------------------------------------------------------------------------------------ */
 class DefinitionRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-        $query_terms = explode(' ', $query);
-
-		// [0] = (define|d|mean|meaning)
+		// [0] = (define|meaning)
 		// [1] = WORD
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
-		$url = 'https://api.dictionaryapi.dev/api/v2/entries/en/'.$query_terms[1];
-		
-		unset($query, $query_terms);
+		$url = 'https://api.dictionaryapi.dev/api/v2/entries/en/'.$this->search->query_terms[1];
 		
 		return $url;
 	}
@@ -46,10 +37,12 @@ class DefinitionRequest extends EngineRequest {
 		if(empty($json_response)) return $engine_result;
 
 		// No results
-        if(!array_key_exists('title', $json_response)) return $engine_result;
+        if(isset($json_response['title']) && $json_response['title'] == 'No Definitions Found') return $engine_result;
 
-		// Grab first result if there are multiple
-		$result = $json_response[0];
+		$result = $json_response[0]; // Always grab the first result
+
+		// Incomplete listing? Bail!
+        if(!array_key_exists('word', $result)) return $engine_result;
 
 		// Find a phonetic spelling
 		if(isset($result['phonetic'])) {
@@ -81,6 +74,7 @@ class DefinitionRequest extends EngineRequest {
 			unset($meaning);
 		}
 		
+		// Return result
 		$engine_result = array(
 			'title' => "Definition for: ".sanitize($result['word'])." <span>[".sanitize($phonetic)."]</span>",
 			'text' => $formatted_response,

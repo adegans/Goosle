@@ -123,10 +123,10 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 
 </div>
 
-<?php 
-} else {
-	echo "<div class=\"auth-error\">Goosle</div>";
-} 
-?>
+<?php } else { ?>
+	<div class="auth-error">Redirecting</div>
+	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
+<?php } ?>
+
 </body>
 </html>

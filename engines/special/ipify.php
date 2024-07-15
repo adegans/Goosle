@@ -34,10 +34,12 @@ class ipRequest extends EngineRequest {
 		// No response
 		if(empty($json_response)) return $engine_result;
 
+		// Return result
         $engine_result = array(
             'title' => "Your IP Address: ".$_SERVER["REMOTE_ADDR"],
-            'text' => "<p>All requests via Goosle use this as your IP Address: ".sanitize($json_response['ip'])."<br /><small>Goosle is not a proxy server. This test does <em>NOT</em> guarantee any degree of privacy. Any site that you visit through Goosle Search Results will see your actual IP Address.</small></p>",
-            'source' => "https://www.ipify.org/"
+            'text' => "<p>All requests via Goosle use this as your IP Address: ".sanitize($json_response['ip'])."</p>",
+            'source' => "https://www.ipify.org/",
+            'note' => "Goosle is not a proxy server. Any website that you visit through Goosle Search Results will see your actual IP Address."
         );
 
 		unset($response, $json_response);

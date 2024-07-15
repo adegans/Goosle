@@ -11,14 +11,8 @@
 ------------------------------------------------------------------------------------ */
 class PHPnetRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
 		// Format query/url for php.net
-		$query = str_replace('php ', '', $query);
-		$query = str_replace('_', '-', $query);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
+		$query = str_replace('_', '-', $this->search->query_terms[1]);
 
 		$url = 'https://www.php.net/manual/function.'.urlencode($query).'.php';
 		
@@ -41,31 +35,39 @@ class PHPnetRequest extends EngineRequest {
 		if(!$xpath) return $engine_result;
 
 		// Scrape the results
-		$scrape = $xpath->query("//div/section/div[@class='refentry']");
+		$scrape = $xpath->query("//div[@class='refentry']");
 
 		// No results
         if(count($scrape) == 0) return $engine_result;
 
-		$query = str_replace('%22', '', $this->query);
-		$query = str_replace('php ', '', $query);
-		$query = str_replace('_', '-', $query);
+		$query = str_replace('_', '-', $this->search->query_terms[1]);
 
-		foreach($scrape as $result) {
-			$title = $xpath->query(".//div/h1[@class='refname']")[0]->textContent;
-			if(is_null($title)) return $engine_result;
+		// Process scrape
+		$title = $xpath->evaluate(".//div/h1[@class='refname']", $scrape[0]);
+		if($title->length == 0) return $engine_result;
 
-			$php_versions = $xpath->query(".//div/p[@class='verinfo']")[0]->textContent;
-			$purpose = $xpath->query(".//div/p[@class='refpurpose']")[0]->textContent;
-			$usage = $xpath->query(".//div[@class='refsect1 description']/div[@class='methodsynopsis dc-description']")[0]->textContent;
-			$summary = $xpath->query(".//div[@class='refsect1 description']/p[@class='para rdfs-comment']")[0]->textContent;
+		$php_versions = $xpath->evaluate(".//div/p[@class='verinfo']", $scrape[0]);
+		$purpose = $xpath->evaluate(".//div/p[@class='refpurpose']", $scrape[0]);
+		$usage = $xpath->evaluate(".//div[@class='refsect1 description']/div[@class='methodsynopsis dc-description']", $scrape[0]);
+		$summary = $xpath->evaluate(".//div[@class='refsect1 description']/p[@class='para rdfs-comment']", $scrape[0]);
 
-			$engine_result = array (
-                // Required
-				'title' => "Function: ".sanitize($title),
-				'text' => "<p><em><small>".sanitize($php_versions)."</small></em></p><p>".sanitize($purpose)."</p><p>".highlight_string("<?php ".sanitize($usage)." ?>", 1)."</p><p>".$summary."</p>",
-				'source' => "https://www.php.net/manual/function.".urlencode($query).".php"
-			);
-		}
+		$title = sanitize($title[0]->textContent);
+		$php_versions = ($php_versions->length > 0) ? sanitize($php_versions[0]->textContent) : "";
+		$purpose = ($purpose->length > 0) ? sanitize($purpose[0]->textContent) : "";
+		$usage = ($usage->length > 0) ? sanitize($usage[0]->textContent) : "";
+		$summary = ($summary->length > 0) ? sanitize($summary[0]->textContent) : "";
+
+		// Clean up string
+		$usage = preg_replace(array('/\s{2,}/', '/[\t\n]/'), ' ', $usage);
+
+		// Return result
+		$engine_result = array (
+            // Required
+			'title' => "Function: ".$title,
+			'text' => "<p><em><small>".$php_versions."</small></em></p><p>".$purpose."</p><p>".highlight_string("<?php ".htmlspecialchars_decode($usage)." ?>", 1)."</p><p>".$summary."</p>",
+			'source' => "https://www.php.net/manual/function.".urlencode($query).".php",
+			'note' => "Description may be incomplete. Always check the documentation page for more information."
+		);
 		unset($response, $xpath, $scrape);
 
 		return $engine_result;

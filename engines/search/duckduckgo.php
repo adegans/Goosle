@@ -11,29 +11,21 @@
 ------------------------------------------------------------------------------------ */
 class DuckDuckGoRequest extends EngineRequest {
     public function get_request_url() {
-		$query = str_replace('%22', '\"', $this->query);
-
 		// Safe search override
-		$safe = '-1';
-		if(preg_match('/(safe:)(on|off)/i', $query, $matches)) {
-			if($matches[2] == 'on') $safe = '1';
-			if($matches[2] == 'off') $safe = '-2';
-			$query = trim(str_replace($matches[0], '', $query));
+		if($this->search->safe == 0) {
+			$safe = '-2';
+		} else if($this->search->safe == 2) {
+			$safe = '1';
+		} else {
+			$safe = '-1';
 		}
-		unset($matches);
-
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
 
 		// Set locale
 		$language = (preg_match('/[a-z]{2}-[a-z]{2}/i', $this->opts->duckduckgo_language) && strlen($this->opts->duckduckgo_language) == 5) ? strtolower($this->opts->duckduckgo_language) : 'en_gb';
 
-		// Is there no query left? Bail!
-		if(empty($query)) return false;
-
 		// All parameters and values: https://duckduckgo.com/duckduckgo-help-pages/settings/params/
         $url = 'https://html.duckduckgo.com/html/?'.http_build_query(array(
-        	'q' => $query, // Search query
+        	'q' => $this->search->query, // Search query
         	'kp' => $safe, // Safe search (1 = on, -1 = moderate, -2 = off
         	'kl' => $language, // Language region
         	'kz' => '-1', // Instant answers (1 = on, -1 = off)
@@ -48,7 +40,7 @@ class DuckDuckGoRequest extends EngineRequest {
         	'k1' => '-1' // Ads (1 = on, -1 = off)
         ));
 
-        unset($query, $safe, $language);
+        unset($safe, $language);
 
         return $url;
     }
@@ -115,10 +107,8 @@ class DuckDuckGoRequest extends EngineRequest {
 		}
 
 		// Base info
-		$number_of_results = count($engine_temp);
-		if($number_of_results > 0) {
+		if(!empty($engine_temp)) {
 			$engine_result['source'] = 'DuckDuckGo';
-			$engine_result['amount'] = $number_of_results;
 			$engine_result['search'] = $engine_temp;
 		}
 

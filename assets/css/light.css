@@ -2,10 +2,11 @@
 	/* Main colors */
     --color-accent: #1fa4d1; /* Blue */
     --background: #fff; /* White */
-    --background-alt: #ebf3fa; /* Light blue */
+    --background-alt: #d6eaf8; /* Light blue */
+    --background-popup: #ebf5fb; /* Blueish white */
     --text: #494949; /* Dark grey */
     --text-alt: #494949; /* Dark grey */
-    --border: #5f6368; /* Grey */
+    --border: #808b96; /* Grey */
     --border-alt: #466f82; /* Dark blue */
     --button-bg: #1fa4d1; /* Blue */
     --button-text: #f0f6fc; /* Almost white */
@@ -17,10 +18,11 @@
 	--result-special-background: #ebf3fa; /* Light blue */
 
 	/* Front page (Also used on oAUTH page) */
-	--startpage-border: #545a5f; /* Grey */
-	--startpage-border-alt: #6c747a; /* Lighter grey */
-	--startpage-button-bg: #2b323b; /* Blueish grey */
-	--startpage-button-bg-alt: #363e4a; /* Lighter blueish grey */
+	--startpage-border: #808b96; /* Grey */
+	--startpage-border-alt: #808b96; /* Lighter grey */
+    --startpage-button-text: #f0f6fc; /* Almost white */
+	--startpage-button-bg: #2980B9; /* Blueish grey */
+	--startpage-button-bg-alt: #7FB3D5; /* Lighter blueish grey */
 
 	/* Misc */
 	--green: #518257; /* Green */
