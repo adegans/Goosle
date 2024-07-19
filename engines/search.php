@@ -52,7 +52,7 @@ class Search extends EngineRequest {
 		
 		// Dictionary
 		if($opts->special['definition'] == 'on') {
-			if($search->count_terms == 2 && ($search->query_terms[0] == 'define' || $search->query_terms[0] == 'meaning')) {
+			if($search->count_terms == 2 && ($search->query_terms[0] == 'def' || $search->query_terms[0] == 'define' || $search->query_terms[0] == 'meaning')) {
 		        require ABSPATH.'engines/special/definition.php';
 				$this->special_request = new DefinitionRequest($search, $opts, $mh);
 			}
@@ -208,7 +208,7 @@ echo "</pre>";
 		if(array_key_exists('search', $goosle_results)) {
 			// Pagination offset
 			if($opts->cache_type !== 'off') {
-				$offset = ((($search->page - 1) * $opts->search_results_per_page) + 1);
+				$offset = ((($search->page - 1) * $opts->search_results_per_page));
 				$goosle_results['search'] = array_slice($goosle_results['search'], $offset, $opts->search_results_per_page);
 			}
 
@@ -258,7 +258,8 @@ echo "</pre>";
 				echo "		<p>".$result['description']."</p>";
 				if($opts->enable_magnet_search == 'on' && $opts->imdb_id_search == 'on') {
 					if(stristr($result['url'], 'imdb.com') !== false && preg_match_all('/(?:tt[0-9]+)/i', $result['url'], $imdb_result)) {
-						echo "		<p><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\" title=\"Search for Magnet links\">Magnet links</a>?</strong> <span class=\"tooltip tooltip-question\"><span class=\"tooltiptext\">A Magnet link is a special link for torrent clients to download software, music, movies and tv-shows.</span></span></p>";
+//						echo "		<p><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\" title=\"Search for Magnet links\">Magnet links</a>?</strong></p>";
+						echo "		<p><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\" title=\"Search for Magnet links\">Magnet links</a>?</strong> <a onclick=\"openpopup('info-magnetresult')\" title=\"Click for more information\"><span class=\"tooltip-question\"></span></a></p>";
 					}
 				}
 
@@ -274,6 +275,16 @@ echo "</pre>";
 			if($opts->cache_type !== 'off' && $goosle_results['number_of_results'] > $opts->search_results_per_page) {
 				echo "<p class=\"pagination\">".search_pagination($search, $opts, $goosle_results['number_of_results'])."</p>";
 			}
+
+			// Popup (Normally hidden)
+			echo "<div id=\"info-magnetresult\" class=\"goosebox\">";
+			echo "	<div class=\"goosebox-body\">";
+			echo "		<h2>Magnet links</h2>";
+			echo "		<p>A Magnet link is a special link that torrent clients can use to find and download software, music, movies and tv-shows.</p>";
+			echo "		<p>Magnet links are part of the Magnet Search function. You'll need a Bittorrent client that accepts Magnet links in order to use these search results. You can find more information about how to use Magnet Search on the <a href=\"./help.php?a=".$opts->hash."\">Help page</a>.</p>";
+			echo "		<p><a onclick=\"closepopup()\">Close</a></p>";
+			echo "	</div>";
+			echo "</div>";
 		}
 
 		// Some error occured

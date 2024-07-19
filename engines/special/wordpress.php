@@ -22,9 +22,7 @@ class WordPressRequest extends EngineRequest {
 			$query = $this->search->query_terms[1];
 		}
 
-		
-
-		$url = 'https://developer.wordpress.org/reference/'.$type.'/.'.urlencode($query).'/';
+		$url = 'https://developer.wordpress.org/reference/'.$type.'/'.urlencode($query).'/';
 
 		unset($query, $type);
 		
@@ -42,13 +40,19 @@ class WordPressRequest extends EngineRequest {
         $xpath = get_xpath($response);
 
 		// No response
-		if(!$xpath) return $engine_result;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Scrape the results
 		$scrape = $xpath->query("//div/main/article");
 
 		// No results
-        if(count($scrape) == 0) return $engine_result;
+        if(count($scrape) == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		if($this->search->query_terms[1] == 'hook') {
 			$type = 'hooks';
@@ -84,6 +88,9 @@ class WordPressRequest extends EngineRequest {
 			'source' => "https://developer.wordpress.org/reference/".$type."/".urlencode($query)."/",
 			'note' => "Description may be incomplete. Always check the documentation page for more information."
 		);
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 1, 1);
+
 		unset($response, $xpath, $scrape);
 
 		return $engine_result;

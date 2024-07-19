@@ -10,6 +10,9 @@
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
+// Current Goosle version
+$current_version = '1.6.1';
+
 /*--------------------------------------
 // Verify the hash, or not, and let people in, or not
 --------------------------------------*/
@@ -28,7 +31,7 @@ function load_opts() {
 	if(!is_file($config_file)) {
 		echo "<h3>config.php is missing!</h3>";
 		echo "<p>Please check the readme.md file for complete installation instructions.</p>";
-		echo "<p>Configure Goosle properly by copying config.default.php to config.php. In config.php you can set your preferences.</p>";
+		echo "<p>Configure Goosle by copying config.default.php to config.php. In config.php you can set your preferences.</p>";
 
 		die();
 	} else {
@@ -39,7 +42,6 @@ function load_opts() {
 		$opts->pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 		// Force a few defaults and safeguards
-		if(empty($opts->colorscheme)) $opts->colorscheme = 'default';
 		if($opts->cache_type == 'file' && !is_dir(ABSPATH.'cache/')) $opts->cache_type = 'off';
 		if($opts->cache_type == 'apcu' && !function_exists('apcu_exists')) $opts->cache_type = 'off';
 		if($opts->cache_time < 1 || ($opts->cache_type == 'apcu' && $opts->cache_time > 8) || ($opts->cache_type == 'file' && $opts->cache_time > 48)) $opts->cache_time = 8;
@@ -54,8 +56,6 @@ function load_opts() {
 // Process search query
 --------------------------------------*/
 function load_search() {
-	global $opts;
-
 	$search = new stdClass();
 
 	// From the url/request	
@@ -148,28 +148,22 @@ function count_stats() {
 }
 
 /*--------------------------------------
-// Show version in footer
+// Show update notification in footer
 --------------------------------------*/
-function show_version() {
+function show_update_notification() {
+	global $current_version;
+	
 	$version_file = ABSPATH.'cache/version.data';
 	
 	if(is_file($version_file)) {
 		// Get version information
 		$version = unserialize(file_get_contents($version_file));
-
-		// Format current version for footer
-		$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle ".$version['current']."</a>.";
 	
 		// Check if a newer version is available and add it to the version display
-		if(version_compare($version['current'], $version['latest'], '<')) {
-			$show_version .= " <a href=\"".$version['url']."\" target=\"_blank\" class=\"update\">Version ".$version['latest']." is available!</a>";
+		if(version_compare($current_version, $version['latest'], '<')) {
+			return "<a href=\"".$version['url']."\" target=\"_blank\" class=\"update\">Version ".$version['latest']." is available!</a>";
 		}
-	} else {
-		// If the update cache doesn't exist...
-		$show_version = "<a href=\"https://github.com/adegans/Goosle/\" target=\"_blank\">Goosle</a>.";
 	}
-
-	return $show_version;
 }
 
 /*--------------------------------------
@@ -300,6 +294,8 @@ function delete_cached_results($ttl) {
 	        while(($file = readdir($handle)) !== false) {
 		        // Skip some of them
 				$extension = pathinfo($file, PATHINFO_EXTENSION);
+
+				// Only delete cache files (*.result)
 				if($file == '.' OR $file == '..' OR $extension != 'result') continue; 
 
 				// Delete if expired
@@ -325,6 +321,14 @@ function oauth_store_token($token_file, $connect, $token) {
 		$tokens[$connect] = $token;
 	    file_put_contents($token_file, serialize($tokens));
 	}
+}		
+
+/*--------------------------------------
+// Log requests
+--------------------------------------*/
+function querylog($engine, $type, $request_url, $scraped_results, $final_results) {
+	$log_file = ABSPATH.'cache/querylog_'.the_date('d_m_Y').'.log';
+    file_put_contents($log_file, '['.the_date('d-m-Y H:i:s').']['.$type.'] '.$engine.': '.$scraped_results.' -> '.$final_results.', '.$request_url."\n", FILE_APPEND);
 }		
 
 /*--------------------------------------
@@ -395,7 +399,7 @@ function is_social_media($string) {
 	
 	// Borrowed from https://github.com/lorey/social-media-profiles-regexs
 	if(preg_match('/(?:https?:)?\/\/(?:www\.)?(?:facebook|fb)\.com\/(?P<profile>(?![A-z]+\.php)(?!marketplace|gaming|watch|me|messages|help|search|groups)[A-z0-9_\-\.]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:www\.)facebook.com\/(?:profile.php\?id=)?(?P<id>[0-9]+)/', $string)
+		|| preg_match('/(?:https?:)?\/\/(?:www\.)facebook\.com\/(?:profile.php\?id=)?(?P<id>[0-9]+)/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/(?P<username>[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?P<username>[A-z0-9_]+)\/status\/(?P<tweet_id>[0-9]+)\/?/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?!home|share|privacy|tos)(?P<username>[A-z0-9_]+)\/?/', $string)
@@ -405,8 +409,8 @@ function is_social_media($string) {
 		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/(?P<company_type>(company)|(school))\/(?P<company_permalink>[A-z0-9-À-ÿ\.]+)\/?/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/feed\/update\/urn:li:activity:(?P<activity_id>[0-9]+)\/?/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/in\/(?P<permalink>[\w\-\_À-ÿ%]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube.com\/(?:c(?:hannel)?)\/(?P<id>[A-z0-9-\_]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube.com\/(?:u(?:ser)?)\/(?P<username>[A-z0-9]+)\/?/', $string)
+		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube\.com\/(?:c(?:hannel)?)\/(?P<id>[A-z0-9-\_]+)\/?/', $string)
+		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube\.com\/(?:u(?:ser)?)\/(?P<username>[A-z0-9]+)\/?/', $string)
 		|| preg_match('/(?:https?:)?\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)(?P<id>[A-z0-9\-\_]+)/', $string)
 	) return true;
 
@@ -454,11 +458,14 @@ function search_sources($results) {
 // Format search result urls
 --------------------------------------*/
 function search_formatted_url($url) {
-	$url = parse_url($url);
+	$url = parse_url(strtolower($url));
 
 	$formatted_url = $url['scheme'] . '://' . $url['host'];
 	if(array_key_exists('path', $url)) {
 		$formatted_url .= str_replace('/', ' &rsaquo; ', urldecode(str_replace('%20', ' ', rtrim($url['path'], '/'))));
+	}
+	if(array_key_exists('query', $url)) {
+		$formatted_url .= ' &rsaquo; '.urldecode(str_replace('&', ' &rsaquo; ', str_replace('=', ':', str_replace('%20', ' ', trim($url['query'])))));
 	}
 	
 	return $formatted_url;

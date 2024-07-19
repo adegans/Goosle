@@ -75,11 +75,9 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 	
 <div class="content">
 	<h2>How to use Goosle</h2>
-	<p>If you're tired of traditional results from sites like Google search or DuckDuckGo and you want to have more varied results, or just everything at once, Goosle has your back! Goosle searches on multiple search engines at the same time and shows you the most relevant results through a neat, clean interface.</p>
-
-	<p><em>If you can't find it on page one, you're using the wrong search query!</em></p>
+	<p>Goosle tries to provide you with the right search results where-ever they may come from. An easy to use UI and no clutter go a long way in providing a pleasuring search experience. You will not find any unnessesary features or complex settings in Goosle. After-all, navigating the internet is hard and frustrating enough. Search engines should make that more easy, not harder!</p>
 	
-	<p>Goosle tries to provide you with the right answer on page one and is designed to be as easy to use and function as logical as possible. You will not find any unnessesary features or complex settings in Goosle. After-all, navigating the internet is hard and frustrating enough. Search engines should make that more easy, not harder!</p>
+	<p>Goosle is created by <a href="https://www.arnan.me/" target="_blank">Arnan de Gans</a> with the intent to make search more productive and fun.</p>
 		
 	<h3>Result ranking</h3>
 	<p>To try and provide the best results first. Goosle has a simple algorithm to rank results for Web and Image search. It works a little like a scoring system. A result with more points gets a higher ranking.</p>
@@ -104,7 +102,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 	
 	<?php if($opts->special['definition'] == 'on') { ?>
 		<h4>Word Definition</h4>
-		<p>Look up the meaning of single words. Prefix the word you want to look up with any of the following keywords; <strong>define</strong>, <strong>meaning</strong>.<br />
+		<p>Look up the meaning of single words. Prefix the word you want to look up with <strong>define</strong>, <strong>def</strong> or <strong>meaning</strong>.<br />
 		For example: Searching for <strong>define goose</strong> will do a web search for 'goose' but will also show a dictionary definition highlighted above the search results.</p>
 	<?php } ?>
 	
@@ -195,12 +193,15 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 		<li>"auto" Let the browser decide what to use. This is typically linked to the darkmode setting of your device.</li>
 	</ol>
 	
-	<p><small><strong>Acknowledgements:</strong><br />Goosle started as a fork of LibreY, and takes some design cues from DuckDuckGo.com. Goosle is created by <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a> with the intent to make search more productive and fun.</small></p>
+	<h4>Acknowledgements:</h4>
+	<p><small>All icons are borrowed from the IconFinder <a href="https://www.iconfinder.com/search/icons?family=unicons-line" target="_blank">Unicons Set</a>.<br />
+	The Goose icon is borrowed from the Flaticon <a href="https://www.flaticon.com/packs/farm-19" target="_blank">Farm pack</a>.<br />
+	Goosle started as a fork of LibreY, and takes some design cues from DuckDuckGo.com.</small></p>
 </div>
 
 <div class="footer grid-container">
 	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
+		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
 	</div>
 	<div class="footer-grid">
 		<a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->hash; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>

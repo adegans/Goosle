@@ -27,10 +27,16 @@ function eztv_boxoffice($opts) {
 	$results = $results_temp = array();
 	
 	// No response
-	if(empty($json_response)) return $results;
+	if(empty($json_response)) {
+		if($opts->querylog == 'on') querylog('BoxofficeEZTV', 'a', $api_url, 'No response', 0);
+		return $results;
+	}
 
-	// Nothing found
-	if($json_response['torrents_count'] == 0) return $results;
+	// No Results
+	if($json_response['torrents_count'] == 0) {
+		if($opts->querylog == 'on') querylog('BoxofficeEZTV', 'a', $api_url, 'No Results', 0);
+		return $results;
+	}
 	
 	foreach($json_response['torrents'] as $result) {
 		$title = (!empty($result['title'])) ? sanitize($result['title']) : null;
@@ -91,6 +97,8 @@ function eztv_boxoffice($opts) {
 		unset($result, $result_urls, $found_id, $result_id, $title, $hash, $thumbnail, $magnet_link, $quality, $codec);
 	}
 	unset($response, $json_response);
+
+	if($opts->querylog == 'on') querylog('BoxofficeEZTV', 'a', $api_url, 'up-to 100', count($results));
 
 	// Cache last request if there is something to cache
 	if($opts->cache_type !== 'off') {

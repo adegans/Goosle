@@ -32,7 +32,11 @@ class ipRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_result;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
+
 
 		// Return result
         $engine_result = array(
@@ -41,6 +45,8 @@ class ipRequest extends EngineRequest {
             'source' => "https://www.ipify.org/",
             'note' => "Goosle is not a proxy server. Any website that you visit through Goosle Search Results will see your actual IP Address."
         );
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 1, 1);
 
 		unset($response, $json_response);
 

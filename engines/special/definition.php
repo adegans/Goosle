@@ -34,10 +34,18 @@ class DefinitionRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_result;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
+
 
 		// No results
-        if(isset($json_response['title']) && $json_response['title'] == 'No Definitions Found') return $engine_result;
+        if(isset($json_response['title']) && $json_response['title'] == 'No Definitions Found') {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
+			return $engine_result;
+		}
+
 
 		$result = $json_response[0]; // Always grab the first result
 
@@ -80,6 +88,8 @@ class DefinitionRequest extends EngineRequest {
 			'text' => $formatted_response,
 			'source' => sanitize($result['sourceUrls'][0])
 		);
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 1, 1);
 
 		unset($response, $json_response, $result, $phonetic, $definitions, $formatted_response);
 

@@ -67,7 +67,7 @@ function detect_nsfw($string) {
 	// Forbidden terms
 	//Basic pattern: ^cum[-_\s]?play(ing|ed|s)?
 	$nsfw_keywords = array(
-		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|humpfinger|kiss|pegg|fist|ballbust|twerk|dogg|squirt)(ing|ed|s)?/', 
+		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|hump|finger|kiss|pegg|fist|ballbust|twerk|dogg|squirt)(ing|ed|s)?/', 
 		'/(yaoi|porn|gonzo|erotica|blowbang|bukkake|gokkun|onlyfans|fansly|manyvids|softcore|hardcore|latex|lingerie|interracial|bdsm|chastity|hogtied|kinky|bondage|shibari|hitachi|upskirt)/', 
 		'/(cock|creampie|cameltoe|enema|nipple|sybian|vibrator|cougar|threesome|foursome|pornstar|escort)(s)?/', 
 		'/(cmnf|cfnm|pov|cbt|bbw|pawg|ssbbw|joi|cei)/', 

@@ -53,7 +53,10 @@ class YahooImageRequest extends EngineRequest {
 		$xpath = get_xpath($response);
 	
  		// No response
-       if(!$xpath) return $engine_temp;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Scrape the results
 //		$scrape = $xpath->query("//li[contains(@class, 'ld') and not(contains(@class, 'slotting'))][position() < 101]");
@@ -63,7 +66,10 @@ class YahooImageRequest extends EngineRequest {
 		$number_of_results = $rank = count($scrape);
 
 		// No results
-        if($number_of_results == 0) return $engine_temp;
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		// Scrape recommended
 		$didyoumean = $xpath->query(".//section[@class='dym-c']/section/h3/a")[0];
@@ -150,9 +156,11 @@ class YahooImageRequest extends EngineRequest {
 
 		// Base info
 		if(!empty($engine_temp)) {
-			$engine_result['source'] = 'Yahoo! Images';
+			$engine_result['source'] = 'Yahoo Images';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $xpath, $scrape, $number_of_results, $rank);
 

@@ -20,14 +20,11 @@ class DuckDuckGoRequest extends EngineRequest {
 			$safe = '-1';
 		}
 
-		// Set locale
-		$language = (preg_match('/[a-z]{2}-[a-z]{2}/i', $this->opts->duckduckgo_language) && strlen($this->opts->duckduckgo_language) == 5) ? strtolower($this->opts->duckduckgo_language) : 'en_gb';
-
 		// All parameters and values: https://duckduckgo.com/duckduckgo-help-pages/settings/params/
         $url = 'https://html.duckduckgo.com/html/?'.http_build_query(array(
         	'q' => $this->search->query, // Search query
         	'kp' => $safe, // Safe search (1 = on, -1 = moderate, -2 = off
-        	'kl' => $language, // Language region
+        	'kl' => strtolower($this->opts->duckduckgo_language), // Language region
         	'kz' => '-1', // Instant answers (1 = on, -1 = off)
         	'kc' => '-1', // Autoload images (1 = on, -1 = off)
         	'kav' => '-1', // Autoload results (1 = on, -1 = off)
@@ -40,7 +37,7 @@ class DuckDuckGoRequest extends EngineRequest {
         	'k1' => '-1' // Ads (1 = on, -1 = off)
         ));
 
-        unset($safe, $language);
+        unset($safe);
 
         return $url;
     }
@@ -56,16 +53,23 @@ class DuckDuckGoRequest extends EngineRequest {
 		$xpath = get_xpath($response);
 
 		// No response
-		if(!$xpath) return $engine_temp;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Scrape the results
-		$scrape = $xpath->query("/html/body/div[1]/div[".count($xpath->query("/html/body/div[1]/div"))."]/div/div/div[contains(@class, 'web-result')]/div");
+//		$scrape = $xpath->query("/html/body/div[1]/div[".count($xpath->query("/html/body/div[1]/div"))."]/div/div/div[contains(@class, 'web-result')]/div");
+		$scrape = $xpath->query("//div[contains(@class, 'result__body')]");
 
 		// Figure out results and base rank
 		$number_of_results = $rank = count($scrape);
 
 		// No results
-        if($number_of_results == 0) return $engine_temp;
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		// Scrape recommended
 		$didyoumean = $xpath->query(".//div[@id='did_you_mean']/a[1]")[0];
@@ -111,6 +115,8 @@ class DuckDuckGoRequest extends EngineRequest {
 			$engine_result['source'] = 'DuckDuckGo';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $xpath, $scrape, $number_of_results, $rank, $engine_temp);
 

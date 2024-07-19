@@ -48,13 +48,19 @@ class QwantNewsRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Figure out results and base rank
 		$number_of_results = $rank = $json_response['data']['result']['total'];
 
 		// No results
-        if($number_of_results == 0 || $json_response['status'] == 'error') return $engine_temp;
+        if($number_of_results == 0 || $json_response['status'] == 'error') {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		foreach($json_response['data']['result']['items'] as $result) {
 			// Find and process data
@@ -85,6 +91,8 @@ class QwantNewsRequest extends EngineRequest {
 			$engine_result['source'] = 'Qwant News';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $json_response, $number_of_results, $rank, $engine_temp);
 

@@ -25,11 +25,9 @@ if(verify_hash('on', $opts->hash, $opts->user_auth)) {
 	/*--------------------------------------
 	// Do update check
 	--------------------------------------*/
+	global $current_version;
 	$version_file = ABSPATH.'cache/version.data';
 	
-	// Currently installed version
-	$current_version = "1.6";
-
 	if(!is_file($version_file)) {
 		// Create update cache file if it doesn't exist
 	    $version = array('current' => $current_version, 'latest' => '0.0', 'checked' => 0, 'url' => '');
@@ -43,7 +41,7 @@ if(verify_hash('on', $opts->hash, $opts->user_auth)) {
 	if($version['checked'] < time() - 604800) {
 		$response = do_curl_request( 
 			'https://api.github.com/repos/adegans/goosle/releases/latest', // (string) Where?
-			array('Accept: application/json, */*;q=0.7', 'User-Agent: goosle/'.$version['current'].';'), // (array) User agent + Headers
+			array('Accept: application/json, */*;q=0.7', 'User-Agent: goosle/'.$current_version.';'), // (array) User agent + Headers
 			'get', // (string) post/get
 			null // (assoc array|null) Post body
 		);
@@ -52,7 +50,7 @@ if(verify_hash('on', $opts->hash, $opts->user_auth)) {
 		// Got a response? Store it!
 		if(!empty($json_response)) {
 			// Update version info
-			$version = array('current' => $version['current'], 'latest' => $json_response['tag_name'], 'checked' => time(), 'url' => $json_response['html_url']);
+			$version = array('current' => $current_version, 'latest' => $json_response['tag_name'], 'checked' => time(), 'url' => $json_response['html_url']);
 			file_put_contents($version_file, serialize($version));
 			
 			echo "<p>- Checked for updates and update cache updated!</p>";

@@ -32,10 +32,16 @@ class CurrencyRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_result;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// No results
-        if(count($json_response['rates']) == 0) return $engine_result;
+        if(count($json_response['rates']) == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
+			return $engine_result;
+		}
 
 		// Process query
 		// [0] = AMOUNT
@@ -63,6 +69,8 @@ class CurrencyRequest extends EngineRequest {
             'text' => "<p>1 ".$amount_currency." = ".$one_to_n." ".$conversion_currency."</p><p><small>Updated: ".$last_update."</small></p>",
             'source' => "https://moneyconvert.net/"
         );
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 1, 1);
 
 		unset($response, $json_response, $amount, $amount_currency, $conversion, $one_to_n, $conversion_currency, $last_update);
 

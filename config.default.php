@@ -59,6 +59,16 @@ CACHE_TIME:
 	The file cache is only limited by your hosting storage space and can safely be much much longer if you want.
 	To not show outdated results the 'limit' is 48 hours.
 	Ignored if above 'CACHE_TYPE' option is set to off.
+
+QUERYLOG:
+	The query log is useful if you make common requests and for some reason one engine returns no result and no error. Enabling the querylog lets you see if a request was made and how many results were found/scraped/retrieved. But also how many are left after initial processing.
+	The querylog logs requests per day into a file in /cache/. This function is not meant to be on for production use. Only for debugging or understanding results.
+	
+	Example: [18-07-2024 22:15:05][s] GoogleRequest: 30 -> 4, https://www.google.com/search?q=the+wild+goose+chase&safe=1&num=30&pws=0&udm=14&tbs=li%3A1&complete=0&sclient=web
+	Here a query is made to Google web search, Goosle scraped 30 results but after initial filtering only 4 remained. This can mean a lot of duplicate links were found (unlikely). More likely is that an inconsistent scrape was done. This can indicate that the website has changed its layout structure and Goosle needs to be updated.
+	
+	Example: [18-07-2024 23:06:58][a] QwantRequest: No results -> 0, https://api.qwant.com/v3/search/web?q=the+wild+goose+chase&t=web&safesearch=1&locale=en_gb&count=10&device=desktop
+	Here a query is made to Qwant web search via their API and no results were found at all. API calls can not make scrape errors. This likely means there simply were no results to begin with.
 /* ------------------------------------------------------------------------------------
 LANGUAGE:
 	To not fit the USA mold, Goosle defaults to the United Kingdom for english results.
@@ -66,7 +76,9 @@ LANGUAGE:
 	Invalid values either cause the search engine to fail or will default to English depending on how wrong the value is.
 	
 	Google has no language setting because as soon as you specify it all 'anonymous' settings stop working.
+
 	DuckDuckGo uses language regions and defaults to the United Kingdom. To change it see if your region is available - https://duckduckgo.com/duckduckgo-help-pages/settings/params/.
+
 	Wikipedia needs to be told which language you want. This changes the search url. Use any of their supported languages (en, es, fr, nl, etc.)
 
 	Qwant uses a locale similar to DuckDuckGo and defaults to the United Kingdom as well.
@@ -104,6 +116,7 @@ return (object) array(
     'cache_type' => 'file', // Default: file
     'cache_time' => 8, // Default: 8 (Hours), see the recommendations above.
 	'timezone' => 'UTC', // Default: UTC (Enter UTC+1, UTC-6 etc. for your timezone - Find yours https://time.is/UTC)
+	'querylog' => 'off', // Default: off (Log remote queries to see if they are made and how much results they find and end up with)
 
     'enable_duckduckgo' => 'on', // Default: on
     'enable_google' => 'on', // Default: on

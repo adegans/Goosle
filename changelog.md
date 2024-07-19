@@ -1,6 +1,22 @@
 # Goosle
 ## The best Meta Search Engine to find everything
 
+### 1.6.1 - July 19, 2024
+- NOTICE: config.default.php has changed, update your config.php!!
+- [new] Query logger for debugging (See config.default.php for details)
+- [tweak] Scrape query for DuckDuckGo to be more direct
+- [tweak] Added url arguments to the formatted url of search results
+- [tweak] Improved tooltips to be popups with better explanations
+- [tweak] Improved spacing for pagination links
+- [fix] More accurately show the current version in the footer
+- [fix] Current version not properly stored
+- [fix] Pagination offset off by one result
+- [fix] Unnecessary global in load_search()
+- [fix] Typo in wordpress search
+- [fix] Qwant initial total hits and ranking more accurate
+- [fix] Goosle header title not bold on stats page
+- [fix] Visual fixes to the design of Goosle
+
 ### 1.6 - July 15, 2024
 - NOTICE: config.default.php has changed, update your config.php!!
 - [change] Moved magnet popups into combined function

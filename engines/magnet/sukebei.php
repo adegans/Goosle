@@ -27,13 +27,19 @@ class SukebeiRequest extends EngineRequest {
 		$xpath = get_xpath($response);
 		
 		// No response
-		if(!$xpath) return $engine_temp;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 		
 		// Scrape the results
 		$scrape = $xpath->query("//tbody/tr");
 
 		// No results
-        if(count($scrape) == 0) return $engine_temp;
+        if(count($scrape) == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		foreach($scrape as $result) {
 			// Find data
@@ -113,7 +119,9 @@ class SukebeiRequest extends EngineRequest {
 			$engine_result['search'] = $engine_temp;
 		}
 
-		unset($response, $xpath, $scrape, $number_of_results, $engine_temp);
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, count($scrape), count($engine_temp));
+
+		unset($response, $xpath, $scrape, $engine_temp);
 
 		return $engine_result;
 	}

@@ -140,7 +140,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 
 <div class="footer grid-container">
 	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
+		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
 	</div>
 	<div class="footer-grid">
 		<a href="./?a=<?php echo $opts->user_auth; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->user_auth; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->user_auth; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>

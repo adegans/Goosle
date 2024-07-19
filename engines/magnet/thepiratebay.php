@@ -32,10 +32,16 @@ class PirateBayRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 		
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 		
 		// No results
-        if($json_response[0]['name'] == 'No results returned') return $engine_temp;
+        if($json_response[0]['name'] == 'No results returned') {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		$categories = array(
 			100 => 'Audio',
@@ -173,7 +179,9 @@ class PirateBayRequest extends EngineRequest {
 			$engine_result['search'] = $engine_temp;
 		}
 
-		unset($response, $json_response, $number_of_results, $engine_temp, $categories);
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, count($json_response), count($engine_temp));
+
+		unset($response, $json_response, $engine_temp, $categories);
 
 		return $engine_result;
 	}

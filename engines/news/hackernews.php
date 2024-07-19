@@ -43,13 +43,19 @@ class HackernewsRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Figure out results and base rank
 		$number_of_results = $rank = count($json_response['hits']);
 
 		// No results
-        if($number_of_results == 0) return $engine_temp;
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		foreach($json_response['hits'] as $result) {
 			// Skip broken/wrong results
@@ -85,6 +91,8 @@ class HackernewsRequest extends EngineRequest {
 			$engine_result['source'] = 'Hackernews';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $json_response, $number_of_results, $rank, $engine_temp);
 

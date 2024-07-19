@@ -51,13 +51,19 @@ class OpenverseRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Figure out results and base rank
 		$number_of_results = $rank = $json_response['result_count'];
 		
 		// No results
-        if($number_of_results == 0) return $engine_temp;
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
+			return $engine_result;
+		}
 
 		// Use API result
 		foreach($json_response['results'] as $result) {
@@ -105,6 +111,8 @@ class OpenverseRequest extends EngineRequest {
 			$engine_result['source'] = 'Openverse';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $json_response, $number_of_results, $rank);
 

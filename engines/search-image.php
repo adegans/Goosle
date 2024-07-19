@@ -130,23 +130,23 @@ class ImageSearch extends EngineRequest {
     }
 
     public static function print_results($goosle_results, $search, $opts) {
-/*
 // Uncomment for debugging
-echo '<pre>Settings: ';
+/*
+echo "<pre>Settings: ";
 print_r($opts);
-echo '</pre>';
+echo "</pre>";
 echo "<pre>Search data: ";
 print_r($search);
 echo "</pre>";
-echo '<pre>Search results: ';
+echo "<pre>Search results: ";
 print_r($goosle_results);
-echo '</pre>';
+echo "</pre>";
 */
 
 		if(array_key_exists('search', $goosle_results)) {
 			// Pagination offset
 			if($opts->cache_type !== 'off') {
-				$offset = ((($search->page - 1) * $opts->search_results_per_page) + 1);
+				$offset = ((($search->page - 1) * $opts->search_results_per_page));
 				$goosle_results['search'] = array_slice($goosle_results['search'], $offset, $opts->search_results_per_page);
 			}
 

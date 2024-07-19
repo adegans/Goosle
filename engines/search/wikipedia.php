@@ -11,19 +11,14 @@
 ------------------------------------------------------------------------------------ */
 class WikiRequest extends EngineRequest {
     public function get_request_url() {
-	    // Set locale
-		$language = (strlen($this->opts->wikipedia_language) == 2) ? strtolower($this->opts->wikipedia_language) : 'en';
-
 		// Variables based on https://www.mediawiki.org/wiki/API:Search
-        $url = 'https://'.$language.'.wikipedia.org/w/api.php?'.http_build_query(array(
+        $url = 'https://'.strtolower($this->opts->wikipedia_language).'.wikipedia.org/w/api.php?'.http_build_query(array(
         	'srsearch' => $this->search->query, // Search query
         	'action' => 'query', // Search type (via a query?)
         	'list' => 'search', // Full text search
         	'format' => 'json', // Return format (Must be json)
         	'srlimit' => 10 // How many search results to get, ideally as few as possible since it's just static wiki pages (max 500)
         ));
-
-		unset($language);
 
         return $url;
     }
@@ -44,14 +39,19 @@ class WikiRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 		
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Figure out results and base rank
 		$number_of_results = $rank = ($json_response['query']['searchinfo']['totalhits'] > 20) ? 20 : $json_response['query']['searchinfo']['totalhits'];
 
 		// No results
-        if($number_of_results == 0) return $engine_temp;
-
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 		foreach($json_response['query']['search'] as $result) {
 			// Find and process data
 			$title = strip_newlines(sanitize($result['title']));
@@ -72,6 +72,8 @@ class WikiRequest extends EngineRequest {
 			$engine_result['source'] = 'Wikipedia';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $json_response, $number_of_results, $rank, $engine_temp);
 		

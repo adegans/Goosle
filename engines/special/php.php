@@ -32,13 +32,19 @@ class PHPnetRequest extends EngineRequest {
         $xpath = get_xpath($response);
 
 		// No response
-		if(!$xpath) return $engine_result;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Scrape the results
 		$scrape = $xpath->query("//div[@class='refentry']");
 
 		// No results
-        if(count($scrape) == 0) return $engine_result;
+        if(count($scrape) == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		$query = str_replace('_', '-', $this->search->query_terms[1]);
 
@@ -68,6 +74,9 @@ class PHPnetRequest extends EngineRequest {
 			'source' => "https://www.php.net/manual/function.".urlencode($query).".php",
 			'note' => "Description may be incomplete. Always check the documentation page for more information."
 		);
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 1, 1);
+
 		unset($response, $xpath, $scrape);
 
 		return $engine_result;

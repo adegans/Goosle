@@ -33,7 +33,10 @@ class BraveNewsRequest extends EngineRequest {
 		$xpath = get_xpath($response);
 
 		// No response
-		if(!$xpath) return $engine_temp;
+		if(!$xpath) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// Scrape the results (Max 30)
 		$scrape = $xpath->query("//main[contains(@class, 'main-column')]//div[contains(@class, 'snippet')][position() < 30]");
@@ -42,7 +45,10 @@ class BraveNewsRequest extends EngineRequest {
 		$number_of_results = $rank = count($scrape);
 
 		// No results
-        if($number_of_results == 0) return $engine_temp;
+        if($number_of_results == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		foreach($scrape as $result) {
 			// Find data
@@ -87,6 +93,8 @@ class BraveNewsRequest extends EngineRequest {
 			$engine_result['source'] = 'Brave News';
 			$engine_result['search'] = $engine_temp;
 		}
+
+		if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, $number_of_results, count($engine_temp));
 
 		unset($response, $xpath, $scrape, $number_of_results, $rank, $engine_temp);
 

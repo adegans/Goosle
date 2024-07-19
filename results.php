@@ -43,12 +43,7 @@ $start_time = microtime(true);
 	<link rel="canonical" href="<?php echo get_base_url($opts->siteurl); ?>/results.php" />
     <link rel="stylesheet" type="text/css" href="<?php echo get_base_url($opts->siteurl); ?>/assets/css/styles.css"/>
     <link rel="stylesheet" type="text/css" href="<?php echo get_base_url($opts->siteurl); ?>/assets/css/<?php echo $opts->colorscheme; ?>.css"/>
-
-	<?php
-	if($search->type == "9") {
-    	echo "	<script src='".get_base_url($opts->siteurl)."/assets/js/goose.js' id='goosebox-js'></script>";
-	}
-	?>
+	<script src="<?php echo get_base_url($opts->siteurl);?>/assets/js/goose.js" id="goosebox-js"></script>
 </head>
 
 <body class="resultspage">
@@ -131,7 +126,7 @@ if(!empty($search->query)) {
 
 <div class="footer grid-container">
 	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> <?php echo show_version(); ?> By <a href="https://ajdg.solutions/" target="_blank">Arnan de Gans</a>.
+		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
 	</div>
 	<div class="footer-grid">
 		<a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->hash; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>

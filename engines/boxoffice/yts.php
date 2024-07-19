@@ -27,10 +27,16 @@ function yts_boxoffice($opts, $what) {
 	$results = array();
 
 	// No response
-	if(empty($json_response)) return $results;
+	if(empty($json_response)) {
+		if($opts->querylog == 'on') querylog('BoxofficeYTS', 'a', $api_url, 'No response', 0);
+		return $results;
+	}
 
-	// No results
-    if($json_response['data']['movie_count'] == 0) return $results;
+	// No Results
+	if($json_response['data']['movie_count'] == 0) {
+		if($opts->querylog == 'on') querylog('BoxofficeYTS', 'a', $api_url, 'No Results', 0);
+		return $results;
+	}
 
 	foreach($json_response['data']['movies'] as $result) {
 		$title = sanitize($result['title']);
@@ -98,6 +104,8 @@ function yts_boxoffice($opts, $what) {
 		unset($result, $title, $thumbnail, $year, $category, $language, $rating, $url, $summary, $downloads);
 	}
 	unset($response, $json_response);
+
+	if($opts->querylog == 'on') querylog('BoxofficeYTS', 'a', $api_url, 'up-to 40', count($results));
 
 	// Cache last request if there is something to cache
 	if($opts->cache_type !== 'off') {

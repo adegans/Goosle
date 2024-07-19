@@ -159,17 +159,17 @@ class MagnetSearch extends EngineRequest {
     }
 
     public static function print_results($goosle_results, $search, $opts) {
-/*
 // Uncomment for debugging
-echo '<pre>Settings: ';
+/*
+echo "<pre>Settings: ";
 print_r($opts);
-echo '</pre>';
+echo "</pre>";
 echo "<pre>Search data: ";
 print_r($search);
 echo "</pre>";
-echo '<pre>Search results: ';
+echo "<pre>Search results: ";
 print_r($goosle_results);
-echo '</pre>';
+echo "</pre>";
 */
 
 		// Latest additions to yts
@@ -212,15 +212,17 @@ echo '</pre>';
 
 				// Get the result
 				$first = array($found_id => $goosle_results['search'][$found_id]);
+
 				// Delete the result wherever it is
 				unset($goosle_results['search'][$found_id], $keys, $found_id);
+
 				// Add the result as the first item
 				$goosle_results['search'] = array_merge($first, $goosle_results['search']);
 			}
 
 			// Pagination offset
 			if($opts->cache_type !== 'off') {
-				$offset = ((($search->page - 1) * $opts->search_results_per_page) + 1);
+				$offset = ((($search->page - 1) * $opts->search_results_per_page));
 				$goosle_results['search'] = array_slice($goosle_results['search'], $offset, $opts->search_results_per_page);
 			}
 
@@ -270,8 +272,9 @@ echo '</pre>';
 				// Result sources
 				if($opts->show_search_source == 'on') {
 					// If available, add a link to the found torrent page
-					$url = (!is_null($result['url'])) ? " &bull; <a href=\"".$result['url']."\" target=\"_blank\" title=\"Visit torrent page\">torrent page</a> <span class=\"tooltip tooltip-alert\"><span class=\"tooltiptext\"><strong>Careful!</strong> Site may contain intrusive popup ads and malware!</span></span>" : "";
-
+//					$url = (!is_null($result['url'])) ? " &bull; <a href=\"".$result['url']."\" target=\"_blank\" title=\"Visit torrent page\">torrent page</a>" : "";
+					$url = (!is_null($result['url'])) ? " &bull; <a href=\"".$result['url']."\" target=\"_blank\" title=\"Visit torrent page\">torrent page</a> <a onclick=\"openpopup('info-torrentpagelink')\" title=\"Click for more information\"><span class=\"tooltip-alert\"></span></a>" : "";
+					
 					echo "	<p><small>Found on ".replace_last_comma(implode(', ', $result['combo_source'])).$url."</small></p>";
 				}
 				echo "	</div>";
@@ -307,6 +310,15 @@ echo '</pre>';
 			}
 
 			echo "<p class=\"text-center\"><small>Goosle does not index, offer or distribute torrent files.</small></p>";
+
+			// Popup (Normally hidden)
+			echo "<div id=\"info-torrentpagelink\" class=\"goosebox\">";
+			echo "	<div class=\"goosebox-body\">";
+			echo "		<h2>Be careful with torrent sites</h2>";
+			echo "		<p>Many torrent websites have intrusive popup ads and malware! Be careful what you click on and close any popups that appear.</p>";
+			echo "		<p><a onclick=\"closepopup()\">Close</a></p>";
+			echo "	</div>";
+			echo "</div>";
 		}
 
 		// No results found

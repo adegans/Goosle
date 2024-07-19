@@ -32,10 +32,16 @@ class YTSRequest extends EngineRequest {
 		$json_response = json_decode($response, true);
 		
 		// No response
-		if(empty($json_response)) return $engine_temp;
+		if(empty($json_response)) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
+			return $engine_result;
+		}
 
 		// No results
-        if($json_response['data']['movie_count'] == 0) return $engine_temp;
+        if($json_response['data']['movie_count'] == 0) {
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+	        return $engine_result;
+	    }
 
 		foreach($json_response['data']['movies'] as $result) {
 			// Find and process data
@@ -113,7 +119,9 @@ class YTSRequest extends EngineRequest {
 			$engine_result['search'] = $engine_temp;
 		}
 
-		unset($response, $json_response, $number_of_results, $engine_temp);
+		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $json_response['data']['movie_count'], count($engine_temp));
+
+		unset($response, $json_response, $engine_temp);
 
 		return $engine_result;
 	}
