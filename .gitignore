@@ -1,6 +1,16 @@
-# Caches
+# Project specific
 *.data
-*.cache
+*.result
+*.log
+.htaccess
+config.php
+
+# Github stuff
+/.git
+/.github
+.distignore
+.gitignore
+.gitattributes
 
 # OS generated files & misc
 .DS_Store
