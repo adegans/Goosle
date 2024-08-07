@@ -17,7 +17,7 @@ class QwantRequest extends EngineRequest {
         	't' => 'web', // Type of search, web search
         	'safesearch' => $this->search->safe, // Safe search filter (0 = off, 1 = normal, 2 = strict)
         	'locale' => strtolower($this->opts->qwant_language), // In which language should the search be done
-        	'count' => 10, // How many results? (Maximum 10)
+        	'count' => 10, // How many results? (Max 10)
         	'device' => 'desktop' // What kind of device are we searching from?
         ));
 

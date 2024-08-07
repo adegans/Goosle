@@ -6,13 +6,13 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class PirateBayRequest extends EngineRequest {
 	public function get_request_url() {
         $url = 'https://apibay.org/q.php?q='.urlencode($this->search->query);
-        
+
         return $url;
 	}
 
@@ -30,16 +30,16 @@ class PirateBayRequest extends EngineRequest {
 	public function parse_results($response) {
 		$engine_temp = $engine_result = array();
 		$json_response = json_decode($response, true);
-		
+
 		// No response
 		if(empty($json_response)) {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
 			return $engine_result;
 		}
-		
+
 		// No results
         if($json_response[0]['name'] == 'No results returned') {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
@@ -65,7 +65,7 @@ class PirateBayRequest extends EngineRequest {
 			211 => 'UHD/4K Movie',
 			212 => 'UHD/4K TV Show',
 			299 => 'Video Other',
-			
+
 			300 => 'Applications',
 			301 => 'Apps Windows',
 			302 => 'Apps Apple',
@@ -85,7 +85,7 @@ class PirateBayRequest extends EngineRequest {
 			407 => 'Games iOS',
 			408 => 'Games Android',
 			499 => 'Games Other OS',
-			
+
 			500 => 'Porn',
 			501 => 'Porn Movie',
 			502 => 'Porn Movie DVDr',
@@ -112,20 +112,23 @@ class PirateBayRequest extends EngineRequest {
 			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
 			$seeders = sanitize($result['seeders']);
 			$leechers = sanitize($result['leechers']);
-			$filesize = human_filesize(sanitize($result['size']));
-			
+			$filesize = sanitize($result['size']);
+
 			// Ignore results with 0 seeders?
 			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
-			
+
 			// Throw out mismatched tv-show episodes when searching for tv shows
 			if(!is_season_or_episode($this->search->query, $title)) continue;
-			
+
 			// Find extra data
+			$verified = (array_key_exists('status', $result)) ? sanitize($result['status']) : null;
 			$category = (array_key_exists('category', $result)) ? sanitize($result['category']) : null;
 			$url = (array_key_exists('id', $result)) ? 'https://thepiratebay.org/description.php?id='.sanitize($result['id']) : null;
 			$timestamp = (isset($result['added'])) ? sanitize($result['added']) : null;
 
 			// Process extra data
+			$verified = ($verified == 'vip' || $verified == 'moderator' || $verified == 'trusted') ? 'yes' : null;
+
 			if(!is_null($category)) {
 				// Block these categories
 				if(in_array($category, $this->opts->piratebay_categories_blocked)) continue;
@@ -137,7 +140,7 @@ class PirateBayRequest extends EngineRequest {
 					$quality = find_video_quality($title);
 					$codec = find_video_codec($title);
 					$audio = find_audio_codec($title);
-	
+
 					// Add codec to quality
 					if(!empty($codec)) $quality = $quality.' '.$codec;
 				} else if($category >= 100 && $category <= 199) {
@@ -157,6 +160,7 @@ class PirateBayRequest extends EngineRequest {
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
+				'verified_uploader' => $verified, // string|null
 				'nsfw' => $nsfw, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null

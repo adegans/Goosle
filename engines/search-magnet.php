@@ -6,49 +6,51 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class MagnetSearch extends EngineRequest {
 	protected $requests;
-	
+
 	public function __construct($search, $opts, $mh) {
 		$this->requests = array();
 
 		if($opts->enable_magnet_search == 'on') {
 			// Extra functions to process magnet results
 			require ABSPATH.'functions/tools-magnet.php';
-		    
-			if($opts->enable_limetorrents == 'on') {
+
+			if($opts->magnet['limetorrents'] == 'on') {
 				require ABSPATH.'engines/magnet/lime.php';
 				$this->requests[] = new LimeRequest($search, $opts, $mh);
 			}
-	
-			if($opts->enable_piratebay == 'on') {
+
+			if($opts->magnet['piratebay'] == 'on') {
 				require ABSPATH.'engines/magnet/thepiratebay.php';
 				$this->requests[] = new PirateBayRequest($search, $opts, $mh);
 			}
-	
-			if($opts->enable_yts == 'on') {
+
+			if($opts->magnet['yts'] == 'on') {
 				if($search->safe !== 0) {
 					require ABSPATH.'engines/magnet/yts.php';
 					$this->requests[] = new YTSRequest($search, $opts, $mh);
 				}
 			}
-	
-			if($opts->enable_nyaa == 'on') {
-				require ABSPATH.'engines/magnet/nyaa.php';
-				$this->requests[] = new NyaaRequest($search, $opts, $mh);
+
+			if($opts->magnet['nyaa'] == 'on') {
+				if($search->safe !== 0) {
+					require ABSPATH.'engines/magnet/nyaa.php';
+					$this->requests[] = new NyaaRequest($search, $opts, $mh);
+				}
 			}
-	
-			if($opts->enable_sukebei == 'on') {
+
+			if($opts->magnet['sukebei'] == 'on') {
 				if($opts->show_nsfw_magnets == 'on' || ($opts->show_nsfw_magnets == 'off' && $search->safe === 0)) {
 					require ABSPATH.'engines/magnet/sukebei.php';
 					$this->requests[] = new SukebeiRequest($search, $opts, $mh);
 				}
 			}
-	
-			if($opts->enable_eztv == 'on') {
+
+			if($opts->magnet['eztv'] == 'on') {
 				if(substr(strtolower($search->query), 0, 2) == 'tt') {
 					require ABSPATH.'engines/magnet/eztv.php';
 					$this->requests[] = new EZTVRequest($search, $opts, $mh);
@@ -64,9 +66,9 @@ class MagnetSearch extends EngineRequest {
 	        foreach($this->requests as $request) {
 	            if($request->request_successful()) {
 					$engine_result = $request->get_results();
-	
+
 					if(!empty($engine_result)) {
-						if(isset($engine_result['search'])) {	
+						if(isset($engine_result['search'])) {
 							$how_many_results = 0;
 
 							// Merge duplicates and apply relevance scoring
@@ -80,7 +82,7 @@ class MagnetSearch extends EngineRequest {
 								} else {
 									$found_id = false;
 								}
-		
+
 								$how_many_results++;
 
 								if($found_id !== false) {
@@ -88,9 +90,9 @@ class MagnetSearch extends EngineRequest {
 									// If seeders or leechers mismatch, assume they're different peers
 									if($goosle_results['search'][$found_id]['seeders'] != $result['seeders']) $goosle_results['search'][$found_id]['combo_seeders'] += intval($result['seeders']);
 									if($goosle_results['search'][$found_id]['leechers'] != $result['leechers']) $goosle_results['search'][$found_id]['combo_leechers'] += intval($result['leechers']);
-		
+
 									$goosle_results['search'][$found_id]['combo_source'][] = $engine_result['source'];
-		
+
 									// If duplicate result has more info, add it
 									if(is_null($goosle_results['search'][$found_id]['year']) && !is_null($result['year'])) $goosle_results['search'][$found_id]['year'] = $result['year'];
 									if(is_null($goosle_results['search'][$found_id]['category']) && !is_null($result['category'])) $goosle_results['search'][$found_id]['category'] = $result['category'];
@@ -106,12 +108,12 @@ class MagnetSearch extends EngineRequest {
 									$result['combo_seeders'] = intval($result['seeders']);
 									$result['combo_leechers'] = intval($result['leechers']);
 									$result['combo_source'][] = $engine_result['source'];
-									$result['id'] = md5($result['hash']); // Predictable/repeatable 'unique' string 
-	
+									$result['id'] = md5($result['hash']); // Predictable/repeatable 'unique' string
+
 									// Add result to final results
 									$goosle_results['search'][$result['id']] = $result;
 								}
-		
+
 								unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 							}
 
@@ -125,12 +127,12 @@ class MagnetSearch extends EngineRequest {
 					$request_result = curl_getinfo($request->ch);
 					$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : "";
 					$github_issue_url = "https://github.com/adegans/Goosle/discussions/new?category=general&".http_build_query(array('title' => get_class($request)." failed with error ".$request_result['http_code'], 'body' => "```\nEngine: ".get_class($request)."\nError Code: ".$request_result['http_code']."\nRequest url: ".$request_result['url']."\n```", 'labels' => 'request-error'));
-					
+
 		            $goosle_results['error'][] = array(
 		                'message' => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."<br /><strong>Need help?</strong> Find <a href=\"https://github.com/adegans/Goosle/discussions\" target=\"_blank\">similar issues</a>, or <a href=\"".$github_issue_url."\" target=\"_blank\">ask your own question</a>."
 		            );
 	            }
-	            
+
 	            unset($request);
 	        }
 
@@ -141,12 +143,12 @@ class MagnetSearch extends EngineRequest {
 
 				// Count all results
 				$goosle_results['number_of_results'] = count($goosle_results['search']);
-	
+
 				unset($keys);
 			} else {
 				// Add error if there are no search results
 	            $goosle_results['error'][] = array(
-	                'message' => "No results found. Please try with more specific or different keywords!" 
+	                'message' => "No results found. Please try with more specific or different keywords!"
 	            );
 			}
 		} else {
@@ -155,7 +157,7 @@ class MagnetSearch extends EngineRequest {
 			);
 		}
 
-        return $goosle_results; 
+        return $goosle_results;
     }
 
     public static function print_results($goosle_results, $search, $opts) {
@@ -175,13 +177,14 @@ echo "</pre>";
 		// Latest additions to yts
 		if($opts->show_yts_highlight == 'on') {
 	        require ABSPATH.'engines/boxoffice/yts.php';
-			
+
 			echo "<h2>Latest releases from YTS</h2>";
 			echo "<p>View these and more new releases on the <a href=\"./box-office.php?q=".$search->query."&t=9&a=".$opts->hash."\">box office</a> page!</p>";
+
 			echo "<ul class=\"result-grid\">";
-			
+
 			$highlights = array_slice(yts_boxoffice($opts, 'date_added'), 0, 8);
-			
+
 			foreach($highlights as $highlight) {
 				$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $opts->pixel;
 
@@ -194,7 +197,7 @@ echo "</pre>";
 				// HTML for popup
 				echo highlight_popup($opts->hash, $highlight);
 
-				echo "</li>";	
+				echo "</li>";
 
 				unset($highlight);
 			}
@@ -240,9 +243,14 @@ echo "</pre>";
 			foreach($goosle_results['search'] as $result) {
 				// Extra data
 				$base = $meta = array();
+				if(!empty($result['verified_uploader'])) {
+					$icon = ($result['verified_uploader'] == 'yes') ? 'magnet-verified' : 'magnet-not-verified';
+					$base[] = "<a onclick=\"openpopup('info-torrentverified')\" title=\"".$icon." - Click for more information\"><span class=\"".$icon."\"></span></a>";
+				}
+
 				if(!empty($result['combo_seeders'])) $base[] = "<strong>Seeds:</strong> <span class=\"green\">".$result['combo_seeders']."</span>";
 				if(!empty($result['combo_leechers'])) $base[] = "<strong>Peers:</strong> <span class=\"red\">".$result['combo_leechers']."</span>";
-				if(!empty($result['filesize'])) $base[] = "<strong>Size:</strong> ".$result['filesize'];
+				if(!empty($result['filesize'])) $base[] = "<strong>Size:</strong> ".human_filesize($result['filesize']);
 				if(!empty($result['timestamp'])) $base[] = "<strong>Added on:</strong> ".the_date("M d, Y", $result['timestamp']);
 				if(!empty($result['mpa_rating'])) $base[] = "<strong>MPA Rating:</strong> ".$result['mpa_rating'];
 
@@ -252,7 +260,6 @@ echo "</pre>";
 				if(!empty($result['quality'])) $meta[] = "<strong>Quality:</strong> ".$result['quality'];
 				if(!empty($result['type'])) $meta[] = "<strong>Type:</strong> ".$result['type'];
 				if(!empty($result['audio'])) $meta[] = "<strong>Audio:</strong> ".$result['audio'];
-
 				// Highlight the shared result
 				$class = "";
 				if($opts->show_share_option == 'on') {
@@ -262,7 +269,7 @@ echo "</pre>";
 						$base[] = "<a onclick=\"openpopup('result-".$result['id']."')\" title=\"Share magnet result\">Share</a>";
 					}
 				}
-	
+
 				// Put result together
 				echo "<li class=\"result magnet id-".$result['id'].$class."\">";
 				echo "	<div class=\"title\"><a href=\"".$result['magnet']."\"><h2>".stripslashes($result['title'])."</h2></a></div>";
@@ -272,9 +279,8 @@ echo "</pre>";
 				// Result sources
 				if($opts->show_search_source == 'on') {
 					// If available, add a link to the found torrent page
-//					$url = (!is_null($result['url'])) ? " &bull; <a href=\"".$result['url']."\" target=\"_blank\" title=\"Visit torrent page\">torrent page</a>" : "";
 					$url = (!is_null($result['url'])) ? " &bull; <a href=\"".$result['url']."\" target=\"_blank\" title=\"Visit torrent page\">torrent page</a> <a onclick=\"openpopup('info-torrentpagelink')\" title=\"Click for more information\"><span class=\"tooltip-alert\"></span></a>" : "";
-					
+
 					echo "	<p><small>Found on ".replace_last_comma(implode(', ', $result['combo_source'])).$url."</small></p>";
 				}
 				echo "	</div>";
@@ -311,11 +317,22 @@ echo "</pre>";
 
 			echo "<p class=\"text-center\"><small>Goosle does not index, offer or distribute torrent files.</small></p>";
 
-			// Popup (Normally hidden)
+			// Torrent site warning popup (Normally hidden)
 			echo "<div id=\"info-torrentpagelink\" class=\"goosebox\">";
 			echo "	<div class=\"goosebox-body\">";
-			echo "		<h2>Be careful with torrent sites</h2>";
-			echo "		<p>Many torrent websites have intrusive popup ads and malware! Be careful what you click on and close any popups that appear.</p>";
+			echo "		<h2>Be careful when you visit torrent sites</h2>";
+			echo "		<p>Many torrent websites have intrusive popup ads and malware! Be careful what you click on and close any popups/redirects that appear.</p>";
+			echo "		<p><a onclick=\"closepopup()\">Close</a></p>";
+			echo "	</div>";
+			echo "</div>";
+
+			// Verified magnet info popup (Normally hidden)
+			echo "<div id=\"info-torrentverified\" class=\"goosebox\">";
+			echo "	<div class=\"goosebox-body\">";
+			echo "		<h2>Trusted uploaders</h2>";
+			echo "		<p>Some websites have a group of verified and/or trusted uploaders. These are users that are known to provide good quality downloads.</p>";
+			echo "		<p><span class=\"magnet-verified\"></span> Downloads with a blue shield and checkmark are uploaded by a verified or trusted user according to the torrent site.</p>";
+			echo "		<p><span class=\"magnet-not-verified\"></span> Downloads with a red shield and questionmark indicate that the user is <em>not</em> verified by the website providing the download. This can mean this is a new user, or that the file is provided from an anonymous source. Unverified magnet links are not necessarily bad but may contain low quality or misleading content or simply have a poorly written title.</p>";
 			echo "		<p><a onclick=\"closepopup()\">Close</a></p>";
 			echo "	</div>";
 			echo "</div>";

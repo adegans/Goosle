@@ -20,7 +20,7 @@ class QwantNewsRequest extends EngineRequest {
         	't' => 'news', // News search
         	'safesearch' => $this->search->safe, // Safe search filter (0 = off, 1 = normal, 2 = strict)
         	'locale' => $language, // Language region
-        	'count' => 30, // How many results? (Maximum 50)
+        	'count' => 50, // How many results? (Maximum 50)
         	'device' => 'desktop', // Where are you searching from
         	'source' => 'all', // Where to get the news from (All)
         	'freshness' => 'month', // How old may the article be?

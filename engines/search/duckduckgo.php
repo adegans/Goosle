@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class DuckDuckGoRequest extends EngineRequest {
@@ -28,13 +28,12 @@ class DuckDuckGoRequest extends EngineRequest {
         	'kz' => '-1', // Instant answers (1 = on, -1 = off)
         	'kc' => '-1', // Autoload images (1 = on, -1 = off)
         	'kav' => '-1', // Autoload results (1 = on, -1 = off)
-        	'kf' => '-1', // Favicons (1 = on, -1 = off)
         	'kaf' => '1', // Full URLs (1 = on, -1 = off)
         	'kac' => '-1', // Auto suggest (1 = on, -1 = off)
         	'kd' => '-1', // Redirects (1 = on, -1 = off)
         	'kh' => '1', // HTTPS (1 = on, -1 = off)
         	'kg' => 'g', // Get/Post (g = GET, p = POST)
-        	'k1' => '-1' // Ads (1 = on, -1 = off)
+			'k1' => '-1' // Ads (1 = on, -1 = off)
         ));
 
         unset($safe);
@@ -67,20 +66,10 @@ class DuckDuckGoRequest extends EngineRequest {
 
 		// No results
         if($number_of_results == 0) {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
-		// Scrape recommended
-		$didyoumean = $xpath->query(".//div[@id='did_you_mean']/a[1]")[0];
-		if(!is_null($didyoumean)) {
-			$engine_result['did_you_mean'] = $didyoumean->textContent;
-		}
-        $search_specific = $xpath->query(".//div[@id='did_you_mean']/a[2]")[0];
-        if(!is_null($search_specific)) {
-			$engine_result['search_specific'] = $search_specific->textContent;
-        }
- 
 		foreach($scrape as $result) {
 			// Find data
 			$url = $xpath->evaluate(".//h2[@class='result__title']//a/@href", $result);
@@ -90,21 +79,21 @@ class DuckDuckGoRequest extends EngineRequest {
 			// Skip broken results
 			if($url->length == 0) continue;
 			if($title->length == 0) continue;
-			
+
 			// Process data
 			$url = sanitize($url[0]->textContent);
 			$title = strip_newlines(sanitize($title[0]->textContent));
 			$description = ($description->length == 0) ? "No description was provided for this site." : limit_string_length(strip_newlines(sanitize($description[0]->textContent)));
-			
+
 			// filter duplicate urls/results
             if(!empty($engine_temp)) {
                 if(in_array($url, array_column($engine_temp, 'url'))) continue;
             }
 
 			$engine_temp[] = array(
-				'title' => $title, 
-				'url' => $url, 
-				'description' => $description, 
+				'title' => $title,
+				'url' => $url,
+				'description' => $description,
 				'engine_rank' => $rank
 			);
 			$rank -= 1;

@@ -18,7 +18,7 @@ class HackernewsRequest extends EngineRequest {
         $url = 'https://hn.algolia.com/api/v1/search_by_date?'.http_build_query(array(
 			'query' => $this->search->query, // Search query
 			'tags' => 'story', // What type of results to show? (story = News stories)
-			'hitsPerPage' => 30, // How many results to return?
+			'hitsPerPage' => 50, // How many results to return?
 			'numericFilters' => 'created_at_i>'.$article_date // How old may the article be?
         ));
 

@@ -6,16 +6,16 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class CurrencyRequest extends EngineRequest {
     public function get_request_url() {
         $url = 'https://cdn.moneyconvert.net/api/latest.json';
-        
+
         return $url;
     }
-    
+
     public function get_request_headers() {
 		return array(
 			'Accept' => 'application/json, */*;q=0.8',
@@ -48,7 +48,7 @@ class CurrencyRequest extends EngineRequest {
 		// [1] = FROM CURRENCY
 		// [2] = (to|in)
 		// [3] = TO CURRENCY
-		
+
         $amount = floatval($this->search->query_terms[0]);
         $amount_currency = strtoupper($this->search->query_terms[1]);
         $conversion_currency = strtoupper($this->search->query_terms[3]);

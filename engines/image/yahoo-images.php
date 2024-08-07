@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class YahooImageRequest extends EngineRequest {
@@ -21,15 +21,11 @@ class YahooImageRequest extends EngineRequest {
 		}
 
 		// Size override
-		$size = ''; // All sizes
-		if(preg_match('/(size:)(small|medium|large|xlarge)/i', $this->search->query_terms[0], $matches)) {
-			$size = $matches[1];
-			$query = str_replace($this->search->query_terms[0], '', $query);
-
-			// Engine specific
-			if($size == 'xlarge') $size = 'wallpaper';
-		}
-		unset($matches);
+		$size = '';
+		if($this->search->size == 1) $size = 'small';
+		if($this->search->size == 2) $size = 'medium';
+		if($this->search->size == 3) $size = 'large';
+		if($this->search->size == 4) $size = 'wallpaper';
 
         $url = 'https://images.search.yahoo.com/search/images?'.http_build_query(array(
         	'p' => $query, // Search query
@@ -51,7 +47,7 @@ class YahooImageRequest extends EngineRequest {
 	public function parse_results($response) {
 		$engine_temp = $engine_result = array();
 		$xpath = get_xpath($response);
-	
+
  		// No response
 		if(!$xpath) {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
@@ -67,7 +63,7 @@ class YahooImageRequest extends EngineRequest {
 
 		// No results
         if($number_of_results == 0) {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
@@ -89,15 +85,15 @@ class YahooImageRequest extends EngineRequest {
 			// Skip broken results
 			if($image_thumb->length == 0) continue;
 			if($url_data->length == 0) continue;
-			
+
 			// Get and prepare meta data
 			// -- Relevant $url_data (there is more, but unused by Goosle)
-			// w = Image width (1280)
-			// h = Image height (720)
-			// imgurl = Actual full size image (Used in Yahoo preview/popup)
+			// w = Image width
+			// h = Image height
+			// imgurl = Full size image (Used in Yahoo preview/popup)
 			// rurl = Url to page where the image is used
-			// size = Image size (413.1KB)
-			// tt = Website title (Used for image alt text)
+			// size = Image size
+			// tt = Website title
 			foreach(explode('&', strstr($url_data[0]->textContent, '?')) as &$meta) {
 				if(!empty($meta)) {
 					$value = explode('=', trim($meta));
@@ -109,19 +105,22 @@ class YahooImageRequest extends EngineRequest {
 				unset($meta, $value);
 			}
 
-			// Skip broken results
-			if(!array_key_exists('imgurl', $usable_data)) continue;			
-			if(!array_key_exists('rurl', $usable_data)) continue;			
-
 			// Process data
-			$image_full = (array_key_exists('imgurl', $usable_data)) ? sanitize($usable_data['imgurl']) : null;
 			$image_thumb = sanitize($image_thumb[0]->textContent);
-			$url = sanitize($usable_data['rurl']);
+			$image_full = (array_key_exists('imgurl', $usable_data)) ? sanitize($usable_data['imgurl']) : null;
+			$url = (array_key_exists('rurl', $usable_data)) ? sanitize($usable_data['rurl']) : null;
 			$alt = (array_key_exists('tt', $usable_data)) ? sanitize($usable_data['tt']) : null;
+			$tags = (!empty($alt)) ? make_tags_from_string($alt) : array();
+
+			// Skip broken results
+			if(empty($image_full)) continue;
+			if(empty($url)) continue;
+
+			// Optional
 			$dimensions_w = (array_key_exists('w', $usable_data)) ? sanitize($usable_data['w']) : null;
 			$dimensions_h = (array_key_exists('h', $usable_data)) ? sanitize($usable_data['h']) : null;
-			$filesize = (array_key_exists('size', $usable_data)) ? intval(preg_replace('/[^0-9]+/', '', sanitize($usable_data['size']))) : null;
 
+			// Process data
 			// Fix incomplete image url
 			if(!is_null($image_full)) {
 				$is_https = parse_url($url);
@@ -133,23 +132,24 @@ class YahooImageRequest extends EngineRequest {
 					$image_full = '//'.$image_full;
 				}
 			}
+			$tags = array_unique($tags);
 
 			// Skip duplicate IMAGE urls/results
-            if(!empty($engine_temp)) {
-                if(in_array($image_full, array_column($engine_temp, 'image_full'))) continue;
-            }
+			if(!empty($engine_temp)) {
+				if(in_array($image_full, array_column($engine_temp, 'image_full'))) continue;
+			}
 
 			$engine_temp[] = array (
 				// Required
-				'image_full' => $image_full, // string
 				'image_thumb' => $image_thumb, // string
+				'image_full' => $image_full, // string
 				'url' => $url, // string
+				'alt' => $alt, // string
+				'tags' => $tags, // array
 				'engine_rank' => $rank, // int
 				// Optional
-				'alt' => $alt, // string | null
 				'width' => $dimensions_w, // int | null
-				'height' => $dimensions_h, // int | null
-				'filesize' => $filesize, // int | null
+				'height' => $dimensions_h // int | null
 			);
 			$rank -= 1;
 		}

@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class EZTVRequest extends EngineRequest {
@@ -16,9 +16,9 @@ class EZTVRequest extends EngineRequest {
 		// Is eztvx.to blocked for you? Use one of these urls as an alternative
 		// Try: eztv1.xyz, eztv.wf, eztv.tf, eztv.yt
 		$url = 'https://eztvx.to/api/get-torrents?imdb_id='.urlencode($query);
-		
+
 		unset($query);
-		
+
 		return $url;
 	}
 
@@ -36,7 +36,7 @@ class EZTVRequest extends EngineRequest {
 	public function parse_results($response) {
 		$engine_temp = $engine_result = array();
 		$json_response = json_decode($response, true);
-		
+
 		// No response
 		if(empty($json_response)) {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
@@ -45,7 +45,7 @@ class EZTVRequest extends EngineRequest {
 
 		// No results
         if($json_response['torrents_count'] == 0) {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
@@ -55,8 +55,8 @@ class EZTVRequest extends EngineRequest {
 			$magnet = sanitize($result['magnet_url']);
 			$seeders = sanitize($result['seeds']);
 			$leechers = sanitize($result['peers']);
-			$filesize = human_filesize(sanitize($result['size_bytes']));
-			
+			$filesize = sanitize($result['size_bytes']);
+
 			// Ignore results with 0 seeders?
 			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
 
@@ -65,7 +65,7 @@ class EZTVRequest extends EngineRequest {
 			if($season < 10) $season = '0'.$season;
 			$episode = sanitize($result['episode']);
 			if($episode < 10) $episode = '0'.$episode;
-			
+
 			// Throw out mismatched episodes
 			if(!is_season_or_episode($this->search->query, 'S'.$season.'E'.$episode)) continue;
 
@@ -74,7 +74,7 @@ class EZTVRequest extends EngineRequest {
 			$quality = find_video_quality($title);
 			$codec = find_video_codec($title);
 			$audio = find_audio_codec($title);
-	
+
 			// Add codec to quality
 			if(!empty($codec)) $quality = $quality.' '.$codec;
 
@@ -91,6 +91,7 @@ class EZTVRequest extends EngineRequest {
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
+				'verified_uploader' => 'yes', // string|null
 				'nsfw' => false, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null
@@ -116,7 +117,7 @@ class EZTVRequest extends EngineRequest {
 		if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, $json_response['torrents_count'], count($engine_temp));
 
 		unset($response, $json_response, $engine_temp);
-		
+
 		return $engine_result;
 	}
 }

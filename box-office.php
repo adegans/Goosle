@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
@@ -54,15 +54,17 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 ?>
 <div class="header">
 	<form action="results.php" method="get" autocomplete="off">
-	    <h1 class="logo"><a href="./?a=<?php echo $opts->user_auth; ?>"><span class="goosle-g">G</span>oosle</a></h1>        
-	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->query) > 0) ? htmlspecialchars($search->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
-	
+	    <h1 class="logo"><a href="./?a=<?php echo $opts->user_auth; ?>"><span class="goosle-g">G</span>oosle</a></h1>
+	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->nice_query) > 0) ? htmlspecialchars($search->nice_query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+
         <input type="hidden" name="t" value="<?php echo $search->type; ?>"/>
 	    <input type="hidden" name="a" value="<?php echo $opts->user_auth; ?>">
 	</form>
- 
+
     <div class="navigation">
+        <?php if($opts->enable_web_search == 'on') { ?>
         <a class="<?php echo ($search->type == '0') ? 'active ' : ''; ?>tab-search" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=0">Search</a>
+        <?php } ?>
 
         <?php if($opts->enable_image_search == 'on') { ?>
         <a class="<?php echo ($search->type == '1') ? 'active ' : ''; ?>tab-image" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=1" >Images</a>
@@ -77,7 +79,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
         <?php } ?>
 	</div>
 </div>
-	
+
 <div class="content">
 	<h2>The Box Office</h2>
 
@@ -102,7 +104,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 			echo highlight_popup($opts->user_auth, $highlight);
 
 			echo "</li>";
-	
+
 			unset($highlight, $thumb);
 		}
 		unset($highlights);
@@ -117,7 +119,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 		<?php
 		foreach($highlights as $highlight) {
 			$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $opts->pixel;
-			
+
 			echo "<li class=\"result highlight eztv id-".$highlight['id']."\">";
 			echo "	<div class=\"thumb\">";
 			echo "		<a onclick=\"openpopup('highlight-".$highlight['id']."')\" title=\"More info: ".$highlight['title']."\"><img src=\"".$thumb."\" alt=\"".$highlight['title']."\" /></a>";
@@ -128,7 +130,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 			echo highlight_popup($opts->user_auth, $highlight);
 
 			echo "</li>";
-	
+
 			unset($highlight, $thumb);
 		}
 		unset($highlights);

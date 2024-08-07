@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
@@ -22,7 +22,7 @@ COLORSCHEME:
 	'dark' More dark elements, some apps would call this dark mode.
 	'auto' Let the browser decide what to use, uses dark.css for Darkmode. default.css for regular viewing.
 
-	For advanced users: You can create your own colorschemes this way too. 
+	For advanced users: You can create your own colorschemes this way too.
 	Duplicate the file /assets/css/default.css and name it something like 'mycolorscheme.css'.
 	Edit the color variables to your liking.
 	To use the colorscheme, use the filename without extension in this setting.
@@ -40,7 +40,7 @@ HASH_AUTH:
 	'on' Use the hash as a password.
 
 	Usage: https://example.com/?a=goose1234
-	Disclaimer: This is not meant to 'hack proof' or truly secure the setup. Just a simple token to keep surface level prying eyes out.	
+	Disclaimer: This is not meant to 'hack proof' or truly secure the setup. Just a simple token to keep surface level prying eyes out.
 
 CACHE_TYPE:
 	It is highly recommended to enable caching as it will speed up repeat searches by a lot.
@@ -60,21 +60,12 @@ CACHE_TIME:
 	To not show outdated results the 'limit' is 48 hours.
 	Ignored if above 'CACHE_TYPE' option is set to off.
 
-QUERYLOG:
-	The query log is useful if you make common requests and for some reason one engine returns no result and no error. Enabling the querylog lets you see if a request was made and how many results were found/scraped/retrieved. But also how many are left after initial processing.
-	The querylog logs requests per day into a file in /cache/. This function is not meant to be on for production use. Only for debugging or understanding results.
-	
-	Example: [18-07-2024 22:15:05][s] GoogleRequest: 30 -> 4, https://www.google.com/search?q=the+wild+goose+chase&safe=1&num=30&pws=0&udm=14&tbs=li%3A1&complete=0&sclient=web
-	Here a query is made to Google web search, Goosle scraped 30 results but after initial filtering only 4 remained. This can mean a lot of duplicate links were found (unlikely). More likely is that an inconsistent scrape was done. This can indicate that the website has changed its layout structure and Goosle needs to be updated.
-	
-	Example: [18-07-2024 23:06:58][a] QwantRequest: No results -> 0, https://api.qwant.com/v3/search/web?q=the+wild+goose+chase&t=web&safesearch=1&locale=en_gb&count=10&device=desktop
-	Here a query is made to Qwant web search via their API and no results were found at all. API calls can not make scrape errors. This likely means there simply were no results to begin with.
 /* ------------------------------------------------------------------------------------
 LANGUAGE:
 	To not fit the USA mold, Goosle defaults to the United Kingdom for english results.
 	DuckDuckGo and Google are language agnostic.
 	Invalid values either cause the search engine to fail or will default to English depending on how wrong the value is.
-	
+
 	Google has no language setting because as soon as you specify it all 'anonymous' settings stop working.
 
 	DuckDuckGo uses language regions and defaults to the United Kingdom. To change it see if your region is available - https://duckduckgo.com/duckduckgo-help-pages/settings/params/.
@@ -94,7 +85,7 @@ USER AGENTS:
 	Add more or less user agents to the list but keep at least one!
 	On every search Goosle picks a user agent at random to identify as.
 	Keep them generic to prevent profiling, but also so that the request comes off as a generic boring browser and not as a server/crawler.
-	
+
 	Safari, Firefox and Internet Explorer (Yes that's old!) should be safe to use.
 	Chrome may attract attention because of the lack of Chrome information (tracking) aside from the user agent. The search engine may know something is 'weird'.
 	Opera/Edge/Brave and many others use Chrome under the hood and are not a good pick for that reason.
@@ -104,7 +95,7 @@ USER AGENTS:
 
 MAGNET TRACKERS:
 	Add more or less magnet trackers to the list but keep at least five or so!
-	These are added to the magnet links Goosle creates by itself. 
+	These are added to the magnet links Goosle creates by itself.
 	Generally you do not need to change these.
 ------------------------------------------------------------------------------------ */
 
@@ -112,47 +103,63 @@ return (object) array(
 	'siteurl' => 'example.com', // Make sure this is accurate (ex. example.com, goosle.example.com, example.com/goosle/)
 	'colorscheme' => 'default', // Default colorscheme to use
 	'hash' => '123456', // Some kind of alphanumeric password-like string, used for caching and optionally for access to Goosle
-    'hash_auth' => 'off', // Default: off
-    'cache_type' => 'file', // Default: file
-    'cache_time' => 8, // Default: 8 (Hours), see the recommendations above.
+	'hash_auth' => 'off', // Default: off
+	'cache_type' => 'file', // Default: file
+	'cache_time' => 8, // Default: 8 (Hours), see the recommendations above.
 	'timezone' => 'UTC', // Default: UTC (Enter UTC+1, UTC-6 etc. for your timezone - Find yours https://time.is/UTC)
-	'querylog' => 'off', // Default: off (Log remote queries to see if they are made and how much results they find and end up with)
 
-    'enable_duckduckgo' => 'on', // Default: on
-    'enable_google' => 'on', // Default: on
-    'enable_qwant' => 'on', // Default: on
-    'enable_brave' => 'on', // Default: on
-    'enable_wikipedia' => 'on', // Default: on
+	'enable_web_search' => 'on', // Default: on (Disables all web search regardless of settings for individual engines)
+	'web' => array(
+		'duckduckgo' => 'on', // Default: on
+		'mojeek' => 'on', // Default: on
+		'qwant' => 'on', // Default: on
+		'google' => 'on', // Default: on
+		'brave' => 'on', // Default: on
+		'wikipedia' => 'on' // Default: on
+	),
 
-    'enable_news_search' => 'on', // Default: on (Disables all news search regardless of settings for individual engines)
-    'enable_qwantnews' => 'on', // Default: on
-    'enable_yahoonews' => 'on', // Default: on
-    'enable_bravenews' => 'on', // Default: on
-    'enable_hackernews' => 'on', // Default: on
+	'enable_image_search' => 'on', // Default: on (Disables all image search regardless of settings for individual engines)
+	'image' => array(
+		'yahooimages' => 'on', // Default: on
+		'qwantimages' => 'on', // Default: on
+		'pixabay' => 'off', // Default: off (Requires free account from Pixabay.com, see readme for set up instructions)
+		'openverse' => 'off', // Default: off (Requires oAuth token, see readme for set up instructions)
+	),
 
-    'enable_image_search' => 'on', // Default: on (Disables all image search regardless of settings for individual engines)
-    'enable_yahooimages' => 'on', // Default: on
-    'enable_openverse' => 'off', // Default: off (Requires API token, see readme.md for details)
-    'enable_qwantimages' => 'on', // Default: on
+	'enable_news_search' => 'on', // Default: on (Disables all news search regardless of settings for individual engines)
+	'news' => array(
+		'qwantnews' => 'on', // Default: on
+		'yahoonews' => 'on', // Default: on
+		'bravenews' => 'on', // Default: on
+		'hackernews' => 'on', // Default: on
+	),
 
-    'enable_magnet_search' => 'on', // Default: on (Disables all magnet search regardless of settings for individual engines as well as the box office page)
-    'enable_eztv' => 'on', // Default: on
-    'enable_limetorrents' => 'on', // Default: on
-    'enable_nyaa' => 'on', // Default: on	
-    'enable_sukebei' => 'on', // Default: on
-    'enable_piratebay' => 'on', // Default: on
-    'enable_yts' => 'on', // Default: on
+	'enable_magnet_search' => 'on', // Default: on (Disables all magnet search regardless of settings for individual engines as well as the box office page)
+	'magnet' => array(
+		'limetorrents' => 'on', // Default: on (Anything)
+		'piratebay' => 'on', // Default: on (Anything)
+		'yts' => 'on', // Default: on (Movies)
+		'eztv' => 'on', // Default: on (TV-Shows)
+		'nyaa' => 'on', // Default: on (Anime)
+		'sukebei' => 'on', // Default: on (NSFW Anime)
+	),
 
-    'duckduckgo_language' => 'uk-en', // Default: uk-en (United Kingdom)
-    'wikipedia_language' => 'en', // Default: en (English)
+	'duckduckgo_language' => 'uk-en', // Default: uk-en (United Kingdom)
+	'mojeek_language' => 'en', // Default: en (English)
+	'google_search_region' => 'uk', // Default: uk (United Kingdom)
 	'qwant_language' => 'en_gb', // Default: en_gb (United Kingdom)
+	'wikipedia_language' => 'en', // Default: en (English)
 
-    'search_results_per_page' => 24, // Default: 24 (Any number between 8 and 160, preferably a multiple of 8. Ignored if caching is off)
-    'social_media_relevance' => 8, // Default: 8
-    'show_search_source' => 'on', // Default: on
-    'show_search_rank' => 'off', // Default: off (Mostly for debugging)
+	'pixabay_api_key' => '', // Default: '' (Requires free account from Pixabay.com, see readme for set up instructions)
+
+	'search_results_per_page' => 24, // Default: 24 (Any number between 8 and 160, preferably a multiple of 8. Ignored if caching is off)
+	'social_media_relevance' => 8, // Default: 8
+	'show_search_source' => 'on', // Default: on
 	'imdb_id_search' => 'off', // Default: off, (Requires enable_magnet_search to also be on)
 	'password_generator' => 'on', // Default: on
+
+	'show_search_rank' => 'off', // Default: off (Useful for debugging)
+	'querylog' => 'off', // Default: off (Create a log of queries in /cache/*.log to see if they are made and how much results they find and end up with after processing)
 
 	'special' => array(
 		'currency' => 'on', // Default: on, Currency converter
@@ -162,12 +169,12 @@ return (object) array(
 		'wordpress' => 'off' // Default: off, Wordpress functions highlight
 	),
 
-    'show_nsfw_magnets' => 'off', // Default: off (Set to 'off' to try and hide adult content. Override with 'safe:off', 'xxx' or 'porn')
-    'show_zero_seeders' => 'off', // Default: off
-    'show_yts_highlight' => 'on', // Default: off (Show latest YTS movies above Magnet search results)
-    'show_share_option' => 'on', // Default: on (Show a share option for Magnet results)
-    'piratebay_categories_blocked' => array(206, 210), // Default: 206, 210 (Comma separated numbers, see /engines/magnet/thepiratebay.php for all categories)
-    'yts_categories_blocked' => array('horror'), // Default: 'horror' (Comma separated keywords; array('action', 'drama', 'sci-fi') etc.. There is no defined list, so block keywords that you see on results and don't like)
+	'show_nsfw_magnets' => 'off', // Default: off (Set to 'off' to try and hide adult content. Override with 'safe:off' or 'nsfw')
+	'show_zero_seeders' => 'off', // Default: off
+	'show_yts_highlight' => 'on', // Default: off (Show latest YTS movies above Magnet search results)
+	'show_share_option' => 'on', // Default: on (Show a share option for Magnet results)
+	'piratebay_categories_blocked' => array(206, 210), // Default: 206, 210 (Comma separated numbers, see /engines/magnet/thepiratebay.php for all categories)
+	'yts_categories_blocked' => array('horror'), // Default: 'horror' (Comma separated keywords; array('action', 'drama', 'sci-fi') etc.. There is no defined list, so block keywords that you see on results and don't like)
 
 	// Keep at-least 1
 	'user_agents' => array(
@@ -178,35 +185,35 @@ return (object) array(
 	),
 
 	// Keep at-least 5
-    'magnet_trackers' => array(
-    	'udp://tracker.coppersurfer.tk:6969', 
-    	'udp://tracker.leechers-paradise.org:6969', 
-    	'udp://p4p.arenabg.ch:1337', 
-    	'udp://tracker.internetwarriors.net:1337', 
-    	'udp://glotorrents.pw:6969/announce', 
-    	'udp://torrent.gresille.org:80/announce', 
-    	'udp://tracker.openbittorrent.com:80', 
-    	'http://nyaa.tracker.wf:7777/announce', 
-    	'udp://tracker.opentrackr.org:1337/announce',
-    	'udp://exodus.desync.com:6969/announce',
-    	'udp://tracker.torrent.eu.org:451/announce',
-    	'udp://opentracker.i2p.rocks:6969/announce',
-    	'udp://open.demonii.com:1337/announce', 
-		'udp://open.stealth.si:80/announce', 
-		'udp://tracker.moeking.me:6969/announce', 
-		'udp://explodie.org:6969/announce', 
-		'udp://tracker1.bt.moack.co.kr:80/announce', 
-		'udp://tracker.theoks.net:6969/announce', 
-		'udp://tracker-udp.gbitt.info:80/announce', 
-		'https://tracker.tamersunion.org:443/announce', 
-		'https://tracker.gbitt.info:443/announce', 
-		'udp://tracker.tiny-vps.com:6969/announce', 	
-		'udp://tracker.dump.cl:6969/announce', 
-		'udp://tamas3.ynh.fr:6969/announce', 
-		'udp://retracker01-msk-virt.corbina.net:80/announce', 
-		'udp://open.free-tracker.ga:6969/announce', 
-		'udp://epider.me:6969/announce', 
+	'magnet_trackers' => array(
+		'udp://tracker.coppersurfer.tk:6969',
+		'udp://tracker.leechers-paradise.org:6969',
+		'udp://p4p.arenabg.ch:1337',
+		'udp://tracker.internetwarriors.net:1337',
+		'udp://glotorrents.pw:6969/announce',
+		'udp://torrent.gresille.org:80/announce',
+		'udp://tracker.openbittorrent.com:80',
+		'http://nyaa.tracker.wf:7777/announce',
+		'udp://tracker.opentrackr.org:1337/announce',
+		'udp://exodus.desync.com:6969/announce',
+		'udp://tracker.torrent.eu.org:451/announce',
+		'udp://opentracker.i2p.rocks:6969/announce',
+		'udp://open.demonii.com:1337/announce',
+		'udp://open.stealth.si:80/announce',
+		'udp://tracker.moeking.me:6969/announce',
+		'udp://explodie.org:6969/announce',
+		'udp://tracker1.bt.moack.co.kr:80/announce',
+		'udp://tracker.theoks.net:6969/announce',
+		'udp://tracker-udp.gbitt.info:80/announce',
+		'https://tracker.tamersunion.org:443/announce',
+		'https://tracker.gbitt.info:443/announce',
+		'udp://tracker.tiny-vps.com:6969/announce',
+		'udp://tracker.dump.cl:6969/announce',
+		'udp://tamas3.ynh.fr:6969/announce',
+		'udp://retracker01-msk-virt.corbina.net:80/announce',
+		'udp://open.free-tracker.ga:6969/announce',
+		'udp://epider.me:6969/announce',
 		'udp://bt2.archive.org:6969/announce',
-    )
+	)
 );
 ?>

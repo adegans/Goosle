@@ -1,13 +1,37 @@
 # Goosle
 ## The best Meta Search Engine to find everything
 
+### 1.7 - August 7, 2024
+- NOTICE: config.default.php has changed, update your config.php!!
+- [new] Mojeek search results
+- [new] Pixabay Image results (Requires free API key, see installation instructions)
+- [new] Keyword multiplier for result ranking
+- [new] Web search can be turned off
+- [new] Cache News results for an hour only, regardless of the cache setting
+- [new] Dynamic SEO description for results page (Should be visible when sharing the page)
+- [new] 'Verified' label for magnet results where supported
+- [update] Added x.com for social media detection
+- [update] Added more keywords for nsfw detection in magnet results
+- [change] Raised Qwant Images limit from 50 to 150
+- [change] Raised Hackernews and Qwant News limit from 30 to 50
+- [change] Lowered Wikipedia results from 10 to maximum 5
+- [change] Replaced 'porn' with 'nsfw' for safe search switch
+- [change] Removed 'xxx' as an keyword to disable safe search
+- [change] Don't search on nyaa.si and YTS if you search with safemode off
+- [change] Moved image size override into search object
+- [change] Added a little space between rows for image results on mobile
+- [change] Stats font is now 'Courier'
+- [fix] Google search query not providing good results
+- [fix] Search query not always properly urlencoded
+- [removed] Removed search suggestions as they didn't work
+
 ### 1.6.1 - July 19, 2024
 - NOTICE: config.default.php has changed, update your config.php!!
 - [new] Query logger for debugging (See config.default.php for details)
-- [tweak] Scrape query for DuckDuckGo to be more direct
-- [tweak] Added url arguments to the formatted url of search results
-- [tweak] Improved tooltips to be popups with better explanations
-- [tweak] Improved spacing for pagination links
+- [update] Added url arguments to the formatted url of search results
+- [change] Scrape query for DuckDuckGo to be more direct
+- [change] Improved tooltips to be popups with better explanations
+- [fix] Improved spacing for pagination links
 - [fix] More accurately show the current version in the footer
 - [fix] Current version not properly stored
 - [fix] Pagination offset off by one result
@@ -73,7 +97,7 @@
 - [new] Popup with movie info and download links for YTS Movie Highlights
 - [new] CSS colorschemes configurable in config.php
 - [new] Easily share magnet links with other Goosle users
-- [new] Search results from Quant API
+- [new] Search results from Qwant API
 - [new] Search results from Brave
 - [new] Image results from Qwant Image API
 - [new] News results from Hackernews
@@ -223,3 +247,7 @@
 
 ### 1.0 - December 5, 2023
 - Initial release
+
+## Support
+Goosle comes with limited support. \
+You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or [Telegram](https://t.me/arnandegans).

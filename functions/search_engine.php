@@ -116,10 +116,8 @@ abstract class EngineRequest {
 
 		// Cache last request if there is something to cache
 		if($this->opts->cache_type !== 'off') {
-			if(count($results) > 0) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $this->opts->cache_time);
-
-			// Maybe delete old file cache
-			if($this->opts->cache_type == 'file') delete_cached_results($this->opts->cache_time);
+			$ttl = ($this->search->type == 2) ? 1 : $this->opts->cache_time;
+			if(count($results) > 0) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $ttl);
 		}
 
 		return $results;

@@ -4,7 +4,7 @@
 Goosle is a fast, privacy oriented search tool that just works. \
 It's kept simple so everyone can use it and to make sure it works on most webservers.
 
-If you're looking for more varied results that are not laced with AI results and other non-features most people do not care for. Or if you're simply looking for traditional results from more than one search engine, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** ads or sponsored results, **no** distractions, **no** trackers, **no** cookies and **no** bloated libraries, frameworks, dependencies or other things that slow you down. 
+If you're looking for more varied results that are not laced with AI results and other non-features most people do not care for. Or if you're simply looking for traditional results from more than one search engine, Goosle has your back! Goosle searches on several search engine at the same time and shows you the most relevant results through a neat, clean interface. Goosle has **no** ads or sponsored results, **no** distractions, **no** trackers, **no** cookies and **no** bloated libraries, frameworks, dependencies or other things that slow you down.
 
 Goosle does Image and News search. Collecting information from various sources and also shown in a simple easy to use manner.
 
@@ -19,7 +19,7 @@ After-all, finding things should be easy and not turn into a chore.
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
 - Search results from DuckDuckGo, Google, Qwant, Brave, Wikipedia
-- Image search through Yahoo! Images, Qwant and Openverse
+- Image search through Yahoo! Images, Qwant, Pixabay and Openverse
 - Recent news via Qwant news, Yahoo! News, Brave and Hackernews
 - Search for magnet links on popular Torrent sites
 - Algorithm for ranking search results for relevancy
@@ -72,18 +72,20 @@ Developed on Apache with PHP8.2.
 4. Load Goosle in your browser. If you've enabled the access hash don't forget to add *?a=YOUR_HASH* to the url.
 5. Enjoy your updated search experience!
 
+Take a look at the [changelog](changelog.md) for every update here. \
+
 ## Setting up a Cronjob / background task
 For a number of background tasks like clearing up the file cache and/or renewing your Openverse access token you need to set up a cronjob. \
 Execute this cronjob a couple of times per day, recommended is every 8 hours.
 
-Without it, Openverse access will expire and you have to generate a new key every few hours.
+Without it, Openverse access will expire and you have to generate a new key every few hours. \
 For low traffic setups or if you do not use Openverse a longer interval of once a day is fine.
 
-The access hash is always required as an access token, don't forget to include ?a=YOUR_HASH to the url.
-Cron jobs are commonly set up from your hosting dashboard, or through something like DirectAdmin, cPanel or WHM.
+The access hash is always required as an access token, don't forget to include ?a=YOUR_HASH to the url. \
+Cron jobs are commonly set up from your hosting dashboard, or through something like DirectAdmin, cPanel or WHM. \
 Ask your hosting provider where to find the Cron job scheduler or have them set it up for you if you don't see it.
 
-You can also use something like [cron-job.org](https://cron-job.org/) to trigger the background task remotely.
+You can also use something like [cron-job.org](https://cron-job.org/) to trigger the background task remotely. \
 To test, you can also load the url in your browser and trigger the script that way. Look for the onscreen prompts to see what routines are executed.
 
 ### Usage examples
@@ -99,29 +101,44 @@ Example for every midnight \
 Why a few minutes past the hour? Because most people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes later spreads server load.
 
 ## Authorizing access to the Openverse search API
-This is required to use Openverse Image Search.
-In your browser navigate to your goosle setup and add /functions/oauth.php to the url (ex. example.com/functions/oauth.php or example.com/functions/oauth.php?a=YOUR_HASH). \
-Follow the onscreen prompts to get an authorization token to use Openverse.
+OpenVerse image search provides (mostly) royalty free images. \
+Millions of high quality photos from photographers from all over the world. \
+If you're into high quality photo backgrounds, need images for blogs and articles or just like to look at high-res anything, then Openverse is a useful engine to use.
 
-At the end, please save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file that Goosle creates get lost you'll need these values to continue using Openverse.
+To use Openverse Image Search you'll need to register Goosle for an oAUTH access token.
+
+Goosle includes a oAuth routine to easily register for an access token. \
+- In your browser navigate to your goosle setup and add /functions/oauth-openverse.php to the url (ex. example.com/functions/oauth-openverse.php or example.com/functions/oauth-openverse.php?a=YOUR_HASH).
+- Follow the onscreen prompts to get an authorization token to use Openverse.
+- When prompted save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file that Goosle creates get lost you'll need these strings to continue using Openverse.
+- An email from Openverse will arrive within a few minutes with a confirmation link to finalize the set up.
+- Once activated, enable openverse in your config.php and you're all set!
 
 This procedure generates an access token which is stored in /cache/token.data, this token expires every 12 hours. Yeah, annoying! \
 To automatically renew the token you can set up the Goosle cronjob as described elsewhere in this readme.
 
-### Notes
+## API access to the Pixabay search API
+Pixabay is a high quality photo and illustration database with (generally) royalty-free images. \
+Pixabay has a database of hundreds of thousands of images provided by Photographers from all over the world. \
+If you're a content creator who regularly need images for blogs and articles or just like to look at high-res photography, Pixabay is for you.
+
+To get image results from Pixabay you'll need a free account to get a free API key. \
+Register an account here: [https://pixabay.com](https://pixabay.com) (Click the Join button in the top right)
+
+Once registered and logged in, you can find your API key in the Documentation here: [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/), look for the first parameter specification (looks like a list), the Key will be highlighted in green at the top of it. Copy this key to your config.php into the pixabay_api_key option.
+
+## Support
+You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or through my [website](https://www.arnan.me).
+
+## Notes
 - When using file caching you should set up a cronjob to execute goosle-cron.php every few hours. This deletes 'old' results.
-- When you use Openverse for your image searches you should set up a cron job to execute goosle-cron.php every 11 hours or less. This will automagically renew the access token.
+- When you use Openverse for your image searches you should set up a cron job to execute goosle-cron.php every 11 hours or so. This will automagically renew the access token.
 - If you want update notifications in the footer of Goosle set up the cron job so Goosle can ping Github weekly to see what's new.
 - The .htaccess file has a redirect to force HTTPS, catch 404 errors with a redirect as well as browser caching rules ready to go.
 - The robots.txt has a rule to tell all crawlers to not crawl Goosle. But keep in mind that not every crawler obeys this file.
 - The access hash is NOT meant as a super secure measure and only works for surface level prying eyes.
+- Results provided by Openverse and Pixabay are simplistic keyword matches which are not necessarily accurately sorted by relevancy.
 
-Have fun finding things! And tell your friends!
-
-## Support
-Goosle comes with limited support. \
-You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or [Telegram](https://t.me/arnandegans).
-
-### Known "issues"
+## Known "issues"
 - Duckduckgo sometimes returns a 202 header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.

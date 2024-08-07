@@ -6,12 +6,12 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
 // Current Goosle version
-$current_version = '1.6.1';
+$current_version = '1.7';
 
 /*--------------------------------------
 // Verify the hash, or not, and let people in, or not
@@ -36,18 +36,25 @@ function load_opts() {
 		die();
 	} else {
 		$opts = require $config_file;
-		
-		// From the url/request	
+
+		// From the url/request
 		$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : '';
 		$opts->pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 		// Force a few defaults and safeguards
 		if($opts->cache_type == 'file' && !is_dir(ABSPATH.'cache/')) $opts->cache_type = 'off';
 		if($opts->cache_type == 'apcu' && !function_exists('apcu_exists')) $opts->cache_type = 'off';
+		if($opts->cache_type == 'apcu' && !function_exists('apcu_exists')) $opts->cache_type = 'off';
 		if($opts->cache_time < 1 || ($opts->cache_type == 'apcu' && $opts->cache_time > 8) || ($opts->cache_type == 'file' && $opts->cache_time > 48)) $opts->cache_time = 8;
 		if(!is_numeric($opts->search_results_per_page) || ($opts->search_results_per_page < 8 || $opts->search_results_per_page > 160)) $opts->social_media_relevance = 24;
 		if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
-		
+
+		// Disable the search type if no engines available
+		if($opts->web['duckduckgo'] == 'off' && $opts->web['mojeek'] == 'off' && $opts->web['qwant'] == 'off' && $opts->web['google'] == 'off' && $opts->web['brave'] == 'off' && $opts->web['wikipedia'] == 'off') $opts->enable_web_search = 'off';
+		if($opts->image['yahooimages'] == 'off' && $opts->image['qwantimages'] == 'off' && $opts->image['pixabay'] == 'off' && $opts->image['openverse'] == 'off') $opts->enable_image_search = 'off';
+		if($opts->news['qwantnews'] == 'off' && $opts->news['yahoonews'] == 'off' && $opts->news['bravenews'] == 'off' && $opts->news['hackernews'] == 'off') $opts->enable_news_search = 'off';
+		if($opts->magnet['limetorrents'] == 'off' && $opts->magnet['piratebay'] == 'off' && $opts->magnet['nyaa'] == 'off' && $opts->magnet['sukebei'] == 'off' && $opts->magnet['yta'] == 'off' && $opts->magnet['eztv'] == 'off') $opts->enable_magnet_search = 'off';
+
 		return $opts;
 	}
 }
@@ -58,7 +65,7 @@ function load_opts() {
 function load_search() {
 	$search = new stdClass();
 
-	// From the url/request	
+	// From the url/request
 	if(!isset($_REQUEST['s'])) {
 		// Regular search
 		$search->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : '';
@@ -84,10 +91,9 @@ function load_search() {
 
 	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
 	if(substr($search->query, 0, 1) == '!') $search->query = substr($search->query, 1);
-	
 	// Preserve quotes
 	$search->query = str_replace('%22', '\"', $search->query);
-	
+
 	// Special searches and filters
     $search->query_terms = explode(' ', strtolower($search->query)); // Break up query
 	$search->count_terms = count($search->query_terms); // How many keywords?
@@ -99,15 +105,44 @@ function load_search() {
 		$search->safe = 2;
 		$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
 	}
-	
-	if($search->query_terms[0] == 'safe:off' || $search->query_terms[0] == 'xxx' || $search->query_terms[0] == 'porn') {
+
+	if($search->query_terms[0] == 'safe:off' || $search->query_terms[0] == 'nsfw') {
 		$search->safe = 0;
 		$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
 	}
 
+	// Size search override (For image search only)
+	// 0 = all, 1 = small, 2 = medium, 3 = large, 4 extra large
+	$search->size = 0;
+	if($search->type == 1) {
+		if($search->query_terms[0] == 'size:small') {
+			$search->size = 1;
+			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+		}
+
+		if($search->query_terms[0] == 'size:medium') {
+			$search->size = 2;
+			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+		}
+
+		if($search->query_terms[0] == 'size:large') {
+			$search->size = 3;
+			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+		}
+
+		if($search->query_terms[0] == 'size:xlarge') {
+			$search->size = 4;
+			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+		}
+	}
+
+	// Create a 'human-readable' and Urlencoded query
+	$search->nice_query = $search->query;
+	$search->query = urlencode($search->query);
+
 	// Maybe count stats?
 	if(!empty($search->query)) count_stats();
-		
+
 	return $search;
 }
 
@@ -116,7 +151,7 @@ function load_search() {
 --------------------------------------*/
 function load_stats() {
 	$stats_file = ABSPATH.'cache/stats.data';
-	
+
 	if(!is_file($stats_file)) {
 		// Create stats file if it doesn't exist
 	    $stats = array('started' => mktime(0, 0, 0, date('m'), date('d'), date('Y')), 'days_active' => 0, 'all_queries' => 0, 'avg_per_day' => 0);
@@ -125,7 +160,7 @@ function load_stats() {
 		// Get stats
 		$stats = unserialize(file_get_contents($stats_file));
 	}
-	
+
 	return $stats;
 }
 
@@ -152,13 +187,13 @@ function count_stats() {
 --------------------------------------*/
 function show_update_notification() {
 	global $current_version;
-	
+
 	$version_file = ABSPATH.'cache/version.data';
-	
+
 	if(is_file($version_file)) {
 		// Get version information
 		$version = unserialize(file_get_contents($version_file));
-	
+
 		// Check if a newer version is available and add it to the version display
 		if(version_compare($current_version, $version['latest'], '<')) {
 			return "<a href=\"".$version['url']."\" target=\"_blank\" class=\"update\">Version ".$version['latest']." is available!</a>";
@@ -174,7 +209,7 @@ function show_update_notification() {
 --------------------------------------*/
 function do_curl_request($url, $headers, $method, $post_fields) {
 	$ch = curl_init();
-	
+
 	curl_setopt($ch, CURLOPT_URL, $url);
 	if($method == 'post' && !empty($post_fields)) {
 		curl_setopt($ch, CURLOPT_POST, 1);
@@ -192,10 +227,10 @@ function do_curl_request($url, $headers, $method, $post_fields) {
 	curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
 	curl_setopt($ch, CURLOPT_TIMEOUT, 3);
 	curl_setopt($ch, CURLOPT_VERBOSE, false);
-	
+
 	$response = curl_exec($ch);
 	curl_close($ch);
-	
+
 	return $response;
 }
 
@@ -205,11 +240,11 @@ function do_curl_request($url, $headers, $method, $post_fields) {
 --------------------------------------*/
 function get_xpath($response) {
 	if(!$response) return null;
-	
+
 	$htmlDom = new DOMDocument;
 	@$htmlDom->loadHTML($response);
 	$xpath = new DOMXPath($htmlDom);
-	
+
 	return $xpath;
 }
 
@@ -218,8 +253,8 @@ function get_xpath($response) {
 --------------------------------------*/
 function get_base_url($siteurl) {
 	// Figure out server protocol
-	$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';	
-	
+	$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';
+
 	return $protocol.'://'.$siteurl;
 }
 
@@ -296,7 +331,7 @@ function delete_cached_results($ttl) {
 				$extension = pathinfo($file, PATHINFO_EXTENSION);
 
 				// Only delete cache files (*.result)
-				if($file == '.' OR $file == '..' OR $extension != 'result') continue; 
+				if($file == '.' OR $file == '..' OR $extension != 'result') continue;
 
 				// Delete if expired
 				if(filemtime($folder.$file) < (time() - $ttl)) {
@@ -321,7 +356,7 @@ function oauth_store_token($token_file, $connect, $token) {
 		$tokens[$connect] = $token;
 	    file_put_contents($token_file, serialize($tokens));
 	}
-}		
+}
 
 /*--------------------------------------
 // Log requests
@@ -329,14 +364,14 @@ function oauth_store_token($token_file, $connect, $token) {
 function querylog($engine, $type, $request_url, $scraped_results, $final_results) {
 	$log_file = ABSPATH.'cache/querylog_'.the_date('d_m_Y').'.log';
     file_put_contents($log_file, '['.the_date('d-m-Y H:i:s').']['.$type.'] '.$engine.': '.$scraped_results.' -> '.$final_results.', '.$request_url."\n", FILE_APPEND);
-}		
+}
 
 /*--------------------------------------
 // Sanitize/format variables
 --------------------------------------*/
 function sanitize($variable) {
 	switch(gettype($variable)) {
-		case 'string': 
+		case 'string':
 			$variable = htmlspecialchars(trim($variable), ENT_QUOTES);
 		break;
 		case 'integer':
@@ -346,7 +381,7 @@ function sanitize($variable) {
 		case 'boolean':
 			$variable = ($variable === FALSE) ? 0 : 1;
 		break;
-		default: 
+		default:
 			$variable = ($variable === NULL) ? 'NULL' : htmlspecialchars(strip_tags(trim($variable)), ENT_QUOTES);
 		break;
 	}
@@ -371,71 +406,95 @@ function limit_string_length($string, $length = 200, $append = '&hellip;') {
 }
 
 /*--------------------------------------
-// Search result match counter
+// Count matching keywords between result and search query
 --------------------------------------*/
-function match_count($string, $query) {
-	if(empty($string)) return 0;
+function match_count($result_terms, $query_terms, $multiplier = 1) {
+	if(empty($result_terms)) return 0;
 
-	$string = strtolower($string);
-
-	if(filter_var($string, FILTER_VALIDATE_URL)) { 
-		$string = preg_replace('/[^a-z0-9]+/', ' ', $string);
+	if(!is_array($result_terms)) {
+		$result_terms = make_tags_from_string($result_terms);
 	}
 
-	// Replace anything but alphanumeric with a space
-	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
-
-	$matches = array_intersect(array_filter(array_unique(explode(' ', $string))), $query);
-	$matches = count($matches);
+	$matches = array_intersect($result_terms, $query_terms);
+	$matches = count($matches) * $multiplier;
 
     return $matches;
 }
 
 /*--------------------------------------
-// Detect social media results
+// Turn a string (title or something) into an array of words (tags)
 --------------------------------------*/
-function is_social_media($string) {
-	$string = strtolower($string);
-	
-	// Borrowed from https://github.com/lorey/social-media-profiles-regexs
-	if(preg_match('/(?:https?:)?\/\/(?:www\.)?(?:facebook|fb)\.com\/(?P<profile>(?![A-z]+\.php)(?!marketplace|gaming|watch|me|messages|help|search|groups)[A-z0-9_\-\.]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:www\.)facebook\.com\/(?:profile.php\?id=)?(?P<id>[0-9]+)/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/(?P<username>[A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:\.(?!\.))){0,28}(?:[A-Za-z0-9_]))?)/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?P<username>[A-z0-9_]+)\/status\/(?P<tweet_id>[0-9]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?twitter\.com\/@?(?!home|share|privacy|tos)(?P<username>[A-z0-9_]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[a-z]+\.)?reddit\.com\/(?:u(?:ser)?)\/(?P<username>[A-z0-9\-\_]*)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:www\.)?snapchat\.com\/add\/(?P<username>[A-z0-9\.\_\-]+)\/?/', $string)
-		|| preg_match('/^.*https:\/\/(?:m|www|vm)?\.?tiktok\.com\/((?:.*\b(?:(?:usr|v|embed|user|video)\/|\?shareId=|\&item_id=)(\d+))|\w+)/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/(?P<company_type>(company)|(school))\/(?P<company_permalink>[A-z0-9-À-ÿ\.]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/feed\/update\/urn:li:activity:(?P<activity_id>[0-9]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[\w]+\.)?linkedin\.com\/in\/(?P<permalink>[\w\-\_À-ÿ%]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube\.com\/(?:c(?:hannel)?)\/(?P<id>[A-z0-9-\_]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:[A-z]+\.)?youtube\.com\/(?:u(?:ser)?)\/(?P<username>[A-z0-9]+)\/?/', $string)
-		|| preg_match('/(?:https?:)?\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)(?P<id>[A-z0-9\-\_]+)/', $string)
-	) return true;
+function make_tags_from_string($string) {
+	if(empty($string)) return array();
 
-    return false;
+	$string = strtolower($string);
+
+	// Replace anything but alphanumeric with a space
+	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
+	$keywords = array_filter(array_unique(explode(' ', $string)));
+
+	// Get rid of short words and letters
+	foreach($keywords as $k => $word) {
+		if(strlen($word) < 3) unset($keywords[$k]);
+	}
+
+	// Get rid of filler words (English)
+	$filler_words = array('and', 'ago', 'but', 'for', 'get', 'gets', 'have', 'haves', 'has', 'into', 'nor', 'off', 'onto', 'the', 'with', 'yet');
+	$keywords = array_diff($keywords, $filler_words);
+
+    return $keywords;
 }
 
 /*--------------------------------------
-// Search suggestions
+// Output and format dates in local time
 --------------------------------------*/
-function search_suggestion($search, $opts, $results) {
-	$specific_result = $specific_result2 = '';
+function the_date($format, $timestamp = null) {
+	global $opts;
 
-	if(($search->type == 0 || $search->type == 1) && count($results['search_specific']) > 1) {
-		// Format query url
-		$search_specific_url2 = "./results.php?q=".urlencode($results['search_specific'][1])."&t=".$search->type."&a=".$opts->hash;
-		$specific_result2 = " or <a href=\"".$search_specific_url2."\">".$results['search_specific'][1]."</a>";
-	}
+	$offset = preg_replace('/UTC\+?/i', '', $opts->timezone);
+	if(empty($offset)) $offset = 0;
 
-	// Format query url			
-	$search_specific_url = "./results.php?q=".urlencode($results['search_specific'][0])."&t=".$search->type."&a=".$opts->hash;
-	$specific_result = "Or instead search for <a href=\"".$search_specific_url."\">".$results['search_specific'][0]."</a>".$specific_result2.".";
+	if(is_null($timestamp) || !is_numeric($timestamp)) $timestamp = time();
 
-	unset($search_specific_url, $search_specific_url2, $specific_result2);
+	$hours = (int) $offset;
+	$minutes = ($offset - $hours);
 
-	return $specific_result;
+	$sign = ($offset < 0) ? '-' : '+';
+	$abs_hour = abs($hours);
+	$abs_mins = abs($minutes * 60);
+
+	$datetime = date_create('@'.$timestamp);
+	$datetime->setTimezone(new DateTimeZone(sprintf('%s%02d:%02d', $sign, $abs_hour, $abs_mins)));
+
+	return $datetime->format($format);
+}
+
+/*--------------------------------------
+// Detect social media results
+--------------------------------------*/
+function detect_social_media($string) {
+	$string = strtolower($string);
+
+	// (Some) Based on regexes from https://github.com/lorey/social-media-profiles-regexs
+	$social_media = array(
+		'/(?:facebook|fb)\.com\/([A-z0-9_\-\.]+)\/?/',
+		'/(?:instagram\.com|instagr\.am)\/([A-Za-z0-9_])/',
+		'/twitter\.com\/@?([A-z0-9_]+)(\/status\/[0-9]+)?\/?/',
+		'/x\.com\/@?([A-z0-9_]+)(\/status\/[0-9]+)?\/?/',
+		'/reddit\.com\/(u|r)?(ser)?\/([A-z0-9\-\_]*)\/?/',
+		'/snapchat\.com\/add\/([A-z0-9\.\_\-]+)\/?/',
+		'/tiktok\.com\/((?:.*\b(?:(?:usr|v|embed|user|video)\/|\?shareId=|\&item_id=)(\d+))|\w+)/',
+		'/linkedin\.com\/(company|school)\/([A-z0-9-À-ÿ\.]+)\/?/',
+		'/linkedin\.com\/feed\/update\/urn:li:activity:([0-9]+)\/?/',
+		'/linkedin\.com\/in\/([\w\-\_À-ÿ%]+)\/?/',
+		'/youtube\.com\/c?(hannel)?\/([A-z0-9-\_]+)\/?/',
+		'/youtube\.com\/u?(ser)?\/([A-z0-9]+)\/?/',
+		'/youtube\.com\/(watch\?v=|embed\/|youtu\.be\/)([A-z0-9\-\_]+)/'
+	);
+
+	preg_replace($social_media, '*', $string, -1 , $count);
+
+    return ($count > 0) ? true : false;
 }
 
 /*--------------------------------------
@@ -450,7 +509,7 @@ function search_sources($results) {
 
 	$sources = replace_last_comma(implode(', ', $sources));
 	$sources = 'Includes '.$sources.'.';
-    
+
     return $sources;
 }
 
@@ -467,7 +526,7 @@ function search_formatted_url($url) {
 	if(array_key_exists('query', $url)) {
 		$formatted_url .= ' &rsaquo; '.urldecode(str_replace('&', ' &rsaquo; ', str_replace('=', ':', str_replace('%20', ' ', trim($url['query'])))));
 	}
-	
+
 	return $formatted_url;
 }
 
@@ -478,22 +537,22 @@ function search_pagination($search, $opts, $number_of_results) {
 	$number_of_pages = ceil($number_of_results / $opts->search_results_per_page);
 
 	$pagination = "";
-	
+
 	if($search->page > 1) {
 		$prev = $search->page - 1;
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".urlencode($search->query)."&t=".$search->type."&a=".$opts->hash."&p=".$prev."\" title=\"Previous page\"><span class=\"arrow-left\"></span></a> ";  
+		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$prev."\" title=\"Previous page\"><span class=\"arrow-left\"></span></a> ";
 	}
 
 	for($page = 1; $page <= $number_of_pages; $page++) {
 		$class = ($search->page == $page) ? "current" : "";
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".urlencode($search->query)."&t=".$search->type."&a=".$opts->hash."&p=".$page."\" class=\"".$class."\" title=\"To page ".$page."\">".$page."</a> ";  
+		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$page."\" class=\"".$class."\" title=\"To page ".$page."\">".$page."</a> ";
 	}
 
 	if($search->page < $number_of_pages) {
 		$next = $search->page + 1;
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".urlencode($search->query)."&t=".$search->type."&a=".$opts->hash."&p=".$next."\" title=\"Next page\"><span class=\"arrow-right\"></span></a> ";
+		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$next."\" title=\"Next page\"><span class=\"arrow-right\"></span></a> ";
 	}
-    
+
     return $pagination;
 }
 
@@ -517,31 +576,6 @@ function human_filesize($bytes, $dec = 2) {
     $factor = floor((strlen($bytes) - 1) / 3);
 
     return sprintf("%.{$dec}f ", $bytes / pow(1024, $factor)) . @$size[$factor];
-}
-
-
-/*--------------------------------------
-// Output and format dates in local time
---------------------------------------*/
-function the_date($format, $timestamp = null) {
-	global $opts;
-
-	$offset = preg_replace('/UTC\+?/i', '', $opts->timezone);
-	if(empty($offset)) $offset = 0;
-
-	if(is_null($timestamp) || !is_numeric($timestamp)) $timestamp = time();
-
-	$hours = (int) $offset;
-	$minutes = ($offset - $hours);
-
-	$sign = ($offset < 0) ? '-' : '+';
-	$abs_hour = abs($hours);
-	$abs_mins = abs($minutes * 60);
-
-	$datetime = date_create('@'.$timestamp);
-	$datetime->setTimezone(new DateTimeZone(sprintf('%s%02d:%02d', $sign, $abs_hour, $abs_mins)));
-	
-	return $datetime->format($format);
 }
 
 /*--------------------------------------
@@ -572,7 +606,7 @@ function filesize_to_bytes($num) {
 	} else {
 		$num = $num;
 	}
-	
+
 	return intval($num);
 }
 

@@ -6,40 +6,46 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class Search extends EngineRequest {
 	protected $requests, $special_request;
-	
+
 	public function __construct($search, $opts, $mh) {
 		$this->requests = array();
-		
-		if($opts->enable_duckduckgo == 'on') {
-			require ABSPATH.'engines/search/duckduckgo.php';
-			$this->requests[] = new DuckDuckGoRequest($search, $opts, $mh);	
-		}
 
-		if($opts->enable_google == 'on') {
-			require ABSPATH.'engines/search/google.php';
-			$this->requests[] = new GoogleRequest($search, $opts, $mh);
-		}
+		if($opts->enable_web_search == 'on') {
+			if($opts->web['duckduckgo'] == 'on') {
+				require ABSPATH.'engines/search/duckduckgo.php';
+				$this->requests[] = new DuckDuckGoRequest($search, $opts, $mh);
+			}
 
-		if($opts->enable_qwant == 'on') {
-			require ABSPATH.'engines/search/qwant.php';
-			$this->requests[] = new QwantRequest($search, $opts, $mh);
-		}
-		
-		if($opts->enable_brave == 'on') {
-			require ABSPATH.'engines/search/brave.php';
-			$this->requests[] = new BraveRequest($search, $opts, $mh);
-		}
+			if($opts->web['mojeek'] == 'on') {
+				require ABSPATH.'engines/search/mojeek.php';
+				$this->requests[] = new MojeekRequest($search, $opts, $mh);
+			}
 
-		if($opts->enable_wikipedia == 'on') {
-			require ABSPATH.'engines/search/wikipedia.php';
-			$this->requests[] = new WikiRequest($search, $opts, $mh);
+			if($opts->web['google'] == 'on') {
+				require ABSPATH.'engines/search/google.php';
+				$this->requests[] = new GoogleRequest($search, $opts, $mh);
+			}
+
+			if($opts->web['qwant'] == 'on') {
+				require ABSPATH.'engines/search/qwant.php';
+				$this->requests[] = new QwantRequest($search, $opts, $mh);
+			}
+
+			if($opts->web['brave'] == 'on') {
+				require ABSPATH.'engines/search/brave.php';
+				$this->requests[] = new BraveRequest($search, $opts, $mh);
+			}
+
+			if($opts->web['wikipedia'] == 'on') {
+				require ABSPATH.'engines/search/wikipedia.php';
+				$this->requests[] = new WikiRequest($search, $opts, $mh);
+			}
 		}
-		
 		/* --- SPECIAL SEARCHES --- */
 
 		// Currency converter
@@ -49,7 +55,7 @@ class Search extends EngineRequest {
 		        $this->special_request = new CurrencyRequest($search, $opts, $mh);
 		    }
 		}
-		
+
 		// Dictionary
 		if($opts->special['definition'] == 'on') {
 			if($search->count_terms == 2 && ($search->query_terms[0] == 'def' || $search->query_terms[0] == 'define' || $search->query_terms[0] == 'meaning')) {
@@ -57,7 +63,7 @@ class Search extends EngineRequest {
 				$this->special_request = new DefinitionRequest($search, $opts, $mh);
 			}
 		}
-	
+
 		// IP Lookup
 		if($opts->special['ipaddress'] == 'on') {
 			if($search->count_terms == 1 && ($search->query_terms[0] == 'ip' || $search->query_terms[0] == 'myip' || $search->query_terms[0] == 'ipaddress')) {
@@ -65,7 +71,7 @@ class Search extends EngineRequest {
 				$this->special_request = new ipRequest($search, $opts, $mh);
 			}
 		}
-		
+
 		// php.net search
 		if($opts->special['phpnet'] == 'on') {
 			if($search->count_terms == 2 && $search->query_terms[0] == 'php') {
@@ -73,7 +79,7 @@ class Search extends EngineRequest {
 				$this->special_request = new PHPnetRequest($search, $opts, $mh);
 			}
 		}
-		
+
 		// wordpress.org search
 		if($opts->special['wordpress'] == 'on') {
 			if(($search->count_terms == 2 && ($search->query_terms[0] == 'wordpress' || $search->query_terms[0] == 'wp')) || ($search->count_terms == 3 && ($search->query_terms[0] == 'wordpress' || $search->query_terms[0] == 'wp') && $search->query_terms[1] == 'hook')) {
@@ -90,17 +96,17 @@ class Search extends EngineRequest {
 	        foreach($this->requests as $request) {
 				if($request->request_successful()) {
 					$engine_result = $request->get_results();
-	
+
 					if(!empty($engine_result)) {
 						if(isset($engine_result['did_you_mean'])) {
 							$goosle_results['did_you_mean'] = $engine_result['did_you_mean'];
 						}
-						
+
 						if(isset($engine_result['search_specific'])) {
 							$goosle_results['search_specific'][] = $engine_result['search_specific'];
 						}
-	
-						if(isset($engine_result['search'])) {	
+
+						if(isset($engine_result['search'])) {
 							$how_many_results = 0;
 
 							// Merge duplicates and apply relevance scoring
@@ -111,11 +117,11 @@ class Search extends EngineRequest {
 								} else {
 									$found_id = false;
 								}
-	
+
 								$how_many_results++;
-								$social_media_multiplier = (is_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
-								$goosle_rank = floor($result['engine_rank'] * floatval($social_media_multiplier));
-		
+								$social_media_multiplier = (detect_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
+								$goosle_rank = floor($result['engine_rank'] * $social_media_multiplier);
+
 								if($found_id !== false) {
 									// Duplicate result from another engine
 									$goosle_results['search'][$found_id]['goosle_rank'] += $goosle_rank;
@@ -123,18 +129,18 @@ class Search extends EngineRequest {
 								} else {
 									// First find, rank and add to results
 									$match_rank = match_count($result['title'], $request->search->query_terms);
-									$match_rank += match_count($result['description'], $request->search->query_terms);
-									$match_rank += match_count($result['url'], $request->search->query_terms);
+									$match_rank += match_count($result['description'], $request->search->query_terms, 2);;
+									$match_rank += match_count($result['url'], $request->search->query_terms, 0.5);
 
 									$result['goosle_rank'] = $goosle_rank + $match_rank;
 									$result['combo_source'][] = $engine_result['source'];
 									$result['id'] = md5($result['url']);
-	
+
 									// Add result to final results
 									$goosle_results['search'][$result['id']] = $result;
 								}
-	
-								unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank, $query_terms);
+
+								unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 							}
 
 							// Count results per source
@@ -147,26 +153,26 @@ class Search extends EngineRequest {
 					$request_result = curl_getinfo($request->ch);
 					$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : '';
 					$github_issue_url = "https://github.com/adegans/Goosle/discussions/new?category=general&".http_build_query(array('title' => get_class($request).' failed with error '.$request_result['http_code'], 'body' => "```\nEngine: ".get_class($request)."\nError Code: ".$request_result['http_code']."\nRequest url: ".$request_result['url']."\n```", 'labels' => 'request-error'));
-	
+
 		            $goosle_results['error'][] = array(
 		                'message' => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."<br /><strong>Need help?</strong> Find <a href=\"https://github.com/adegans/Goosle/discussions\" target=\"_blank\">similar issues</a>, or <a href=\"".$github_issue_url."\" target=\"_blank\">ask your own question</a>."
 		            );
 				}
-				
+
 				unset($request);
 	        }
 
 			// Check for Special result
 	        if($this->special_request) {
 	            $special_result = $this->special_request->get_results();
-	
+
 	            if($special_result) {
 					$goosle_results['special'] = $special_result;
 	            }
-	
+
 				unset($special_result);
 	        }
-	
+
 			if(array_key_exists('search', $goosle_results)) {
 				// Re-order results based on rank
 				$keys = array_column($goosle_results['search'], 'goosle_rank');
@@ -179,7 +185,7 @@ class Search extends EngineRequest {
 			} else {
 				// Add error if there are no search results
 	            $goosle_results['error'][] = array(
-	                'message' => "No results found. Please try with more specific or different keywords!" 
+	                'message' => "No results found. Please try with more specific or different keywords!"
 	            );
 			}
 		} else {
@@ -188,7 +194,7 @@ class Search extends EngineRequest {
 			);
 		}
 
-        return $goosle_results; 
+        return $goosle_results;
     }
 
     public static function print_results($goosle_results, $search, $opts) {
@@ -222,16 +228,6 @@ echo "</pre>";
 			}
 			echo "</li>";
 
-			// Search suggestions
-			if(array_key_exists('did_you_mean', $goosle_results)) {
-				echo "<li class=\"meta\">";
-				echo "	<p class=\"didyoumean\">Did you mean <a href=\"./results.php?q=".urlencode($goosle_results['did_you_mean'])."&t=".$search->type."&a=".$opts->hash."\">".$goosle_results['did_you_mean']."</a>?</p>";
-				if(array_key_exists('search_specific', $goosle_results)) {
-					echo "	<p class=\"suggestion\">".search_suggestion($search, $opts, $goosle_results)."</p>";
-				}
-				echo "</li>";
-			}
-
 			// Special result
 			if(array_key_exists('special', $goosle_results)) {
 				echo "<li class=\"result-special web\">";
@@ -258,7 +254,6 @@ echo "</pre>";
 				echo "		<p>".$result['description']."</p>";
 				if($opts->enable_magnet_search == 'on' && $opts->imdb_id_search == 'on') {
 					if(stristr($result['url'], 'imdb.com') !== false && preg_match_all('/(?:tt[0-9]+)/i', $result['url'], $imdb_result)) {
-//						echo "		<p><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\" title=\"Search for Magnet links\">Magnet links</a>?</strong></p>";
 						echo "		<p><strong>Goosle detected an IMDb ID for this result, search for <a href=\"./results.php?q=".$imdb_result[0][0]."&a=".$opts->hash."&t=9\" title=\"Search for Magnet links\">Magnet links</a>?</strong> <a onclick=\"openpopup('info-magnetresult')\" title=\"Click for more information\"><span class=\"tooltip-question\"></span></a></p>";
 					}
 				}

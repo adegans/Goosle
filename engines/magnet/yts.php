@@ -6,13 +6,13 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class YTSRequest extends EngineRequest {
 	public function get_request_url() {
  		$url = 'https://yts.mx/api/v2/list_movies.json?query_term='.urlencode($this->search->query);
-        
+
         return $url;
 	}
 
@@ -30,7 +30,7 @@ class YTSRequest extends EngineRequest {
 	public function parse_results($response) {
 		$engine_temp = $engine_result = array();
 		$json_response = json_decode($response, true);
-		
+
 		// No response
 		if(empty($json_response)) {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
@@ -39,7 +39,7 @@ class YTSRequest extends EngineRequest {
 
 		// No results
         if($json_response['data']['movie_count'] == 0) {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
@@ -55,12 +55,12 @@ class YTSRequest extends EngineRequest {
 			$timestamp = (!empty($result['date_uploaded_unix'])) ? sanitize($result['date_uploaded_unix']) : null;
 			$language = (!empty($result['language'])) ? sanitize($result['language']) : null;
 			$url = (!empty($result['url'])) ? sanitize($result['url']) : null;
-			
+
 			// Process extra data
 			if(is_array($category)) {
 				// Block these categories
 				if(count(array_uintersect($category, $this->opts->yts_categories_blocked, 'strcasecmp')) > 0) continue;
-				
+
 				// Set actual category
 				$category = sanitize(implode(', ', $category));
 			}
@@ -71,11 +71,11 @@ class YTSRequest extends EngineRequest {
 				$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
 				$seeders = sanitize($download['seeds']);
 				$leechers = sanitize($download['peers']);
-				$filesize = human_filesize(filesize_to_bytes(sanitize($download['size'])));
-				
+				$filesize = filesize_to_bytes(sanitize($download['size']));
+
 				// Ignore results with 0 seeders?
 				if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
-				
+
 				// Find extra data
 				$quality = (!empty($download['quality'])) ? sanitize(strtolower($download['quality'])) : null;
 				$codec = (!empty($download['video_codec'])) ? sanitize(strtolower($download['video_codec'])) : null;
@@ -96,6 +96,7 @@ class YTSRequest extends EngineRequest {
 					'leechers' => $leechers, // int
 					'filesize' => $filesize, // int
 					// Optional
+					'verified_uploader' => 'yes', // string|null
 					'nsfw' => false, // bool
 					'quality' => $quality, // string|null
 					'type' => $type, // string|null

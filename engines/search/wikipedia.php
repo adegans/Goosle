@@ -17,7 +17,7 @@ class WikiRequest extends EngineRequest {
         	'action' => 'query', // Search type (via a query?)
         	'list' => 'search', // Full text search
         	'format' => 'json', // Return format (Must be json)
-        	'srlimit' => 10 // How many search results to get, ideally as few as possible since it's just static wiki pages (max 500)
+        	'srlimit' => 5 // How many search results to get, ideally as few as possible since it's just static wiki pages (max 500)
         ));
 
         return $url;

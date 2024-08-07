@@ -9,31 +9,53 @@
 *  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
-class QwantImageRequest extends EngineRequest {
+class PixabayRequest extends EngineRequest {
 	public function get_request_url() {
 		$query = $this->search->query;
 
+		// Max 100 chars
+		$query = (strlen($query) > 100) ? substr($query, 0, 100) : $query;
+		$query = implode(',', make_tags_from_string($query));
+
+ 		// Safe search override
+		if($this->search->safe == 0) {
+			$safe = true;
+		} else {
+			$safe = false;
+		}
+
 		// Size override
-		$size = 'all';
-		if($this->search->size == 1) $size = 'small';
-		if($this->search->size == 2) $size = 'medium';
-		if($this->search->size >= 3) $size = 'large';
+		$min_width = 1280;
+		$min_height = 720;
+		if($this->search->size == 1) {
+			$min_width = 640;
+			$min_height = 360;
+		}
+		if($this->search->size == 2) {
+			$min_width = 1280;
+			$min_height = 720;
+		}
+		if($this->search->size == 3) {
+			$min_width = 1600;
+			$min_height = 900;
+		}
+		if($this->search->size == 4) {
+			$min_width = 2560;
+			$min_height = 1440;
+		}
 
-		// Set locale
-		$language = (strlen($this->opts->qwant_language) > 0 && strlen($this->opts->qwant_language < 6)) ? $this->opts->qwant_language : 'en_gb';
-
-		// Based on https://github.com/locness3/qwant-api-docs and variables from qwant website
-        $url = 'https://api.qwant.com/v3/search/images?'.http_build_query(array(
+		// All parameters and values: https://pixabay.com/api/docs/
+        $url = 'https://pixabay.com/api/?'.http_build_query(array(
+        	'key' => $this->opts->pixabay_api_key, // Api Key for authentification
         	'q' => $query, // Search query
-        	't' => 'images', // Type of search, Images
-        	'count' => 150, // Up-to how many images to return (Max 150)
-        	'size' => $size, // General image size
-        	'locale' => $language, // In which language should the search be done
-        	'device' => 'desktop', // What kind of device are we searching from?
-        	'safesearch' => $this->search->safe // Safe search filter (0 = off, 1 = normal, 2 = strict)
+        	'image_type' => 'photo', // Only photos
+        	'per_page' => 100, // How many results to get (Max 200)
+        	'min_width' => $min_width, // Minimum width
+        	'min_height' => $min_height, // Minimum height
+        	'safesearch' => $safe // Safe search (1 = ON, 0 = OFF)
         ));
 
-        unset($query, $size, $language);
+        unset($query, $safe, $min_height, $min_width);
 
         return $url;
 	}
@@ -41,6 +63,7 @@ class QwantImageRequest extends EngineRequest {
     public function get_request_headers() {
 		return array(
 			'Accept' => 'application/json, */*;q=0.8',
+			'Content-type' => 'application/x-www-form-urlencoded',
 			'Accept-Language' => null,
 			'Accept-Encoding' => null,
 			'Sec-Fetch-Dest' => null,
@@ -60,7 +83,7 @@ class QwantImageRequest extends EngineRequest {
 		}
 
 		// Figure out results and base rank
-		$number_of_results = $rank = $json_response['data']['result']['total'];
+		$number_of_results = $rank = count($json_response['hits']);
 
 		// No results
         if($number_of_results == 0) {
@@ -68,13 +91,15 @@ class QwantImageRequest extends EngineRequest {
 			return $engine_result;
 		}
 
-		foreach($json_response['data']['result']['items'] as $result) {
+		// Use API result
+		foreach($json_response['hits'] as $result) {
 			// Find data and process data
-			$image_thumb = (!empty($result['thumbnail'])) ? sanitize($result['thumbnail']) : null;
-			$image_full = (!empty($result['media'])) ? sanitize($result['media']) : null;
-			$url = (!empty($result['url'])) ? sanitize($result['url']) : null;
-			$alt = (!empty($result['title'])) ? sanitize($result['title']) : null;
-			$tags = (!empty($alt)) ? make_tags_from_string($alt) : array();
+			$image_thumb = (!empty($result['previewURL'])) ? sanitize($result['previewURL']) : null;
+			$image_full = (!empty($result['largeImageURL'])) ? sanitize($result['largeImageURL']) : null;
+			$url = (!empty($result['pageURL'])) ? sanitize($result['pageURL']) : null;
+			$alt = (!empty($image_thumb)) ? substr(strrchr($image_thumb, "/"), 1) : null;
+			$creator = (!empty($result['user'])) ? " by ".sanitize($result['user']) : null;
+			$tags = (!empty($result['tags'])) ? explode(', ', $result['tags']) : make_tags_from_string($alt);
 
 			// Skip broken results
 			if(empty($image_thumb)) continue;
@@ -82,10 +107,11 @@ class QwantImageRequest extends EngineRequest {
 			if(empty($url)) continue;
 
 			// Optional
-			$dimensions_w = (!empty($result['width'])) ? sanitize($result['width']) : null;
-			$dimensions_h = (!empty($result['height'])) ? sanitize($result['height']) : null;
+			$dimensions_w = (!empty($result['imageWidth'])) ? sanitize($result['imageWidth']) : null;
+			$dimensions_h = (!empty($result['imageHeight'])) ? sanitize($result['imageHeight']) : null;
 
 			// Process data
+			if(!is_null($creator)) $alt = $alt.$creator;
 			$tags = array_unique($tags);
 
 			// Skip duplicate IMAGE urls/results
@@ -110,7 +136,7 @@ class QwantImageRequest extends EngineRequest {
 
 		// Base info
 		if(!empty($engine_temp)) {
-			$engine_result['source'] = 'Qwant';
+			$engine_result['source'] = 'Pixabay';
 			$engine_result['search'] = $engine_temp;
 		}
 

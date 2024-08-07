@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class LimeRequest extends EngineRequest {
@@ -15,12 +15,12 @@ class LimeRequest extends EngineRequest {
 		$query = strtolower(str_replace(' ', '-', $query));
 
 		$url = 'https://www.limetorrents.lol/search/all/'.$query.'/';
-		
+
 		unset($query);
 
 		return $url;
 	}
-	
+
     public function get_request_headers() {
 		return array(
 			'Accept' => 'text/html, application/xhtml+xml, application/xml;q=0.8, */*;q=0.7',
@@ -30,7 +30,7 @@ class LimeRequest extends EngineRequest {
 	public function parse_results($response) {
 		$engine_temp = $engine_result = array();
 		$xpath = get_xpath($response);
-		
+
 		// No response
 		if(!$xpath) {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No response', 0);
@@ -42,7 +42,7 @@ class LimeRequest extends EngineRequest {
 
 		// No results
         if(count($scrape) == 0) {
-			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);	        
+			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
 
@@ -66,19 +66,23 @@ class LimeRequest extends EngineRequest {
 			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
 			$seeders = ($seeders->length > 0) ? sanitize($seeders[0]->textContent) : 0;
 			$leechers = ($leechers->length > 0) ? sanitize($leechers[0]->textContent) : 0;
-			$filesize = ($filesize->length > 0) ? human_filesize(filesize_to_bytes(sanitize($filesize[0]->textContent))) : 0;
+			$filesize = ($filesize->length > 0) ? filesize_to_bytes(sanitize($filesize[0]->textContent)) : 0;
 
 			// Ignore results with 0 seeders?
 			if($this->opts->show_zero_seeders == 'off' AND $seeders == 0) continue;
-			
+
 			// Throw out mismatched tv-show episodes when searching for tv shows
 			if(!is_season_or_episode($this->search->query, $title)) continue;
-			
+
 			// Find extra data
+			$verified = $xpath->evaluate(".//td[@class='tdleft'][1]//div[@class='tt-vdown']//img/@title", $result);
 			$category = $xpath->evaluate(".//td[@class='tdnormal'][1]", $result);
 			$url = $xpath->evaluate(".//td[@class='tdleft']//a[2]/@href", $result);
 
 			// Process extra data
+			$verified = ($verified->length > 0) ? sanitize($verified[0]->textContent) : null;
+			if($verified == 'Verified torrent') $verified = 'yes';
+
 			if($category->length > 0) {
 				$category = explode(' - ', sanitize($category[0]->textContent));
 				$category = str_replace('in ', '', $category[array_key_last($category)]);
@@ -111,6 +115,7 @@ class LimeRequest extends EngineRequest {
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
+				'verified_uploader' => $verified, // string|null
 				'nsfw' => $nsfw, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null

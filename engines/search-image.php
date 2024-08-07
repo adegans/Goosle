@@ -6,29 +6,34 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class ImageSearch extends EngineRequest {
 	protected $requests;
-	
+
 	public function __construct($search, $opts, $mh) {
 		$this->requests = array();
-		
+
 		if($opts->enable_image_search == 'on') {
-			if($opts->enable_yahooimages == 'on') {
+			if($opts->image['yahooimages'] == 'on') {
 				require ABSPATH.'engines/image/yahoo-images.php';
-				$this->requests[] = new YahooImageRequest($search, $opts, $mh);	
+				$this->requests[] = new YahooImageRequest($search, $opts, $mh);
 			}
-	
-			if($opts->enable_openverse == 'on') {
-				require ABSPATH.'engines/image/openverse.php';
-				$this->requests[] = new OpenverseRequest($search, $opts, $mh);	
-			}
-	
-			if($opts->enable_qwantimages == 'on') {
+
+			if($opts->image['qwantimages'] == 'on') {
 				require ABSPATH.'engines/image/qwant-images.php';
-				$this->requests[] = new QwantImageRequest($search, $opts, $mh);	
+				$this->requests[] = new QwantImageRequest($search, $opts, $mh);
+			}
+
+			if($opts->image['pixabay'] == 'on') {
+				require ABSPATH.'engines/image/pixabay.php';
+				$this->requests[] = new PixabayRequest($search, $opts, $mh);
+			}
+
+			if($opts->image['openverse'] == 'on') {
+				require ABSPATH.'engines/image/openverse.php';
+				$this->requests[] = new OpenverseRequest($search, $opts, $mh);
 			}
 		}
 	}
@@ -40,21 +45,21 @@ class ImageSearch extends EngineRequest {
 	        foreach($this->requests as $request) {
 				if($request->request_successful()) {
 					$engine_result = $request->get_results();
-	
+
 					if(!empty($engine_result)) {
 						if(isset($engine_result['did_you_mean'])) {
 							$goosle_results['did_you_mean'] = $engine_result['did_you_mean'];
 						}
-						
+
 						if(isset($engine_result['search_specific'])) {
 							$goosle_results['search_specific'][] = $engine_result['search_specific'];
 						}
-	
-						if(isset($engine_result['search'])) {	
+
+						if(isset($engine_result['search'])) {
 							$how_many_results = 0;
 
 							// Merge duplicates and apply relevance scoring
-							foreach($engine_result['search'] as $result) {
+							foreach($engine_result['search'] as $key => $result) {
 								if(isset($goosle_results['search'])) {
 									$result_urls = array_column($goosle_results['search'], 'image_full', 'id');
 									$found_id = array_search($result['image_full'], $result_urls); // Return the result ID, or false if not found
@@ -63,27 +68,28 @@ class ImageSearch extends EngineRequest {
 								}
 
 								$how_many_results++;
-								$social_media_multiplier = (is_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
-								$goosle_rank = floor($result['engine_rank'] * floatval($social_media_multiplier));
-	
+								$social_media_multiplier = (detect_social_media($result['url'])) ? ($request->opts->social_media_relevance / 10) : 1;
+								$goosle_rank = floor($result['engine_rank'] * $social_media_multiplier);
+
 								if($found_id !== false) {
 									// Duplicate result from another engine
-									$goosle_results['search'][$found_id]['goosle_rank'] += $result['engine_rank'];
+									$goosle_results['search'][$found_id]['goosle_rank'] += $goosle_rank;
 									$goosle_results['search'][$found_id]['combo_source'][] = $engine_result['source'];
 								} else {
 									// First find, rank and add to results
-									$match_rank = match_count($result['url'], $request->search->query_terms);
-									$match_rank += match_count($result['alt'], $request->search->query_terms);
-	
+									$match_rank = match_count($result['tags'], $request->search->query_terms, 2);
+//									$match_rank += match_count($result['alt'], $request->search->query_terms);
+									$match_rank += match_count($result['url'], $request->search->query_terms, 0.5);
+
 									$result['goosle_rank'] = $goosle_rank + $match_rank;
 									$result['combo_source'][] = $engine_result['source'];
 									$result['id'] = md5($result['image_full']);
-	
+
 									// Add result to final results
 									$goosle_results['search'][$result['id']] = $result;
 								}
-		
-								unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank, $query_terms);
+
+								unset($result, $result_urls, $found_id, $social_media_multiplier, $goosle_rank, $match_rank);
 							}
 
 							// Count results per source
@@ -96,12 +102,12 @@ class ImageSearch extends EngineRequest {
 					$request_result = curl_getinfo($request->ch);
 					$http_code_info = ($request_result['http_code'] > 200 && $request_result['http_code'] < 600) ? " - <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/".$request_result['http_code']."\" target=\"_blank\">What's this</a>?" : '';
 					$github_issue_url = "https://github.com/adegans/Goosle/discussions/new?category=general&".http_build_query(array('title' => get_class($request)." failed with error ".$request_result['http_code'], 'body' => "```\nEngine: ".get_class($request)."\nError Code: ".$request_result['http_code']."\nRequest url: ".$request_result['url']."\n```", 'labels' => 'request-error'));
-					
+
 		            $goosle_results['error'][] = array(
 		                'message' => "<strong>Ohno! A search query ran into some trouble.</strong> Usually you can try again in a few seconds to get a result!<br /><strong>Engine:</strong> ".get_class($request)."<br /><strong>Error code:</strong> ".$request_result['http_code'].$http_code_info."<br /><strong>Request url:</strong> ".$request_result['url']."<br /><strong>Need help?</strong> Find <a href=\"https://github.com/adegans/Goosle/discussions\" target=\"_blank\">similar issues</a>, or <a href=\"".$github_issue_url."\" target=\"_blank\">ask your own question</a>."
 		            );
 				}
-				
+
 				unset($request);
 	        }
 
@@ -112,12 +118,12 @@ class ImageSearch extends EngineRequest {
 
 				// Count all results
 				$goosle_results['number_of_results'] = count($goosle_results['search']);
-	
+
 				unset($keys);
 			} else {
 				// Add error if there are no search results
 	            $goosle_results['error'][] = array(
-	                "message" => "No results found. Please try with more specific or different keywords!" 
+	                "message" => "No results found. Please try with more specific or different keywords!"
 	            );
 			}
 		} else {
@@ -126,7 +132,7 @@ class ImageSearch extends EngineRequest {
 			);
 		}
 
-        return $goosle_results; 
+        return $goosle_results;
     }
 
     public static function print_results($goosle_results, $search, $opts) {
@@ -160,34 +166,25 @@ echo "</pre>";
 			}
 			echo "</li>";
 
-			// Search suggestions
-			if(array_key_exists('did_you_mean', $goosle_results)) {
-				echo "<li class=\"meta\">";
-				echo "	<p class=\"didyoumean\">Did you mean <a href=\"./results.php?q=".urlencode($goosle_results['did_you_mean'])."&t=".$search->type."&a=".$opts->hash."\">".$goosle_results['did_you_mean']."</a>?</p>";
-				if(array_key_exists('search_specific', $goosle_results)) {
-					echo "	<p class=\"suggestion\">".search_suggestion($search, $opts, $goosle_results)."</p>";
-				}
-				echo "</li>";
-			}
-
 			echo "</ul>";
 
 			// Search results
 			echo "<ul class=\"result-grid\">";
-	
-	        foreach($goosle_results['search'] as $result) {
-				// Extra data
-				$meta = array();
-				if(!empty($result['height']) && !is_null($result['width'])) $meta[] = $result['width']."&times;".$result['height'];
-				if(!empty($result['filesize'])) $meta[] = human_filesize($result['filesize']);
 
+	        foreach($goosle_results['search'] as $result) {
 				// Put result together
 				echo "<li class=\"result image rank-".$result['goosle_rank']." id-".$result['id']."\">";
 				echo "	<div class=\"thumb\">";
 				echo "		<a href=\"".$result['url']."\" target=\"_blank\" title=\"".$result['alt']."\"><img src=\"".$result['image_thumb']."\" alt=\"".$result['alt']."\" /></a>";
 				echo "	</div>";
-				echo "	<div class=\"meta\"><p>".implode(" &bull; ", $meta)."</p><p><a href=\"".$result['url']."\" target=\"_blank\" title=\"Open website\">Website</a> &bull; <a href=\"".$result['image_full']."\" target=\"_blank\" title=\"Open image\">Image</a></p></div>";
+				echo "	<div class=\"meta\">";
+				if(!empty($result['height']) && !empty($result['width'])) echo "		<p>".$result['width']."&times;".$result['height']."</p>";
+				echo "		<p><a href=\"".$result['url']."\" target=\"_blank\" title=\"Open website\">Website</a> &bull; <a href=\"".$result['image_full']."\" target=\"_blank\" title=\"Open image\">Image</a></p>";
+				if($opts->show_search_rank == 'on') echo "		<p>Rank: ".$result['goosle_rank']."</p>";
+				echo "	</div>";
 				echo "</li>";
+
+				unset($meta);
 	        }
 
 	        echo "</ul>";

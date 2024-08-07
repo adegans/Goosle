@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
@@ -21,7 +21,7 @@ $search = load_search();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Goosle Search Help</title>
+	<title>Goosle Search | How to use Goosle</title>
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -30,7 +30,7 @@ $search = load_search();
 	<meta name="description" content="Learn how to use Goosle, the best meta search engine!" />
 
 	<meta property="og:site_name" content="Goosle Search" />
-	<meta property="og:title" content="Goosle Search Help" />
+	<meta property="og:title" content="How to use Goosle" />
 	<meta property="og:description" content="Learn how to use Goosle, the best meta search engine!" />
 	<meta property="og:url" content="<?php echo get_base_url($opts->siteurl); ?>/help.php" />
 	<meta property="og:image" content="<?php echo get_base_url($opts->siteurl); ?>/assets/images/goosle.webp" />
@@ -49,15 +49,17 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 ?>
 <div class="header">
 	<form action="results.php" method="get" autocomplete="off">
-	    <h1 class="logo"><a href="./?a=<?php echo $opts->hash; ?>"><span class="goosle-g">G</span>oosle</a></h1>        
-	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->query) > 0) ? htmlspecialchars($search->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
-	
+	    <h1 class="logo"><a href="./?a=<?php echo $opts->hash; ?>"><span class="goosle-g">G</span>oosle</a></h1>
+	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->nice_query) > 0) ? htmlspecialchars($search->nice_query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+
         <input type="hidden" name="t" value="<?php echo $search->type; ?>"/>
 	    <input type="hidden" name="a" value="<?php echo $opts->user_auth; ?>">
  	</form>
- 
+
     <div class="navigation">
+        <?php if($opts->enable_web_search == 'on') { ?>
         <a class="<?php echo ($search->type == '0') ? 'active ' : ''; ?>tab-search" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=0">Search</a>
+        <?php } ?>
 
         <?php if($opts->enable_image_search == 'on') { ?>
         <a class="<?php echo ($search->type == '1') ? 'active ' : ''; ?>tab-image" href="./results.php?q=<?php echo $search->query; ?>&a=<?php echo $opts->user_auth; ?>&t=1" >Images</a>
@@ -72,68 +74,75 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
         <?php } ?>
 	</div>
 </div>
-	
+
 <div class="content">
 	<h2>How to use Goosle</h2>
-	<p>Goosle tries to provide you with the right search results where-ever they may come from. An easy to use UI and no clutter go a long way in providing a pleasuring search experience. You will not find any unnessesary features or complex settings in Goosle. After-all, navigating the internet is hard and frustrating enough. Search engines should make that more easy, not harder!</p>
-	
+	<p> Goosle has an easy to use UI, free of clutter and distractions. Hopefully this provides a pleasurable search experience. You will not find any unnessesary features or complex settings in Goosle. After-all, navigating the internet is hard and frustrating enough. Search engines should make that more easy, not harder!</p>
+	<p>All external links <em>always</em> open in a new tab. That way you never loose your current search results. And to make search results more useful Goosle tries to format them in a neat and clean way so they're easy to read and use.</p>
+
 	<p>Goosle is created by <a href="https://www.arnan.me/" target="_blank">Arnan de Gans</a> with the intent to make search more productive and fun.</p>
-		
+
 	<h3>Result ranking</h3>
-	<p>To try and provide the best results first. Goosle has a simple algorithm to rank results for Web and Image search. It works a little like a scoring system. A result with more points gets a higher ranking.</p>
-	<p>If a website or image is found through multiple search engines it will score higher. Also the amount of matching words in the title and SEO description and a few other bits and bops from the results are considered.</p>
+	<p>Goosle tries to provide you with search results in the right order no matter which search engine provides them. To try and provide the best results first Goosle has a basic algorithm to rank results.</p>
+	<?php if($opts->enable_web_search == 'on' || $opts->enable_image_search == 'on') { ?>
+		<p>For Web and Image search. If a website or image is found through multiple search engines it will rank higher. Also the amount of matching words in the title and SEO description are considered.</p>
+	<?php } ?>
+	<?php if($opts->enable_news_search == 'on') { ?>
+		<p>News search is ranked by your keywords and how many times a certain link is found, but also by publish date. Newer results rank higher.</p>
+	<?php } ?>
+	<?php if($opts->enable_magnet_search == 'on') { ?>
+		<p>Magnet results are sorted by most seeders (eg: availability of the download).</p>
+	<?php } ?>
 
 	<h3>Safe search</h3>
 	<p>Search defaults to Moderate Safe mode. To override the safe mode, prefix your search with <strong>safe:on</strong> or <strong>safe:off</strong> (example: <strong>safe:off geese gone wild</strong>).<br /><strong>On</strong> will use 'Strict' mode, while <strong>off</strong> will disable safe searching, this may yield results that are unsuitable for workspaces or minors.</p>
 
 	<?php if($opts->show_nsfw_magnets == 'off') { ?>
-		<p>The Not Suitable For Work (NSFW) filter for Magnet results is enabled. This is an attempt to hide adult content from results. Some search engines have categories that can be filtered out. Others rely on keyword matches. Goosle has an extensive list of 'dirty' keywords to try and find adult content and then ignore it. To override the setting use the <strong>safe:off</strong>, <strong>xxx</strong> or <strong>porn</strong> prefix.<br />
-		For example: Search for <strong>xxx goose on goose action</strong> or <strong>safe:off dirty geese</strong> to include adult content in the results.</p>
+		<p>The Not Suitable For Work (NSFW) filter for Magnet results is enabled. This is an attempt to hide adult content from results. Some search engines have categories that can be filtered out. Others rely on keyword matches. Goosle has an extensive list of 'dirty' keywords to try and find adult content and then ignore it. To override the setting use the <strong>safe:off</strong> or <strong>nsfw</strong> prefix.<br />
+		For example: Search for <strong>nsfw goose on goose action</strong> or <strong>safe:off dirty geese</strong> to include adult content in the results.</p>
 	<?php } ?>
 
-	<h2>Web search</h2>
+	<?php if($opts->enable_web_search == 'on') { ?>
+		<h2>Web search</h2>
+		<p>Goosle Web Search gathers links through search engines and search API and shows them in a neat and organised results page. Results are ranked by relevance to your current search.</p>
 
-	<h3>Special Searches</h3>
-	<?php if($opts->special['currency'] == 'on') { ?>
-		<h4>Currency converter</h4>
-		<p>Convert currency with a simple query.<br />
-		For example: Search for <strong>20 EUR in HKD</strong> or <strong>14 USD to MXN</strong> and Goosle will search for it, but also a local conversion is done in a highlighted result.</p>
-	<?php } ?>
-	
-	<?php if($opts->special['definition'] == 'on') { ?>
-		<h4>Word Definition</h4>
-		<p>Look up the meaning of single words. Prefix the word you want to look up with <strong>define</strong>, <strong>def</strong> or <strong>meaning</strong>.<br />
-		For example: Searching for <strong>define goose</strong> will do a web search for 'goose' but will also show a dictionary definition highlighted above the search results.</p>
-	<?php } ?>
-	
-	<?php if($opts->special['ipaddress'] == 'on') { ?>
-		<h4>IP Address lookup</h4>
-		<p>Search for <strong>ip</strong>, <strong>myip</strong> or <strong>ipaddress</strong> to look up your IP Address.<br />
-		Goosle knows your IP Address but the searches you do via Goosle will hide your IP address from the target sites such as Google or Limetorrents. You can see and verify the difference with this tool.</p>
-	<?php } ?>
-	
-	<?php if($opts->special['phpnet'] == 'on') { ?>
-		<h4>PHP.net Search</h4>
-		<p>Prefix your search with <strong>php</strong> to search on php.net for a PHP function.<br />
-		For example: Searching for <strong>php in_array</strong> or <strong>php trim</strong> will show you a brief description, compatible PHP versions and the basic syntax for that function.</p>
-	<?php } ?>
-	
-	<?php if($opts->special['wordpress'] == 'on') { ?>
-		<h4>WordPress documentation Search</h4>
-		<p>Prefix your search with <strong>wordpress</strong> or <strong>wp</strong> to search on wordpress.org for a WordPress function. You can also search for hooks or filters by adding 'hook' as the 2nd keyword.<br />
+		<?php if($opts->special['currency'] == 'on') { ?>
+			<h4>Currency converter</h4>
+			<p>Convert currency with a simple query.<br />
+			For example: Search for <strong>20 EUR in HKD</strong> or <strong>14 USD to MXN</strong> and Goosle will search for it, but also a local conversion is done in a highlighted result.</p>
+		<?php } ?>
+
+		<?php if($opts->special['definition'] == 'on') { ?>
+			<h4>Word Definition</h4>
+			<p>Look up the meaning of single words. Prefix the word you want to look up with <strong>define</strong>, <strong>def</strong> or <strong>meaning</strong>.<br />
+			For example: Searching for <strong>define goose</strong> will do a web search for 'goose' but will also show a dictionary definition highlighted above the search results.</p>
+		<?php } ?>
+
+		<?php if($opts->special['ipaddress'] == 'on') { ?>
+			<h4>IP Address lookup</h4>
+			<p>Search for <strong>ip</strong>, <strong>myip</strong> or <strong>ipaddress</strong> to look up your IP Address.<br />
+			Goosle knows your IP Address but the searches you do via Goosle will hide your IP address from the target sites such as Google or Limetorrents. You can see and verify the difference with this tool.</p>
+		<?php } ?>
+
+		<?php if($opts->special['phpnet'] == 'on') { ?>
+			<h4>PHP.net Search</h4>
+			<p>Prefix your search with <strong>php</strong> to search on php.net for a PHP function.<br />
+			For example: Searching for <strong>php in_array</strong> or <strong>php trim</strong> will show you a brief description, compatible PHP versions and the basic syntax for that function.</p>
+		<?php } ?>
+
+		<?php if($opts->special['wordpress'] == 'on') { ?>
+			<h4>WordPress documentation Search</h4>
+			<p>Prefix your search with <strong>wordpress</strong> or <strong>wp</strong> to search on wordpress.org for a WordPress function. You can also search for hooks or filters by adding 'hook' as the 2nd keyword.<br />
 			For example: Searching for <strong>wordpress the_content</strong> or <strong>wp hook admin_init</strong> will show you a brief description and the basic syntax for that function or hook/filter.</p>
+		<?php } ?>
 	<?php } ?>
-	
-	<p><em><strong>Note:</strong> Special Searches do not work for image, news and magnet search.</em></p>
 
 	<?php if($opts->enable_image_search == 'on') { ?>
 		<h2>Image Search</h2>
-		<p>The number of results is not limited but typically yields about 60-100 images. If you've enabled Openverse and Qwant this number in creases a lot, optimally up-to about 150 images.</p>
 		<p>Goosle Image Search links directly to the web page where the image is displayed, but also tries to link to the actual image itself.</p>
 		<p>You can search for images in a general size by adding <strong>size:small</strong>, <strong>size:medium</strong>, <strong>size:large</strong> or <strong>size:xlarge</strong> to the beginning of your search query (example: <strong>size:small huge goose</strong>).</p>
-		<p>The result counts for may seem off, for example you get 50 results with 20 from Qwant Images and 60 from Yahoo! Images. Logically this should mean you should see 80 results. However, this simply means that 30 results were found on both search engines and were merged, resulting in 50 results.</p>
 	<?php } ?>
-	
+
 	<?php if($opts->enable_news_search == 'on') { ?>
 		<h2>News search</h2>
 		<p>Look for current and recent news through News Search. Search for any topic and you'll find news from the last 30 days. Search is loosely ranked by post date. Newer news ranks higher.<p>
@@ -141,10 +150,9 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 
 	<?php if($opts->enable_magnet_search == 'on') { ?>
 		<h2>Magnet Search</h2>
-		<p>Magnet Search provides Magnet links, these are special links to download content from the internet. Things like Movies, TV-Shows, EBooks, Music, Games, Software and more. You'll need a Bittorrent client that accepts Magnet links to download the search results.</p>
+		<p>Magnet Search provides Magnet links, these are special links from Torrent sites to download content from the internet. Things like Movies, TV-Shows, EBooks, Music, Games, Software and more. You'll need a Bittorrent client that accepts Magnet links to download the search results.</p>
 		<p>There are many <a href="./results.php?q=Torrent+clients+Magnet+links&a=<?php echo $opts->hash; ?>&t=0" target="_blank">Torrent clients that support Magnet links</a> but if you don't know which one to choose, give <a href="https://transmissionbt.com/" target="_blank" title="Transmission Bittorrent">Transmission BT</a> a go as it's easy to set up and use.</p>
-
-		<p>Goosle will try to provide useful information about the download, which includea; Seeders/Leechers, A link to the torrent page, Download Category, Release year. But may also include the Movie quality (720p, 4K etc.), Movie Runtime and the Download Size along with some other bits and bops if available. Not every website makes this available and all results take a best effort approach.</p>
+		<p>Goosle will try to provide useful information about the download, which includes; Seeders, Leechers, A link to the torrent page, Download Category and Release year. Extra information may also include the Movie quality (720p, 4K etc.), Movie Runtime and the Download Size along with some other bits and bops if available. Not every website makes this available and all results take a best effort approach.</p>
 
 		<h3>Searching for TV Shows</h3>
 		<p>To do a specific search on The Pirate Bay and EZTV you search for IMDb Title IDs. These are numeric IDs prefixed with <strong>tt</strong>. This kind of search is useful when you're looking for a tv show that doesn't have a unique name, or simply if you want to use a specialized tracker for tv shows.</p>
@@ -179,12 +187,12 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 	<h2>Default search engine</h2>
 	<p>In some browsers you can add a custom search engine. To do so follow the browsers instruction and use the following link: <strong>https://example.com/results.php?q=%s</strong>.</p>
 	<p>Or if you use the Auth Hash as a password add the <strong>a</strong> argument, like so: <strong>https://example.com/results.php?a=YOUR_HASH&q=%s</strong>. Obviously replace example.com with your actual goosle addesss.</p>
-	
+
 	<p>Most browsers will instruct you to add <strong>%s</strong> for the search query as shown in the examples. If your browser has a different value for this simply replace %s with what your browser requires.
 
 	<h2>Colorschemes</h2>
 	<p>Goose comes with several colorschemes, configurable through the config.php file.</p>
-	
+
 	<h3>Available colorschemes are:</h3>
 	<ol>
 		<li>"default" A dark headers and main backgrounds with light search results.</li>
@@ -192,7 +200,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 		<li>"dark" More dark elements, some apps would call this dark mode.</li>
 		<li>"auto" Let the browser decide what to use. This is typically linked to the darkmode setting of your device.</li>
 	</ol>
-	
+
 	<h4>Acknowledgements:</h4>
 	<p><small>All icons are borrowed from the IconFinder <a href="https://www.iconfinder.com/search/icons?family=unicons-line" target="_blank">Unicons Set</a>.<br />
 	The Goose icon is borrowed from the Flaticon <a href="https://www.flaticon.com/packs/farm-19" target="_blank">Farm pack</a>.<br />

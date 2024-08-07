@@ -1,4 +1,4 @@
-<?php 
+<?php
 /* ------------------------------------------------------------------------------------
 *  Goosle - The fast, privacy oriented search tool that just works.
 *
@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
@@ -48,13 +48,15 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 
 <div class="content">
 	<h1><span class="goosle-g">G</span>oosle</h1>
-    
+
     <form action="results.php" method="get" autocomplete="off">
         <input tabindex="10" type="search" class="search-field" name="q" required autofocus />
         <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>
 
         <div class="search-buttons">
+	        <?php if($opts->enable_web_search == 'on') { ?>
 	        <button tabindex="20" name="t" value="0" type="submit" class="web-search">Web search</button>
+	        <?php } ?>
 
 	        <?php if($opts->enable_image_search == 'on') { ?>
 	        <button tabindex="40" name="t" value="1" type="submit" class="image-search">Image search</button>

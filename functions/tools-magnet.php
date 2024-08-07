@@ -64,11 +64,13 @@ function highlight_popup($opts_hash, $highlight) {
 // True = nsfw, false = not nsfw
 --------------------------------------*/
 function detect_nsfw($string) {
+	$string = strtolower($string);
+
 	// Forbidden terms
 	//Basic pattern: ^cum[-_\s]?play(ing|ed|s)?
 	$nsfw_keywords = array(
-		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|hump|finger|kiss|pegg|fist|ballbust|twerk|dogg|squirt)(ing|ed|s)?/', 
-		'/(yaoi|porn|gonzo|erotica|blowbang|bukkake|gokkun|onlyfans|fansly|manyvids|softcore|hardcore|latex|lingerie|interracial|bdsm|chastity|hogtied|kinky|bondage|shibari|hitachi|upskirt)/', 
+		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|hump|finger|pegg|fist|ballbust|twerk|dogg|squirt|dick|orgasm)(ing|ed|s)?/', 
+		'/(yaoi|porn|gonzo|erotica|blowbang|bukkake|gokkun|softcore|hardcore|latex|lingerie|interracial|bdsm|chastity|kinky|bondage|shibari|hitachi|upskirt)/', 
 		'/(cock|creampie|cameltoe|enema|nipple|sybian|vibrator|cougar|threesome|foursome|pornstar|escort)(s)?/', 
 		'/(cmnf|cfnm|pov|cbt|bbw|pawg|ssbbw|joi|cei)/', 
 		'/(blow|rim|foot|hand)job(s)?/', 
@@ -77,7 +79,7 @@ function detect_nsfw($string) {
 		'/jerk(ing)?[-_\s]?off/', 
 		'/tw(i|u)nk(s)?/',
 		'/cum(bot|ming|s)?/', 
-		'/porn(hub)?/', 
+		'/porn(hub)?|xhamster|youporn|faphouse|sexually(\s)?broken|adulttime|transfixed|tsseduction|waterbondage|fuckingmachines|monstersofcock|deeplush|hotandmean|onlyfans|fansly|manyvids|transangels|premiumhdv|genderx|evil(\s)?angel|thetrainingofo|rocco(\s)?siffredi|electrosluts|ultimatesurrender|whippedass|insex|herlimit|analdays|bangbus|faketaxi|horrorporn|neighboraffair|naughtybookworms|sexandsubmission|housewife1on1|devicebondage|tspussyhunters|everythingbutt|theupperfloor|public(\s)?disgrace|fuckedandbound|alterotic|divinebitches|wiredpussy/',
 		'/(m|g)ilf(s)?/', 
 		'/clit(oris|s)?/', 
 		'/tit(ties|s)/', 
@@ -86,12 +88,10 @@ function detect_nsfw($string) {
 		'/doggy(style)?/', 
 		'/(masturbat|penetrat)(e|ion|ing|ed)/', 
 		'/face(fuck|sit)?(ing|ting|ed|s)?/', 
-		'/gap(e|ing|ed)?/', 
-		'/scissor(ing|ed)?/', 
+		'/(gap|scissor)(e|ing|ed)?/', 
 		'/(fetish|penis|ass)(es)?/', 
 		'/(fem|lez|male)dom/', 
 		'/futa(nari)?/', 
-		'/orgasm(ing|ed|s)?/', 
 		'/(slave|pet)[-_\s]?play(ing|ed|s)?/', 
 		'/submissive(d|s)?/', 
 		'/tied[-_\s]?(up)?/', 
@@ -99,8 +99,8 @@ function detect_nsfw($string) {
 		'/swing(er|ers|ing)?/', 
 	);
 
-	// Replace everything but letters with a space
-	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', strtolower($string));
+	// Replace everything but alphanumeric with a space
+	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
 
 	preg_replace($nsfw_keywords, '*', $string, -1 , $count); 
 
