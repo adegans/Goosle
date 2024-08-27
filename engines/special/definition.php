@@ -6,15 +6,15 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class DefinitionRequest extends EngineRequest {
 	public function get_request_url() {
 		// [0] = (define|meaning)
 		// [1] = WORD
-		$url = 'https://api.dictionaryapi.dev/api/v2/entries/en/'.$this->search->query_terms[1];
-		
+		$url = 'https://api.dictionaryapi.dev/api/v2/entries/en/'.urlencode($this->search->query_terms[1]);
+
 		return $url;
 	}
 
@@ -81,7 +81,7 @@ class DefinitionRequest extends EngineRequest {
 
 			unset($meaning);
 		}
-		
+
 		// Return result
 		$engine_result = array(
 			'title' => "Definition for: ".sanitize($result['word'])." <span>[".sanitize($phonetic)."]</span>",

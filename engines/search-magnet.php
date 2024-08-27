@@ -19,38 +19,43 @@ class MagnetSearch extends EngineRequest {
 			// Extra functions to process magnet results
 			require ABSPATH.'functions/tools-magnet.php';
 
-			if($opts->magnet['limetorrents'] == 'on') {
+			if($opts->magnet['limetorrents'] == 'on' && !has_timeout('LimeRequest')) {
 				require ABSPATH.'engines/magnet/lime.php';
 				$this->requests[] = new LimeRequest($search, $opts, $mh);
 			}
 
-			if($opts->magnet['piratebay'] == 'on') {
+			if($opts->magnet['piratebay'] == 'on' && !has_timeout('PirateBayRequest')) {
 				require ABSPATH.'engines/magnet/thepiratebay.php';
 				$this->requests[] = new PirateBayRequest($search, $opts, $mh);
 			}
 
-			if($opts->magnet['yts'] == 'on') {
+			if($opts->magnet['glotorrents'] == 'on' && !has_timeout('GlodlsRequest')) {
+				require ABSPATH.'engines/magnet/glotorrents.php';
+				$this->requests[] = new GlodlsRequest($search, $opts, $mh);
+			}
+
+			if($opts->magnet['yts'] == 'on' && !has_timeout('YTSRequest')) {
 				if($search->safe !== 0) {
 					require ABSPATH.'engines/magnet/yts.php';
 					$this->requests[] = new YTSRequest($search, $opts, $mh);
 				}
 			}
 
-			if($opts->magnet['nyaa'] == 'on') {
+			if($opts->magnet['nyaa'] == 'on' && !has_timeout('NyaaRequest')) {
 				if($search->safe !== 0) {
 					require ABSPATH.'engines/magnet/nyaa.php';
 					$this->requests[] = new NyaaRequest($search, $opts, $mh);
 				}
 			}
 
-			if($opts->magnet['sukebei'] == 'on') {
+			if($opts->magnet['sukebei'] == 'on' && !has_timeout('SukebeiRequest')) {
 				if($opts->show_nsfw_magnets == 'on' || ($opts->show_nsfw_magnets == 'off' && $search->safe === 0)) {
 					require ABSPATH.'engines/magnet/sukebei.php';
 					$this->requests[] = new SukebeiRequest($search, $opts, $mh);
 				}
 			}
 
-			if($opts->magnet['eztv'] == 'on') {
+			if($opts->magnet['eztv'] == 'on' && !has_timeout('EZTVRequest')) {
 				if(substr(strtolower($search->query), 0, 2) == 'tt') {
 					require ABSPATH.'engines/magnet/eztv.php';
 					$this->requests[] = new EZTVRequest($search, $opts, $mh);
@@ -315,7 +320,7 @@ echo "</pre>";
 				echo "<p class=\"pagination\">".search_pagination($search, $opts, $goosle_results['number_of_results'])."</p>";
 			}
 
-			echo "<p class=\"text-center\"><small>Goosle does not index, offer or distribute torrent files.</small></p>";
+			echo "<p class=\"text-center\"><small>Goosle does not index, offer or distribute torrent files. Found content may be subject to copyright.</small></p>";
 
 			// Torrent site warning popup (Normally hidden)
 			echo "<div id=\"info-torrentpagelink\" class=\"goosebox\">";
@@ -330,9 +335,9 @@ echo "</pre>";
 			echo "<div id=\"info-torrentverified\" class=\"goosebox\">";
 			echo "	<div class=\"goosebox-body\">";
 			echo "		<h2>Trusted uploaders</h2>";
-			echo "		<p>Some websites have a group of verified and/or trusted uploaders. These are users that are known to provide good quality downloads.</p>";
-			echo "		<p><span class=\"magnet-verified\"></span> Downloads with a blue shield and checkmark are uploaded by a verified or trusted user according to the torrent site.</p>";
-			echo "		<p><span class=\"magnet-not-verified\"></span> Downloads with a red shield and questionmark indicate that the user is <em>not</em> verified by the website providing the download. This can mean this is a new user, or that the file is provided from an anonymous source. Unverified magnet links are not necessarily bad but may contain low quality or misleading content or simply have a poorly written title.</p>";
+			echo "		<p>Some websites have a group of verified and/or trusted uploaders. These are persons or groups that are known to provide good quality downloads.</p>";
+			echo "		<p><span class=\"magnet-verified\"></span> Downloads with a blue shield and checkmark are uploaded by a verified or trusted uploader according to the torrent site.</p>";
+			echo "		<p><span class=\"magnet-not-verified\"></span> Downloads with a red shield and questionmark indicate that the uploader is <em>not</em> verified by the website providing the download. Unverified magnet links are not necessarily bad but may contain low quality or misleading content.</p>";
 			echo "		<p><a onclick=\"closepopup()\">Close</a></p>";
 			echo "	</div>";
 			echo "</div>";

@@ -63,17 +63,19 @@ CACHE_TIME:
 /* ------------------------------------------------------------------------------------
 LANGUAGE:
 	To not fit the USA mold, Goosle defaults to the United Kingdom for english results.
-	DuckDuckGo and Google are language agnostic.
+	DuckDuckGo and Google are mostly language agnostic.
 	Invalid values either cause the search engine to fail or will default to English depending on how wrong the value is.
 
-	Google has no language setting because as soon as you specify it all 'anonymous' settings stop working.
+	Google uses a search region and defaults to the United Kingdom. This usually applies to a country (us, uk, es, fr, nl, etc.)
 
-	DuckDuckGo uses language regions and defaults to the United Kingdom. To change it see if your region is available - https://duckduckgo.com/duckduckgo-help-pages/settings/params/.
-
-	Wikipedia needs to be told which language you want. This changes the search url. Use any of their supported languages (en, es, fr, nl, etc.)
+	DuckDuckGo uses language regions and defaults to the United Kingdom. A list of all regions: https://duckduckgo.com/duckduckgo-help-pages/settings/params/.
 
 	Qwant uses a locale similar to DuckDuckGo and defaults to the United Kingdom as well.
 	Available locales are: bg_bg, br_fr, ca_ad, ca_es, ca_fr, co_fr, cs_cz, cy_gb, da_dk, de_at, de_ch, de_de, ec_ca, el_gr, en_au, en_ca, en_gb, en_ie, en_my, en_nz, en_us, es_ad, es_ar, es_cl, es_co, es_es, es_mx, es_pe, et_ee, eu_es, eu_fr, fc_ca, fi_fi, fr_ad, fr_be, fr_ca, fr_ch, fr_fr, gd_gb, he_il, hu_hu, it_ch, it_it, ko_kr, nb_no, nl_be, nl_nl, pl_pl, pt_ad, pt_pt, ro_ro, sv_se, th_th, zh_cn, zh_hk.
+
+	Mojeek supports a few search regions: uk, de, fr, eu and '' (empty, no preference)
+
+	Wikipedia needs to be told which language you want. This changes the search url. Use any of their supported languages (en, es, fr, nl, etc.)
 
 SOCIAL MEDIA RELEVANCE:
 	Show social media results lower in results if you don't value such results.
@@ -90,13 +92,14 @@ USER AGENTS:
 	Chrome may attract attention because of the lack of Chrome information (tracking) aside from the user agent. The search engine may know something is 'weird'.
 	Opera/Edge/Brave and many others use Chrome under the hood and are not a good pick for that reason.
 
-	Do not use user agents for mobile devices. Where possible Goosle explicitly tells the service it's a desktop computer to get a certain format for results.
+	Do NOT use user agents for mobile devices or tablets. Where possible Goosle explicitly tells the service it's a desktop computer to get a certain format for results.
 	Contradicting the request with a mobile user agent may get your banned.
 
 MAGNET TRACKERS:
 	Add more or less magnet trackers to the list but keep at least five or so!
-	These are added to the magnet links Goosle creates by itself.
-	Generally you do not need to change these.
+	No one tracker knows everything, more trackers is usually better for faster discovery and downloads.
+	Some search engines only provide torrent hashes. Goosle then uses these magnets to create a magnet link.
+	Generally you do not need to change these unless you need some specific tracker.
 ------------------------------------------------------------------------------------ */
 
 return (object) array(
@@ -138,6 +141,7 @@ return (object) array(
 	'magnet' => array(
 		'limetorrents' => 'on', // Default: on (Anything)
 		'piratebay' => 'on', // Default: on (Anything)
+		'glotorrents' => 'on', // Default: on (Anything)
 		'yts' => 'on', // Default: on (Movies)
 		'eztv' => 'on', // Default: on (TV-Shows)
 		'nyaa' => 'on', // Default: on (Anime)
@@ -170,7 +174,7 @@ return (object) array(
 	),
 
 	'show_nsfw_magnets' => 'off', // Default: off (Set to 'off' to try and hide adult content. Override with 'safe:off' or 'nsfw')
-	'show_zero_seeders' => 'off', // Default: off
+	'show_zero_seeders' => 'off', // Default: off (Set to 'off' to hide torrents with 0 seeds)
 	'show_yts_highlight' => 'on', // Default: off (Show latest YTS movies above Magnet search results)
 	'show_share_option' => 'on', // Default: on (Show a share option for Magnet results)
 	'piratebay_categories_blocked' => array(206, 210), // Default: 206, 210 (Comma separated numbers, see /engines/magnet/thepiratebay.php for all categories)

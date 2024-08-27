@@ -9,11 +9,10 @@
 *  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
-class LimeRequest extends EngineRequest {
+class GlodlsRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = preg_replace('/[^a-z0-9- ]/', '', strtolower($this->search->query));
-
-		$url = 'https://www.limetorrents.lol/search/all/'.urlencode($query).'/';
+		// Alternative: https://gtso.cc
+		$url = 'https://glodls.to/search_results.php?search='.urlencode($this->search->query);
 
 		unset($query);
 
@@ -37,7 +36,7 @@ class LimeRequest extends EngineRequest {
 		}
 
 		// Scrape the results
-		$scrape = $xpath->query("//table[@class='table2']//tr[position() > 1]");
+		$scrape = $xpath->query('//div[@class="myBlock-con"]/table//tr');
 
 		// No results
         if(count($scrape) == 0) {
@@ -45,24 +44,44 @@ class LimeRequest extends EngineRequest {
 	        return $engine_result;
 	    }
 
+		$categories = array(
+			1 => 'Movies',
+			5 => 'Android',
+			10 => 'Games',
+			18 => 'Software/Apps',
+			22 => 'Music',
+			28 => 'Anime',
+			33 => 'Other',
+			41 => 'TV',
+			51 => 'Books',
+			52 => 'Mobile Apps/Games',
+			54 => 'Windows',
+			55 => 'Macintosh',
+			70 => 'Pictures',
+			71 => 'Video',
+			72 => 'TV/Movie Packs',
+			74 => 'Tutorials',
+			75 => 'FLAC',
+			76 => 'Sports'
+		);
+
 		foreach($scrape as $result) {
 			// Find data
-			$title = $xpath->evaluate(".//td[@class='tdleft']//a[2]", $result);
-			$hash = $xpath->evaluate(".//td[@class='tdleft']//a[1]/@href", $result);
-			$seeders = $xpath->evaluate(".//td[@class='tdseed']", $result);
-			$leechers = $xpath->evaluate(".//td[@class='tdleech']", $result);
-			$filesize = $xpath->evaluate(".//td[@class='tdnormal'][2]", $result);
+			$title = $xpath->evaluate(".//td[2]//a[2]/@title", $result);
+			$magnet = $xpath->evaluate(".//td[4]/a/@href", $result);
+			$seeders = $xpath->evaluate(".//td[6]//b", $result);
+			$leechers = $xpath->evaluate(".//td[7]//b", $result);
+			$filesize = $xpath->evaluate(".//td[5]", $result);
 
 			// Skip broken results
 			if($title->length == 0) continue;
-			if($hash->length == 0) continue;
+			if($magnet->length == 0) continue;
 
 			// Process data
 			$title = sanitize($title[0]->textContent);
-			$hash = sanitize($hash[0]->textContent);
-			$hash = explode('/', substr($hash, 0, strpos($hash, '.torrent?')));
-			$hash = strtolower($hash[array_key_last($hash)]);
-			$magnet = 'magnet:?xt=urn:btih:'.$hash.'&dn='.urlencode($title).'&tr='.implode('&tr=', $this->opts->magnet_trackers);
+			$magnet = sanitize($magnet[0]->textContent);
+			parse_str(parse_url($magnet, PHP_URL_QUERY), $hash_parameters);
+			$hash = strtolower(str_replace('urn:btih:', '', $hash_parameters['xt']));
 			$seeders = ($seeders->length > 0) ? sanitize($seeders[0]->textContent) : 0;
 			$leechers = ($leechers->length > 0) ? sanitize($leechers[0]->textContent) : 0;
 			$filesize = ($filesize->length > 0) ? filesize_to_bytes(sanitize($filesize[0]->textContent)) : 0;
@@ -74,35 +93,35 @@ class LimeRequest extends EngineRequest {
 			if(!is_season_or_episode($this->search->query, $title)) continue;
 
 			// Find extra data
-			$verified = $xpath->evaluate(".//td[@class='tdleft'][1]//div[@class='tt-vdown']//img/@title", $result);
-			$category = $xpath->evaluate(".//td[@class='tdnormal'][1]", $result);
-			$url = $xpath->evaluate(".//td[@class='tdleft']//a[2]/@href", $result);
+			$category = $xpath->evaluate(".//td[1]/a/@href", $result);
+			$url = $xpath->evaluate(".//td[2]//a[2]/@href", $result);
 
 			// Process extra data
-			$verified = ($verified->length > 0) ? sanitize($verified[0]->textContent) : null;
-			if($verified == 'Verified torrent') $verified = 'yes';
-
 			if($category->length > 0) {
-				$category = explode(' - ', sanitize($category[0]->textContent));
-				$category = str_replace('in ', '', $category[array_key_last($category)]);
-				$category = (preg_match('/[a-z0-9 -]+/i', $category, $category)) ? $category[0] : null;
+				$category = str_replace('/search.php?cat=', '', sanitize($category[0]->textContent));
+				$category = (preg_match('/[0-9]+/', $category, $category)) ? $category[0] : null;
 			} else {
 				$category = null;
 			}
-			$url = ($url->length > 0) ? 'https://www.limetorrents.lol'.sanitize($url[0]->textContent) : null;
+			$url = ($url->length > 0) ? 'https://glodls.to'.sanitize($url[0]->textContent) : null;
 
 			// Find meta data for certain categories
-			$nsfw = (detect_nsfw($title)) ? true : false;
-			$quality = $codec = $audio = null;
-			if(in_array(strtolower($category), array('movies', 'tv shows', 'anime'))) {
-				$quality = find_video_quality($title);
-				$codec = find_video_codec($title);
-				$audio = find_audio_codec($title);
+			if(!is_null($category)) {
+				$nsfw = (detect_nsfw($title)) ? true : false;
+				$quality = $codec = $audio = null;
+				if($category == 1 || $category == 28 || $category == 41 ||  $category == 71 ||  $category == 72 ||  $category == 74) {
+					$quality = find_video_quality($title);
+					$codec = find_video_codec($title);
+					$audio = find_audio_codec($title);
 
-				// Add codec to quality
-				if(!empty($codec)) $quality = $quality.' '.$codec;
-			} else if(in_array(strtolower($category), array('music'))) {
-				$audio = find_audio_codec($title);
+					// Add codec to quality
+					if(!empty($codec)) $quality = $quality.' '.$codec;
+				} else if($category == 22 || $category == 75) {
+					$audio = find_audio_codec($title);
+				}
+
+				// Set actual category
+				$category = $categories[$category];
 			}
 
 			$engine_temp[] = array (
@@ -114,7 +133,7 @@ class LimeRequest extends EngineRequest {
 				'leechers' => $leechers, // int
 				'filesize' => $filesize, // int
 				// Optional
-				'verified_uploader' => $verified, // string|null
+				'verified_uploader' => null, // string|null
 				'nsfw' => $nsfw, // bool
 				'quality' => $quality, // string|null
 				'type' => null, // string|null
@@ -133,7 +152,7 @@ class LimeRequest extends EngineRequest {
 
 		// Base info
 		if(!empty($engine_temp)) {
-			$engine_result['source'] = 'limetorrents.lol';
+			$engine_result['source'] = 'glodls.to';
 			$engine_result['search'] = $engine_temp;
 		}
 

@@ -21,7 +21,7 @@ $search = load_search();
 $start_time = microtime(true);
 
 // SEO description
-$description = (strlen($search->nice_query) > 0) ? "Check out these Goosle search results about: '".urldecode($search->nice_query)."'." : "Check out these Goosle search results!";
+$description = (strlen($search->query) > 0) ? "Check out these Goosle search results about: '".urldecode($search->query)."'." : "Check out these Goosle search results!";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -56,7 +56,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth, $search->share))
 <div class="header">
 	<form action="results.php" method="get" autocomplete="off">
 	    <h1 class="logo"><a href="./?a=<?php echo $opts->hash; ?>"><span class="goosle-g">G</span>oosle</a></h1>
-	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->nice_query) > 0) ? htmlspecialchars($search->nice_query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->query) > 0) ? htmlspecialchars($search->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
 
         <input type="hidden" name="t" value="<?php echo $search->type; ?>"/>
 	    <input type="hidden" name="a" value="<?php echo $opts->user_auth; ?>">
@@ -82,66 +82,59 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth, $search->share))
 </div>
 
 <div class="content">
+	<?php
+	if(!empty($search->query)) {
+		// Curl
+    	$mh = curl_multi_init();
+
+		// Load search script
+    	if($search->type == 0) {
+        	require ABSPATH.'engines/search.php';
+        	$search_results = new Search($search, $opts, $mh);
+		} else if($search->type == 1) {
+	    	require ABSPATH.'engines/search-image.php';
+        	$search_results = new ImageSearch($search, $opts, $mh);
+		} else if($search->type == 2) {
+	    	require ABSPATH.'engines/search-news.php';
+        	$search_results = new NewsSearch($search, $opts, $mh);
+		} else if($search->type == 9) {
+	    	require ABSPATH.'engines/search-magnet.php';
+        	$search_results = new MagnetSearch($search, $opts, $mh);
+    	}
+
+    	$running = null;
+
+    	do {
+        	$status = curl_multi_exec($mh, $running);
+	    	if($running) {
+	        	curl_multi_select($mh);
+	    	}
+    	} while ($running && $status == CURLM_OK);
+
+    	$results = $search_results->get_results();
+
+		curl_multi_close($mh);
+
+		// Add elapsed time to results
+		$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
+
+		// Echoes results and special searches
+    	$search_results->print_results($results, $search, $opts);
+	} else {
+		echo "<div class=\"warning\">";
+		echo "	<h3>Search query can not be empty!</h3>";
+		echo "	<p>Not sure what went wrong? Learn more about <a href=\"./help.php?a=".$opts->user_auth."\" title=\"how to use Goosle!\">how to use Goosle</a>.</p>";
+		echo "</div>";
+	}
+	?>
+</div>
+
 <?php
-if(!empty($search->query)) {
-	// Curl
-    $mh = curl_multi_init();
-
-	// Load search script
-    if($search->type == 0) {
-        require ABSPATH.'engines/search.php';
-        $search_results = new Search($search, $opts, $mh);
-	} else if($search->type == 1) {
-	    require ABSPATH.'engines/search-image.php';
-        $search_results = new ImageSearch($search, $opts, $mh);
-	} else if($search->type == 2) {
-	    require ABSPATH.'engines/search-news.php';
-        $search_results = new NewsSearch($search, $opts, $mh);
-	} else if($search->type == 9) {
-	    require ABSPATH.'engines/search-magnet.php';
-        $search_results = new MagnetSearch($search, $opts, $mh);
-    }
-
-    $running = null;
-
-    do {
-        $status = curl_multi_exec($mh, $running);
-	    if($running) {
-	        curl_multi_select($mh);
-	    }
-    } while ($running && $status == CURLM_OK);
-
-    $results = $search_results->get_results();
-
-	curl_multi_close($mh);
-
-	// Add elapsed time to results
-	$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
-
-	// Echoes results and special searches
-    $search_results->print_results($results, $search, $opts);
+	include_once('footer.php');
 } else {
-	echo "<div class=\"warning\">";
-	echo "	<h3>Search query can not be empty!</h3>";
-	echo "	<p>Not sure what went wrong? Learn more about <a href=\"./help.php?a=".$opts->user_auth."\" title=\"how to use Goosle!\">how to use Goosle</a>.</p>";
-	echo "</div>";
+	include_once('error.php');
 }
 ?>
-</div>
-
-<div class="footer grid-container">
-	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
-	</div>
-	<div class="footer-grid">
-		<a href="./?a=<?php echo $opts->hash; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->hash; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>
-	</div>
-</div>
-
-<?php } else { ?>
-	<div class="auth-error">Redirecting</div>
-	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
-<?php } ?>
 
 </body>
 </html>

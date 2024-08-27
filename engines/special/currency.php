@@ -11,7 +11,7 @@
 ------------------------------------------------------------------------------------ */
 class CurrencyRequest extends EngineRequest {
     public function get_request_url() {
-        $url = 'https://cdn.moneyconvert.net/api/latest.json';
+        $url = 'https://cdn.moneyconvert.net/api/latest.json?to='.urlencode($this->search->query_terms[3]);
 
         return $url;
     }

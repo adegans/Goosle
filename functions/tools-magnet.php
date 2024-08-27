@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 
@@ -17,6 +17,7 @@ function highlight_popup($opts_hash, $highlight) {
 	$meta = $magnet_meta = array();
 
 	$search_query = urlencode($highlight['title']." ".$highlight['year']);
+	$thumb = (!empty($highlight['thumbnail'])) ? $highlight['thumbnail'] : $opts-pixel;
 
 	if(isset($highlight['category'])) $meta[] = "<strong>Genre:</strong> ".$highlight['category'];
 	if(isset($highlight['language'])) $meta[] = "<strong>Language:</strong> ".get_language($highlight['language']);
@@ -28,9 +29,10 @@ function highlight_popup($opts_hash, $highlight) {
 	$output .= "	<div class=\"goosebox-body\">";
 	$output .= "		<h2>".$highlight['title']."</h2>";
 	if(isset($highlight['summary'])) {
-		$output .= "		<p>".$highlight['summary']."</p>";
+		$output .= "		<p><a href=\"https://www.imdb.com/title/".$highlight['imdb_id']."/\" target=\"_blank\" title=\"View on imdb.com\"><img src=\"".$thumb."\" alt=\"".$highlight['title']."\" /></a>".$highlight['summary']."</p>";
+		$output .= "		<hr>";
 	}
-	$output .= "		<p><a href=\"./results.php?q=".$search_query."&a=".$opts_hash."&t=0\" title=\"Search on Goosle Web Search!\">Search on Goosle</a> &bull; <a href=\"./results.php?q=".$search_query."&a=".$opts_hash."&t=9\" title=\"Search on Goosle Magnet Search! For new additions results may be limited.\">Find more Magnet links</a></p>";
+	$output .= "		<p><a href=\"https://www.imdb.com/title/".$highlight['imdb_id']."/\" target=\"_blank\" title=\"View on imdb.com\">View on imdb.com</a> &bull; <a href=\"./results.php?q=".$search_query."&a=".$opts_hash."&t=0\" title=\"Search on Goosle Web Search!\">Search on Goosle</a> &bull; <a href=\"./results.php?q=".$search_query."&a=".$opts_hash."&t=9\" title=\"Search on Goosle Magnet Search! For new additions results may be limited.\">Find more Magnet links</a></p>";
 	if(!empty($meta)) {
 		$output .= "		<p>".implode('<br />', $meta)."</p>";
 	}
@@ -55,7 +57,7 @@ function highlight_popup($opts_hash, $highlight) {
 	$output .= "</div>";
 
 	unset($highlight, $magnet, $magnet_meta);
-	
+
 	return $output;
 }
 
@@ -67,42 +69,42 @@ function detect_nsfw($string) {
 	$string = strtolower($string);
 
 	// Forbidden terms
-	//Basic pattern: ^cum[-_\s]?play(ing|ed|s)?
+	// Basic pattern: ^cum[-_\s]?play(ing|ed|s)?
 	$nsfw_keywords = array(
-		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|hump|finger|pegg|fist|ballbust|twerk|dogg|squirt|dick|orgasm)(ing|ed|s)?/', 
-		'/(yaoi|porn|gonzo|erotica|blowbang|bukkake|gokkun|softcore|hardcore|latex|lingerie|interracial|bdsm|chastity|kinky|bondage|shibari|hitachi|upskirt)/', 
-		'/(cock|creampie|cameltoe|enema|nipple|sybian|vibrator|cougar|threesome|foursome|pornstar|escort)(s)?/', 
-		'/(cmnf|cfnm|pov|cbt|bbw|pawg|ssbbw|joi|cei)/', 
-		'/(blow|rim|foot|hand)job(s)?/', 
-		'/(org|puss)(y|ies)\s?/', 
-		'/hentai(ed)?/', 
-		'/jerk(ing)?[-_\s]?off/', 
+		'/(deepthroat|gangbang|cowgirl|dildo|fuck|cuckold|anal|hump|finger|pegg|fist|ballbust|twerk|dogg|squirt|dick|orgasm)(ing|ed|s)?/',
+		'/(yaoi|porn|gonzo|erotica|blowbang|bukkake|gokkun|softcore|hardcore|latex|lingerie|interracial|bdsm|chastity|kinky|bondage|shibari|hitachi|upskirt)/',
+		'/(cock|creampie|cameltoe|enema|nipple|sybian|vibrator|cougar|threesome|foursome|pornstar|escort)(s)?/',
+		'/(cmnf|cfnm|pov|cbt|bbw|pawg|ssbbw|joi|cei)/',
+		'/(blow|rim|foot|hand)job(s)?/',
+		'/(org|puss)(y|ies)\s?/',
+		'/hentai(ed)?/',
+		'/jerk(ing)?[-_\s]?off/',
 		'/tw(i|u)nk(s)?/',
-		'/cum(bot|ming|s)?/', 
+		'/cum(bot|ming|s)?/',
 		'/porn(hub)?|xhamster|youporn|faphouse|sexually(\s)?broken|adulttime|transfixed|tsseduction|waterbondage|fuckingmachines|monstersofcock|deeplush|hotandmean|onlyfans|fansly|manyvids|transangels|premiumhdv|genderx|evil(\s)?angel|thetrainingofo|rocco(\s)?siffredi|electrosluts|ultimatesurrender|whippedass|insex|herlimit|analdays|bangbus|faketaxi|horrorporn|neighboraffair|naughtybookworms|sexandsubmission|housewife1on1|devicebondage|tspussyhunters|everythingbutt|theupperfloor|public(\s)?disgrace|fuckedandbound|alterotic|divinebitches|wiredpussy/',
-		'/(m|g)ilf(s)?/', 
-		'/clit(oris|s)?/', 
-		'/tit(ties|s)/', 
-		'/strap[-_\s]?on(ed|s)?/', 
-		'/webcam(ming|s)?/', 
-		'/doggy(style)?/', 
-		'/(masturbat|penetrat)(e|ion|ing|ed)/', 
-		'/face(fuck|sit)?(ing|ting|ed|s)?/', 
-		'/(gap|scissor)(e|ing|ed)?/', 
-		'/(fetish|penis|ass)(es)?/', 
-		'/(fem|lez|male)dom/', 
-		'/futa(nari)?/', 
-		'/(slave|pet)[-_\s]?play(ing|ed|s)?/', 
-		'/submissive(d|s)?/', 
-		'/tied[-_\s]?(up)?/', 
-		'/glory[-_\s]?hole(d|s)?/', 
-		'/swing(er|ers|ing)?/', 
+		'/(m|g)ilf(s)?/',
+		'/clit(oris|s)?/',
+		'/tit(ties|s)/',
+		'/strap[-_\s]?on(ed|s)?/',
+		'/webcam(ming|s)?/',
+		'/doggy(style)?/',
+		'/(masturbat|penetrat)(e|ion|ing|ed)/',
+		'/face(fuck|sit)?(ing|ting|ed|s)?/',
+		'/(gap|scissor)(e|ing|ed)?/',
+		'/(fetish|penis|ass)(es)?/',
+		'/(fem|lez|male)dom/',
+		'/futa(nari)?/',
+		'/(slave|pet)[-_\s]?play(ing|ed|s)?/',
+		'/submissive(d|s)?/',
+		'/tied[-_\s]?(up)?/',
+		'/glory[-_\s]?hole(d|s)?/',
+		'/swing(er|ers|ing)?/',
 	);
 
 	// Replace everything but alphanumeric with a space
 	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
 
-	preg_replace($nsfw_keywords, '*', $string, -1 , $count); 
+	preg_replace($nsfw_keywords, '*', $string, -1 , $count);
 
     return ($count > 0) ? true : false;
 }
@@ -123,7 +125,7 @@ function find_video_quality($string) {
 		if($match == '5k') $match = '2880p (5K)';
 		if($match == '8k') $match = '4320p (8K)';
 	}
-	
+
 	return $match;
 }
 
@@ -155,23 +157,23 @@ function find_video_codec($string) {
 
 		$return[] = $codec;
 	}
-	
+
 	// Maybe a bitrate?
-	$bitrate = (preg_match('/\b(8|10|12)-?bit\b/i', $string, $bitrate)) ? $bitrate[0] : null;	
+	$bitrate = (preg_match('/\b(8|10|12)-?bit\b/i', $string, $bitrate)) ? $bitrate[0] : null;
 
 	if(!is_null($bitrate)) {
 		$return[] = trim(strtolower($bitrate));
 	}
 
 	// Maybe HDR?
-	$hdr = (preg_match('/\bhdr|uhd|imax\b/i', $string, $hdr)) ? $hdr[0] : null;	
+	$hdr = (preg_match('/\bhdr|uhd|imax\b/i', $string, $hdr)) ? $hdr[0] : null;
 
 	if(!is_null($hdr)) {
 		$return[] = trim(strtoupper($hdr));
 	}
 
 	if(count($return) > 0) return implode(' ', $return);
-	
+
 	return null;
 }
 
@@ -198,7 +200,7 @@ function find_audio_codec($string) {
 		if($codec == 'TRUEHD') $codec = 'TrueHD';
 
 		$return[] = $codec;
-	}	
+	}
 
 	// Try to add channels
 	$channels = (preg_match('/(2|5|7|9)[ \.](0|1|2)\b/i', $string, $channels)) ? $channels[0] : null;
@@ -216,14 +218,14 @@ function find_audio_codec($string) {
 	}
 
 	// Maybe sub-codec?
-	$codec2 = (preg_match('/\batmos\b/i', $string, $codec2)) ? $codec2[0] : null;	
+	$codec2 = (preg_match('/\batmos\b/i', $string, $codec2)) ? $codec2[0] : null;
 
 	if(!is_null($codec2)) {
 		$return[] = ucfirst(trim(strtolower($codec2)));
 	}
 
 	if(count($return) > 0) return implode(' ', $return);
-	
+
 	return null;
 }
 
@@ -232,12 +234,12 @@ function find_audio_codec($string) {
 --------------------------------------*/
 function movie_star_rating($rating) {
 	$rating = round($rating);
-	
+
 	$star_rating = '';
 	for($i = 1; $i <= 10; $i++) {
 		$star_rating .= ($i <= $rating) ? "<span class=\"star yellow\">&#9733;</span>" : "<span class=\"star\">&#9733;</span>";
 	}
-	
+
 	return $star_rating;
 }
 
@@ -258,8 +260,8 @@ function movie_mpa_rating($rating) {
 		$rating = "<span class=\"mpa-nc17\"><strong>NC-17 - Adults Only</strong></span> &bull; <em>Not suitable for persons under 17.</em>";
 	} else {
 		$rating = "<span>".$rating."</span>";
-	}	
-	
+	}
+
 	return $rating;
 }
 
@@ -268,7 +270,7 @@ function movie_mpa_rating($rating) {
 --------------------------------------*/
 function get_language($string) {
 	$languages = array("ab" => "Abkhaz", "aa" => "Afar", "af" => "Afrikaans", "ak" => "Akan", "sq" => "Albanian", "am" => "Amharic", "ar" => "Arabic", "an" => "Aragonese", "hy" => "Armenian", "as" => "Assamese", "av" => "Avaric", "ae" => "Avestan", "ay" => "Aymara", "az" => "Azerbaijani", "bm" => "Bambara", "ba" => "Bashkir", "eu" => "Basque", "be" => "Belarusian", "bn" => "Bengali", "bh" => "Bihari", "bi" => "Bislama", "bs" => "Bosnian", "br" => "Breton", "bg" => "Bulgarian", "my" => "Burmese", "ca" => "Catalan", "ch" => "Chamorro", "ce" => "Chechen", "ny" => "Nyanja", "zh" => "Chinese", "cn" => "Chinese", "cv" => "Chuvash", "kw" => "Cornish", "co" => "Corsican", "cr" => "Cree", "hr" => "Croatian", "cs" => "Czech", "da" => "Danish", "dv" => "Maldivian;", "nl" => "Dutch", "en" => "English", "eo" => "Esperanto", "et" => "Estonian", "ee" => "Ewe", "fo" => "Faroese", "fj" => "Fijian", "fi" => "Finnish", "fr" => "French", "ff" => "Fulah", "gl" => "Galician", "ka" => "Georgian", "de" => "German", "el" => "Greek, Modern", "gn" => "Guaraní", "gu" => "Gujarati", "ht" => "Haitian Creole", "ha" => "Hausa", "he" => "Hebrew (modern)", "hz" => "Herero", "hi" => "Hindi", "ho" => "Hiri Motu", "hu" => "Hungarian", "ia" => "Interlingua", "id" => "Indonesian", "ie" => "Interlingue", "ga" => "Irish", "ig" => "Igbo", "ik" => "Inupiaq", "io" => "Ido", "is" => "Icelandic", "it" => "Italian", "iu" => "Inuktitut", "ja" => "Japanese", "jv" => "Javanese", "kl" => "Kalaallisut", "kn" => "Kannada", "kr" => "Kanuri", "ks" => "Kashmiri", "kk" => "Kazakh", "km" => "Khmer", "ki" => "Kikuyu", "rw" => "Kinyarwanda", "ky" => "Kirghiz, Kyrgyz", "kv" => "Komi", "kg" => "Kongo", "ko" => "Korean", "ku" => "Kurdish", "kj" => "Kwanyama", "la" => "Latin", "lb" => "Luxembourgish", "lg" => "Luganda", "li" => "Limburgish, Limburgan, Limburger", "ln" => "Lingala", "lo" => "Lao", "lt" => "Lithuanian", "lu" => "Luba-Katanga", "lv" => "Latvian", "gv" => "Manx", "mk" => "Macedonian", "mg" => "Malagasy", "ms" => "Malay", "ml" => "Malayalam", "mt" => "Maltese", "mi" => "Māori", "mr" => "Marathi", "mh" => "Marshallese", "mn" => "Mongolian", "na" => "Nauru", "nv" => "Navajo, Navaho", "nb" => "Norwegian Bokmål", "nd" => "North Ndebele", "ne" => "Nepali", "ng" => "Ndonga", "nn" => "Norwegian Nynorsk", "no" => "Norwegian", "ii" => "Nuosu", "nr" => "South Ndebele", "oc" => "Occitan", "oj" => "Ojibwe, Ojibwa", "cu" => "Old Slavonic", "om" => "Oromo", "or" => "Oriya", "os" => "Ossetian", "pa" => "Punjabi", "pi" => "Pāli", "fa" => "Persian", "pl" => "Polish", "ps" => "Pashto, Pushto", "pt" => "Portuguese", "qu" => "Quechua", "rm" => "Romansh", "rn" => "Kirundi", "ro" => "Romanian", "ru" => "Russian", "sa" => "Sanskrit", "sc" => "Sardinian", "sd" => "Sindhi", "se" => "Northern Sami", "sm" => "Samoan", "sg" => "Sango", "sr" => "Serbian", "gd" => "Gaelic", "sn" => "Shona", "si" => "Sinhala", "sk" => "Slovak", "sl" => "Slovene", "so" => "Somali", "st" => "Southern Sotho", "es" => "Spanish", "su" => "Sundanese", "sw" => "Swahili", "ss" => "Swati", "sv" => "Swedish", "ta" => "Tamil", "te" => "Telugu", "tg" => "Tajik", "th" => "Thai", "ti" => "Tigrinya", "bo" => "Tibetan Standard, Tibetan, Central", "tk" => "Turkmen", "tl" => "Tagalog", "tn" => "Tswana", "to" => "Tonga", "tr" => "Turkish", "ts" => "Tsonga", "tt" => "Tatar", "tw" => "Twi", "ty" => "Tahitian", "ug" => "Uighur, Uyghur", "uk" => "Ukrainian", "ur" => "Urdu", "uz" => "Uzbek", "ve" => "Venda", "vi" => "Vietnamese", "vo" => "Volapük", "wa" => "Walloon", "cy" => "Welsh", "wo" => "Wolof", "fy" => "Western Frisian", "xh" => "Xhosa", "yi" => "Yiddish", "yo" => "Yoruba", "za" => "Zhuang, Chuang");
-	
+
 	return $languages[$string];
 }
 

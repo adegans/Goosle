@@ -16,22 +16,22 @@ class ImageSearch extends EngineRequest {
 		$this->requests = array();
 
 		if($opts->enable_image_search == 'on') {
-			if($opts->image['yahooimages'] == 'on') {
+			if($opts->image['yahooimages'] == 'on' && !has_timeout('YahooImageRequest')) {
 				require ABSPATH.'engines/image/yahoo-images.php';
 				$this->requests[] = new YahooImageRequest($search, $opts, $mh);
 			}
 
-			if($opts->image['qwantimages'] == 'on') {
+			if($opts->image['qwantimages'] == 'on' && !has_timeout('QwantImageRequest')) {
 				require ABSPATH.'engines/image/qwant-images.php';
 				$this->requests[] = new QwantImageRequest($search, $opts, $mh);
 			}
 
-			if($opts->image['pixabay'] == 'on') {
+			if($opts->image['pixabay'] == 'on' && !has_timeout('PixabayRequest')) {
 				require ABSPATH.'engines/image/pixabay.php';
 				$this->requests[] = new PixabayRequest($search, $opts, $mh);
 			}
 
-			if($opts->image['openverse'] == 'on') {
+			if($opts->image['openverse'] == 'on' && !has_timeout('OpenverseRequest')) {
 				require ABSPATH.'engines/image/openverse.php';
 				$this->requests[] = new OpenverseRequest($search, $opts, $mh);
 			}
@@ -77,8 +77,8 @@ class ImageSearch extends EngineRequest {
 									$goosle_results['search'][$found_id]['combo_source'][] = $engine_result['source'];
 								} else {
 									// First find, rank and add to results
-									$match_rank = match_count($result['tags'], $request->search->query_terms, 2);
-//									$match_rank += match_count($result['alt'], $request->search->query_terms);
+									$match_rank = 0;
+									$match_rank += match_count($result['alt'], $request->search->query_terms, 1.5);
 									$match_rank += match_count($result['url'], $request->search->query_terms, 0.5);
 
 									$result['goosle_rank'] = $goosle_rank + $match_rank;
@@ -166,6 +166,14 @@ echo "</pre>";
 			}
 			echo "</li>";
 
+			// Search suggestions
+			if(array_key_exists('did_you_mean', $goosle_results)) {
+				echo "<li class=\"meta\">";
+				echo "	<p class=\"didyoumean\">".search_suggestion($search->type, $opts->hash, $goosle_results['did_you_mean'])."</p>";
+				echo "	<p class=\"suggestion\">Or instead search for <a href=\"./results.php?q=%22".urlencode($search->query)."%22&t=".$search->type."&a=".$opts->hash."\">\"".$search->query."\"</a></p>";
+				echo "</li>";
+			}
+
 			echo "</ul>";
 
 			// Search results
@@ -178,7 +186,9 @@ echo "</pre>";
 				echo "		<a href=\"".$result['url']."\" target=\"_blank\" title=\"".$result['alt']."\"><img src=\"".$result['image_thumb']."\" alt=\"".$result['alt']."\" /></a>";
 				echo "	</div>";
 				echo "	<div class=\"meta\">";
-				if(!empty($result['height']) && !empty($result['width'])) echo "		<p>".$result['width']."&times;".$result['height']."</p>";
+				if(!empty($result['height']) && !empty($result['width'])) {
+					echo "		<p>".$result['width']."&times;".$result['height']."</p>";
+				}
 				echo "		<p><a href=\"".$result['url']."\" target=\"_blank\" title=\"Open website\">Website</a> &bull; <a href=\"".$result['image_full']."\" target=\"_blank\" title=\"Open image\">Image</a></p>";
 				if($opts->show_search_rank == 'on') echo "		<p>Rank: ".$result['goosle_rank']."</p>";
 				echo "	</div>";
@@ -194,7 +204,7 @@ echo "</pre>";
 				echo "<p class=\"pagination\">".search_pagination($search, $opts, $goosle_results['number_of_results'])."</p>";
 			}
 
-			echo "<p class=\"text-center\"><small>Goosle does not store or distribute image files.</small></p>";
+			echo "<p class=\"text-center\"><small>Goosle does not store or distribute image files. Images may be subject to copyright.</small></p>";
 		}
 
 		// No results found

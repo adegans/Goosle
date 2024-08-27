@@ -11,7 +11,7 @@
 ------------------------------------------------------------------------------------ */
 
 // Current Goosle version
-$current_version = '1.7';
+$current_version = '1.7.1';
 
 /*--------------------------------------
 // Verify the hash, or not, and let people in, or not
@@ -40,6 +40,15 @@ function load_opts() {
 		// From the url/request
 		$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : '';
 		$opts->pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+		// Set up engine timeouts
+		$timeout_file = ABSPATH.'cache/timeout.data';
+
+		if(is_file($timeout_file)) {
+			$opts->timeouts = unserialize(file_get_contents($timeout_file));
+		} else {
+			$opts->timeouts = array();
+		}
 
 		// Force a few defaults and safeguards
 		if($opts->cache_type == 'file' && !is_dir(ABSPATH.'cache/')) $opts->cache_type = 'off';
@@ -90,55 +99,55 @@ function load_search() {
 	$search->page = (isset($_REQUEST['p'])) ? sanitize($_REQUEST['p']) : 1;
 
 	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
-	if(substr($search->query, 0, 1) == '!') $search->query = substr($search->query, 1);
+	if(substr($search->query, 0, 1) === '!') $search->query = substr($search->query, 1);
+
 	// Preserve quotes
 	$search->query = str_replace('%22', '\"', $search->query);
+	$search->query = str_replace('%27', '\'', $search->query);
 
 	// Special searches and filters
-    $search->query_terms = explode(' ', strtolower($search->query)); // Break up query
-	$search->count_terms = count($search->query_terms); // How many keywords?
+    $search->query_terms = make_terms_array_from_string($search->query); // Break up query
+	$search->count_terms = count($search->query_terms); // How many terms?
 
 	// Safe search override
 	// 0 = off, 1 = normal (default), 2 = on/strict
 	$search->safe = 1;
-	if($search->query_terms[0] == 'safe:on') {
-		$search->safe = 2;
-		$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
-	}
+	if($search->count_terms > 1) {
+		if(in_array('safe:on', $search->query_terms)) {
+			$search->safe = 2;
+			$search->query = trim(str_ireplace('safe:on', '', $search->query));
+		}
 
-	if($search->query_terms[0] == 'safe:off' || $search->query_terms[0] == 'nsfw') {
-		$search->safe = 0;
-		$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+		if(in_array('safe:off', $search->query_terms) || in_array('nsfw', $search->query_terms)) {
+			$search->safe = 0;
+			$search->query = trim(str_ireplace(array('safe:off', 'nsfw'), '', $search->query));
+		}
 	}
 
 	// Size search override (For image search only)
-	// 0 = all, 1 = small, 2 = medium, 3 = large, 4 extra large
+	// 0 = all (default), 1 = small, 2 = medium, 3 = large, 4 extra large
 	$search->size = 0;
-	if($search->type == 1) {
-		if($search->query_terms[0] == 'size:small') {
+	if($search->type == 1 && $search->count_terms > 1) {
+		if(in_array('size:small', $search->query_terms)) {
 			$search->size = 1;
-			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+			$search->query = trim(str_ireplace('size:small', '', $search->query));
 		}
 
-		if($search->query_terms[0] == 'size:medium') {
+		if(in_array('size:medium', $search->query_terms)) {
 			$search->size = 2;
-			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+			$search->query = trim(str_ireplace('size:medium', '', $search->query));
 		}
 
-		if($search->query_terms[0] == 'size:large') {
+		if(in_array('size:large', $search->query_terms)) {
 			$search->size = 3;
-			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+			$search->query = trim(str_ireplace('size:large', '', $search->query));
 		}
 
-		if($search->query_terms[0] == 'size:xlarge') {
+		if(in_array('size:xlarge', $search->query_terms)) {
 			$search->size = 4;
-			$search->query = trim(str_replace($search->query_terms[0], '', $search->query));
+			$search->query = trim(str_ireplace('size:xlarge', '', $search->query));
 		}
 	}
-
-	// Create a 'human-readable' and Urlencoded query
-	$search->nice_query = $search->query;
-	$search->query = urlencode($search->query);
 
 	// Maybe count stats?
 	if(!empty($search->query)) count_stats();
@@ -234,6 +243,54 @@ function do_curl_request($url, $headers, $method, $post_fields) {
 	return $response;
 }
 
+/*--------------------------------------
+// Set a timeout if an engine is being mean to us
+--------------------------------------*/
+function set_timeout($engine, $http_code) {
+	$timeout_file = ABSPATH.'cache/timeout.data';
+
+	if(is_file($timeout_file)) {
+		$timeouts = unserialize(file_get_contents($timeout_file));
+	} else {
+		$timeouts = array();
+	}
+
+	if($http_code == 401 || $http_code == 403) {
+		// Unauthorized / banned
+		$timeout = 21600; // 6 hours
+	} else if($http_code == 410) {
+		// Resource no longer available
+		$timeout = 3600; // 1 hour
+	} else if($http_code == 429) {
+		// Too many requests
+		$timeout = 1800; // 30 minutes
+	} else if($http_code >= 500 || $http_code < 600) {
+		// Some kind of server error
+		$timeout = 43200; // 12 hours
+	} else {
+		// Unspecified error/status
+		$timeout = 900; // 15 minutes
+	}
+
+	$timeouts[$engine] = time() + $timeout;
+
+	file_put_contents($timeout_file, serialize($timeouts));
+}
+
+/*--------------------------------------
+// Engine has a timeout?
+--------------------------------------*/
+function has_timeout($engine) {
+	global $opts;
+
+	if(isset($opts->timeouts)) {
+		if(isset($opts->timeouts[$engine])) {
+			if($opts->timeouts[$engine] > time()) return true;
+		}
+	}
+
+	return false;
+}
 
 /*--------------------------------------
 // Load pages into a DOM
@@ -396,13 +453,24 @@ function strip_newlines($string) {
 function limit_string_length($string, $length = 200, $append = '&hellip;') {
 	$string = trim($string);
 
-	if(str_word_count($string, 0) > $length) {
-		$words = str_word_count($string, 2);
-		$pos = array_keys($words);
-		$string = substr($string, 0, $pos[$length]) . $append;
+	if(strlen($string) > $length) {
+		preg_match('/(.{' . $length . '}.*?)\b/', $string, $matches);
+		$string = rtrim($matches[1]) . $append;
 	}
 
 	return $string;
+}
+
+function make_terms_array_from_string($string) {
+	if(empty($string)) return array();
+
+	$string = strtolower($string);
+
+	// Replace anything but alphanumeric with a space
+	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
+	$keywords = array_filter(array_unique(explode(' ', $string)));
+
+    return $keywords;
 }
 
 /*--------------------------------------
@@ -412,37 +480,14 @@ function match_count($result_terms, $query_terms, $multiplier = 1) {
 	if(empty($result_terms)) return 0;
 
 	if(!is_array($result_terms)) {
-		$result_terms = make_tags_from_string($result_terms);
+		$result_terms = make_terms_array_from_string($result_terms);
 	}
 
+	// Get matching keywords and apply multiplier
 	$matches = array_intersect($result_terms, $query_terms);
 	$matches = count($matches) * $multiplier;
 
     return $matches;
-}
-
-/*--------------------------------------
-// Turn a string (title or something) into an array of words (tags)
---------------------------------------*/
-function make_tags_from_string($string) {
-	if(empty($string)) return array();
-
-	$string = strtolower($string);
-
-	// Replace anything but alphanumeric with a space
-	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
-	$keywords = array_filter(array_unique(explode(' ', $string)));
-
-	// Get rid of short words and letters
-	foreach($keywords as $k => $word) {
-		if(strlen($word) < 3) unset($keywords[$k]);
-	}
-
-	// Get rid of filler words (English)
-	$filler_words = array('and', 'ago', 'but', 'for', 'get', 'gets', 'have', 'haves', 'has', 'into', 'nor', 'off', 'onto', 'the', 'with', 'yet');
-	$keywords = array_diff($keywords, $filler_words);
-
-    return $keywords;
 }
 
 /*--------------------------------------
@@ -495,6 +540,32 @@ function detect_social_media($string) {
 	preg_replace($social_media, '*', $string, -1 , $count);
 
     return ($count > 0) ? true : false;
+}
+
+/*--------------------------------------
+// Search suggestions
+--------------------------------------*/
+function search_suggestion($search_type, $hash, $suggestions) {
+	// Remove duplicate suggestions
+	$suggestions = array_unique($suggestions);
+
+	if(count($suggestions) > 1) {
+		// List multiple suggestions and format them as usable links
+		foreach($suggestions as $key => $suggestion) {
+			$suggestions[$key] = "<a href=\"./results.php?q=".urlencode($suggestion)."&t=".$search_type."&a=".$hash."\">".$suggestion."</a>";
+
+			unset($key, $suggestion);
+		}
+
+		$result = "Did you mean ".implode(' or ', $suggestions)."?";
+	} else {
+		// Format the one suggestion
+		$result = "Did you mean <a href=\"./results.php?q=".urlencode($suggestions[0])."&t=".$search_type."&a=".$hash."\">".$suggestions[0]."</a>?";
+	}
+
+	unset($suggestions);
+
+	return $result;
 }
 
 /*--------------------------------------

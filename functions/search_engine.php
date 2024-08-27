@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 abstract class EngineRequest {
@@ -20,8 +20,8 @@ abstract class EngineRequest {
 
 		// No search engine url
 		if(!$this->url) return;
-		
-		// Skip if there is a cached result (from earlier search)
+
+		// Skip if there is a cached result
 		if($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time)) return;
 
 		// Default headers for the curl request
@@ -55,7 +55,7 @@ abstract class EngineRequest {
 
 		// Curl
 		$this->ch = curl_init();
-		
+
 		curl_setopt($this->ch, CURLOPT_URL, $this->url);
 		curl_setopt($this->ch, CURLOPT_HTTPGET, 1); // Redundant? Probably...
 		curl_setopt($this->ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
@@ -78,18 +78,24 @@ abstract class EngineRequest {
 	public function get_request_url() {
 		return '';
 	}
-	
+
 	/*--------------------------------------
 	// Check if a request to a search engine was successful
 	--------------------------------------*/
 	public function request_successful() {
 		if((isset($this->ch) && curl_getinfo($this->ch)['http_code'] == '200') || ($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time))) {
 			return true;
-		}			
+		}
+
+		// Set a timeout if Goosle is (temporarily) unable to use engine
+		set_timeout(get_class($this), curl_getinfo($this->ch)['http_code']);
 
 		return false;
 	}
-	
+
+	/*--------------------------------------
+	// Process results so Goosle can use it
+	--------------------------------------*/
 	abstract function parse_results($response);
 
 	/*--------------------------------------
@@ -99,7 +105,7 @@ abstract class EngineRequest {
 		if(!isset($this->url)) {
 			return $this->parse_results(null);
 		}
-		
+
 		// If there is a cached result from an earlier search use that instead
 		if($this->opts->cache_type !== 'off' && has_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $this->opts->cache_time)) {
 			return fetch_cached_results($this->opts->cache_type, $this->opts->hash, $this->url);
@@ -116,13 +122,16 @@ abstract class EngineRequest {
 
 		// Cache last request if there is something to cache
 		if($this->opts->cache_type !== 'off') {
-			$ttl = ($this->search->type == 2) ? 1 : $this->opts->cache_time;
+			$ttl = ($this->search->type == 2) ? 1 : $this->opts->cache_time; // Cache news (type 2) for 1 hour only
 			if(count($results) > 0) store_cached_results($this->opts->cache_type, $this->opts->hash, $this->url, $results, $ttl);
 		}
 
 		return $results;
 	}
-	
+
+	/*--------------------------------------
+	// Output search results after processing
+	--------------------------------------*/
 	public static function print_results($results, $search, $opts) {}
 }
 ?>

@@ -16,22 +16,22 @@ class NewsSearch extends EngineRequest {
 		$this->requests = array();
 
 		if($opts->enable_news_search == 'on') {
-			if($opts->news['qwantnews'] == 'on') {
+			if($opts->news['qwantnews'] == 'on' && !has_timeout('QwantNewsRequest')) {
 				require ABSPATH.'engines/news/qwant-news.php';
 				$this->requests[] = new QwantNewsRequest($search, $opts, $mh);
 			}
 
-			if($opts->news['yahoonews'] == 'on') {
+			if($opts->news['yahoonews'] == 'on' && !has_timeout('YahooNewsRequest')) {
 				require ABSPATH.'engines/news/yahoo-news.php';
 				$this->requests[] = new YahooNewsRequest($search, $opts, $mh);
 			}
 
-			if($opts->news['bravenews'] == 'on') {
+			if($opts->news['bravenews'] == 'on' && !has_timeout('BraveNewsRequest')) {
 				require ABSPATH.'engines/news/brave-news.php';
 				$this->requests[] = new BraveNewsRequest($search, $opts, $mh);
 			}
 
-			if($opts->news['hackernews'] == 'on') {
+			if($opts->news['hackernews'] == 'on' && !has_timeout('HackernewsRequest')) {
 				require ABSPATH.'engines/news/hackernews.php';
 				$this->requests[] = new HackernewsRequest($search, $opts, $mh);
 			}
@@ -70,7 +70,8 @@ class NewsSearch extends EngineRequest {
 									$goosle_results['search'][$found_id]['combo_source'][] = $engine_result['source'];
 								} else {
 									// First find, rank and add to results
-									$match_rank = match_count($result['title'], $request->search->query_terms, 1.2);
+									$match_rank = 0;
+									$match_rank += match_count($result['title'], $request->search->query_terms, 1.2);
 									$match_rank += match_count($result['description'], $request->search->query_terms);
 									$match_rank += match_count($result['url'], $request->search->query_terms, 0.5);
 

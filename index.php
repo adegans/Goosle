@@ -45,12 +45,14 @@ $opts = load_opts();
 <?php
 if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 ?>
-
 <div class="content">
 	<h1><span class="goosle-g">G</span>oosle</h1>
 
     <form action="results.php" method="get" autocomplete="off">
-        <input tabindex="10" type="search" class="search-field" name="q" required autofocus />
+        <div class="autocomplete">
+			<input tabindex="10" type="search" class="search-field" id="search" name="q" required autofocus />
+		</div>
+
         <input type="hidden" name="a" value="<?php echo $opts->hash; ?>"/>
 
         <div class="search-buttons">
@@ -71,25 +73,18 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 	<?php if($opts->password_generator == "on") { ?>
 	<div class="password-generator">
 		<form method="get" action="./" autocomplete="off">
-			Password Generator<br/><input class="password" type="text" name="pw" maxlength="27" value="<?php echo string_generator(24, '-'); ?>" autocomplete="0" />
+			Password Generator<br/><input type="text" class="password" name="pw" maxlength="27" value="<?php echo string_generator(24, '-'); ?>" autocomplete="off" />
 		</form>
 	</div>
 	<?php } ?>
 </div>
 
-<div class="footer grid-container">
-	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
-	</div>
-	<div class="footer-grid">
-		<a href="./box-office.php?a=<?php echo $opts->hash; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->hash; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>
-	</div>
-</div>
-
-<?php } else { ?>
-	<div class="auth-error">Redirecting</div>
-	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
-<?php } ?>
+<?php
+	include_once('footer.php');
+} else {
+	include_once('error.php');
+}
+?>
 
 </body>
 </html>

@@ -16,36 +16,37 @@ class Search extends EngineRequest {
 		$this->requests = array();
 
 		if($opts->enable_web_search == 'on') {
-			if($opts->web['duckduckgo'] == 'on') {
+			if($opts->web['duckduckgo'] == 'on' && !has_timeout('DuckDuckGoRequest')) {
 				require ABSPATH.'engines/search/duckduckgo.php';
 				$this->requests[] = new DuckDuckGoRequest($search, $opts, $mh);
 			}
 
-			if($opts->web['mojeek'] == 'on') {
+			if($opts->web['mojeek'] == 'on' && !has_timeout('MojeekRequest')) {
 				require ABSPATH.'engines/search/mojeek.php';
 				$this->requests[] = new MojeekRequest($search, $opts, $mh);
 			}
 
-			if($opts->web['google'] == 'on') {
+			if($opts->web['google'] == 'on' && !has_timeout('GoogleRequest')) {
 				require ABSPATH.'engines/search/google.php';
 				$this->requests[] = new GoogleRequest($search, $opts, $mh);
 			}
 
-			if($opts->web['qwant'] == 'on') {
+			if($opts->web['qwant'] == 'on' && !has_timeout('QwantRequest')) {
 				require ABSPATH.'engines/search/qwant.php';
 				$this->requests[] = new QwantRequest($search, $opts, $mh);
 			}
 
-			if($opts->web['brave'] == 'on') {
+			if($opts->web['brave'] == 'on' && !has_timeout('BraveRequest')) {
 				require ABSPATH.'engines/search/brave.php';
 				$this->requests[] = new BraveRequest($search, $opts, $mh);
 			}
 
-			if($opts->web['wikipedia'] == 'on') {
+			if($opts->web['wikipedia'] == 'on' && !has_timeout('WikiRequest')) {
 				require ABSPATH.'engines/search/wikipedia.php';
 				$this->requests[] = new WikiRequest($search, $opts, $mh);
 			}
 		}
+
 		/* --- SPECIAL SEARCHES --- */
 
 		// Currency converter
@@ -99,11 +100,7 @@ class Search extends EngineRequest {
 
 					if(!empty($engine_result)) {
 						if(isset($engine_result['did_you_mean'])) {
-							$goosle_results['did_you_mean'] = $engine_result['did_you_mean'];
-						}
-
-						if(isset($engine_result['search_specific'])) {
-							$goosle_results['search_specific'][] = $engine_result['search_specific'];
+							$goosle_results['did_you_mean'][] = $engine_result['did_you_mean'];
 						}
 
 						if(isset($engine_result['search'])) {
@@ -128,7 +125,8 @@ class Search extends EngineRequest {
 									$goosle_results['search'][$found_id]['combo_source'][] = $engine_result['source'];
 								} else {
 									// First find, rank and add to results
-									$match_rank = match_count($result['title'], $request->search->query_terms);
+									$match_rank = 0;
+									$match_rank += match_count($result['title'], $request->search->query_terms);
 									$match_rank += match_count($result['description'], $request->search->query_terms, 2);;
 									$match_rank += match_count($result['url'], $request->search->query_terms, 0.5);
 
@@ -227,6 +225,14 @@ echo "</pre>";
 				echo "	<p class=\"sources\">".search_sources($goosle_results['sources'])."</p>";
 			}
 			echo "</li>";
+
+			// Search suggestions
+			if(array_key_exists('did_you_mean', $goosle_results)) {
+				echo "<li class=\"meta\">";
+				echo "	<p class=\"didyoumean\">".search_suggestion($search->type, $opts->hash, $goosle_results['did_you_mean'])."</p>";
+				echo "	<p class=\"suggestion\">Or instead search for <a href=\"./results.php?q=%22".urlencode($search->query)."%22&t=".$search->type."&a=".$opts->hash."\">\"".$search->query."\"</a></p>";
+				echo "</li>";
+			}
 
 			// Special result
 			if(array_key_exists('special', $goosle_results)) {

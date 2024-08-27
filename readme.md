@@ -18,12 +18,12 @@ After-all, finding things should be easy and not turn into a chore.
 
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
-- Search results from DuckDuckGo, Google, Qwant, Brave, Wikipedia
+- Search results from DuckDuckGo, Google, Qwant, Brave and Wikipedia
 - Image search through Yahoo! Images, Qwant, Pixabay and Openverse
 - Recent news via Qwant news, Yahoo! News, Brave and Hackernews
 - Search for magnet links on popular Torrent sites
 - Algorithm for ranking search results for relevancy
-- Option to down-rank the biggest social media sites such as facebook, instagram, twitter, tiktok, reddit, snapchat and a few others.
+- Option to down-rank the biggest social media sites such as facebook, instagram, twitter, tiktok, reddit, snapchat and a few others
 - Special searches for; Currency conversion, Dictionary, IP Lookup and php.net
 - Randomized user-agents for to prevent profiling by search providers
 - Non-personalized Google results without instant results or other non-sense
@@ -72,7 +72,15 @@ Developed on Apache with PHP8.2.
 4. Load Goosle in your browser. If you've enabled the access hash don't forget to add *?a=YOUR_HASH* to the url.
 5. Enjoy your updated search experience!
 
-Take a look at the [changelog](changelog.md) for every update here. \
+Take a look at the [changelog](changelog.md) for every update here.
+
+## Installation and setup notes
+- When using file caching you should set up a cronjob to execute goosle-cron.php every few hours. This deletes cached results.
+- When you use Openverse for your image searches you should set up a cron job to execute goosle-cron.php every 11 hours or less. This will automagically renew the access token.
+- If you want update notifications in the footer of Goosle set up the cron job so Goosle can ping Github weekly to see what's new.
+- The .htaccess file has a redirect to force HTTPS, catch 404 errors with a redirect as well as browser caching rules ready to go.
+- The robots.txt has a rule to tell all crawlers to not crawl Goosle. But keep in mind that not every crawler obeys this file.
+- The access hash is NOT meant as a super secure measure and only works for surface level prying eyes.
 
 ## Setting up a Cronjob / background task
 For a number of background tasks like clearing up the file cache and/or renewing your Openverse access token you need to set up a cronjob. \
@@ -98,16 +106,17 @@ Example for 5 minutes past every 8 hours (I use this on my Goosle) \
 Example for every midnight \
 `0 0 * * * wget -qO - https://example.com/goosle-cron.php?a=YOUR_HASH`
 
-Why a few minutes past the hour? Because most people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes later spreads server load.
+Why a few minutes past the hour? Because most people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes offset helps spread server load.
 
 ## Authorizing access to the Openverse search API
-OpenVerse image search provides (mostly) royalty free images. \
+Openverse image search provides (mostly) royalty free images. \
 Millions of high quality photos from photographers from all over the world. \
-If you're into high quality photo backgrounds, need images for blogs and articles or just like to look at high-res anything, then Openverse is a useful engine to use.
+If you're into high quality photo backgrounds, need images for blogs and articles or just like to look at high-res anything, then Openverse is a useful engine to use. \
+Check out Openverse here: [https://www.openverse.com](https://www.openverse.com)
 
-To use Openverse Image Search you'll need to register Goosle for an oAUTH access token.
+To use Openverse Image Search you'll need to register Goosle for an oAUTH access token. \
+Goosle includes a oAuth routine to easily register for an access token.
 
-Goosle includes a oAuth routine to easily register for an access token. \
 - In your browser navigate to your goosle setup and add /functions/oauth-openverse.php to the url (ex. example.com/functions/oauth-openverse.php or example.com/functions/oauth-openverse.php?a=YOUR_HASH).
 - Follow the onscreen prompts to get an authorization token to use Openverse.
 - When prompted save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file that Goosle creates get lost you'll need these strings to continue using Openverse.
@@ -130,15 +139,8 @@ Once registered and logged in, you can find your API key in the Documentation he
 ## Support
 You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or through my [website](https://www.arnan.me).
 
-## Notes
-- When using file caching you should set up a cronjob to execute goosle-cron.php every few hours. This deletes 'old' results.
-- When you use Openverse for your image searches you should set up a cron job to execute goosle-cron.php every 11 hours or so. This will automagically renew the access token.
-- If you want update notifications in the footer of Goosle set up the cron job so Goosle can ping Github weekly to see what's new.
-- The .htaccess file has a redirect to force HTTPS, catch 404 errors with a redirect as well as browser caching rules ready to go.
-- The robots.txt has a rule to tell all crawlers to not crawl Goosle. But keep in mind that not every crawler obeys this file.
-- The access hash is NOT meant as a super secure measure and only works for surface level prying eyes.
-- Results provided by Openverse and Pixabay are simplistic keyword matches which are not necessarily accurately sorted by relevancy.
-
 ## Known "issues"
-- Duckduckgo sometimes returns a 202 header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
+- Duckduckgo sometimes returns a '202' header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
+- YTS api does not reliably provide complete movie information for new additions, mostly missing movie summaries.
+- Mojeek is very picky on who they respond to. Goosle can get randomly banned for days because of it.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.

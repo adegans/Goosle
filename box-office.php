@@ -55,7 +55,7 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 <div class="header">
 	<form action="results.php" method="get" autocomplete="off">
 	    <h1 class="logo"><a href="./?a=<?php echo $opts->user_auth; ?>"><span class="goosle-g">G</span>oosle</a></h1>
-	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->nice_query) > 0) ? htmlspecialchars($search->nice_query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
+	    <input tabindex="1" class="search-field" type="search" value="<?php echo (strlen($search->query) > 0) ? htmlspecialchars($search->query) : "" ; ?>" name="q" /><input tabindex="2" class="button" type="submit" value="Search" />
 
         <input type="hidden" name="t" value="<?php echo $search->type; ?>"/>
 	    <input type="hidden" name="a" value="<?php echo $opts->user_auth; ?>">
@@ -140,19 +140,12 @@ if(verify_hash($opts->hash_auth, $opts->hash, $opts->user_auth)) {
 	<p class="text-center"><small>Goosle does not index, offer or distribute torrent files.</small></p>
 </div>
 
-<div class="footer grid-container">
-	<div class="footer-grid">
-		&copy; <?php echo the_date('Y'); ?> Goosle <?php echo $current_version; ?> <?php echo show_update_notification(); ?>
-	</div>
-	<div class="footer-grid">
-		<a href="./?a=<?php echo $opts->user_auth; ?>">Start</a> - <a href="./box-office.php?a=<?php echo $opts->user_auth; ?>&t=9">Box office</a> - <a href="./help.php?a=<?php echo $opts->user_auth; ?>">Help</a> - <a href="./stats.php?a=<?php echo $opts->hash; ?>">Stats</a>
-	</div>
-</div>
-
-<?php } else { ?>
-	<div class="auth-error">Redirecting</div>
-	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
-<?php } ?>
+<?php
+	include_once('footer.php');
+} else {
+	include_once('error.php');
+}
+?>
 
 </body>
 </html>

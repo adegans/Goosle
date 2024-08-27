@@ -55,6 +55,12 @@ class GoogleRequest extends EngineRequest {
 	        return $engine_result;
 	    }
 
+		// Scrape recommended
+        $didyoumean = $xpath->query("//a[@class='gL9Hy']")[0];
+        if(!is_null($didyoumean)) {
+			$engine_result['did_you_mean'] = strip_tags($didyoumean->textContent);
+        }
+
         foreach($scrape as $result) {
 			// Find data
 			$url = $xpath->evaluate(".//div[@class='yuRUbf']//a/@href", $result);

@@ -11,13 +11,10 @@
 ------------------------------------------------------------------------------------ */
 class PixabayRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = $this->search->query;
+		// Format query & max 100 chars
+		$query = implode(' ', make_terms_array_from_string(limit_string_length($this->search->query, 100, '')));
 
-		// Max 100 chars
-		$query = (strlen($query) > 100) ? substr($query, 0, 100) : $query;
-		$query = implode(',', make_tags_from_string($query));
-
- 		// Safe search override
+		// Safe search override
 		if($this->search->safe == 0) {
 			$safe = true;
 		} else {
@@ -97,9 +94,8 @@ class PixabayRequest extends EngineRequest {
 			$image_thumb = (!empty($result['previewURL'])) ? sanitize($result['previewURL']) : null;
 			$image_full = (!empty($result['largeImageURL'])) ? sanitize($result['largeImageURL']) : null;
 			$url = (!empty($result['pageURL'])) ? sanitize($result['pageURL']) : null;
-			$alt = (!empty($image_thumb)) ? substr(strrchr($image_thumb, "/"), 1) : null;
+			$alt = (!empty($result['tags'])) ? $result['tags'] : null;
 			$creator = (!empty($result['user'])) ? " by ".sanitize($result['user']) : null;
-			$tags = (!empty($result['tags'])) ? explode(', ', $result['tags']) : make_tags_from_string($alt);
 
 			// Skip broken results
 			if(empty($image_thumb)) continue;
@@ -112,7 +108,6 @@ class PixabayRequest extends EngineRequest {
 
 			// Process data
 			if(!is_null($creator)) $alt = $alt.$creator;
-			$tags = array_unique($tags);
 
 			// Skip duplicate IMAGE urls/results
 			if(!empty($engine_temp)) {
@@ -125,7 +120,6 @@ class PixabayRequest extends EngineRequest {
 				'image_full' => $image_full, // string
 				'url' => $url, // string
 				'alt' => $alt, // string
-				'tags' => $tags, // array
 				'engine_rank' => $rank, // int
 				// Optional
 				'width' => $dimensions_w, // int | null

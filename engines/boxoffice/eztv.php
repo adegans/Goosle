@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 function eztv_boxoffice($opts) {
@@ -17,7 +17,7 @@ function eztv_boxoffice($opts) {
 		return fetch_cached_results($opts->cache_type, $opts->hash, $api_url);
 	}
 
-	$response = do_curl_request( 
+	$response = do_curl_request(
 		$api_url, // (string) Where?
 		array('Accept: application/json, */*;q=0.7', 'User-Agent: '.$opts->user_agents[0].';'), // (array) User agent + Headers
 		'get', // (string) post/get
@@ -25,7 +25,7 @@ function eztv_boxoffice($opts) {
 	);
 	$json_response = json_decode($response, true);
 	$results = $results_temp = array();
-	
+
 	// No response
 	if(empty($json_response)) {
 		if($opts->querylog == 'on') querylog('BoxofficeEZTV', 'a', $api_url, 'No response', 0);
@@ -37,9 +37,11 @@ function eztv_boxoffice($opts) {
 		if($opts->querylog == 'on') querylog('BoxofficeEZTV', 'a', $api_url, 'No Results', 0);
 		return $results;
 	}
-	
+
 	foreach($json_response['torrents'] as $result) {
 		$title = (!empty($result['title'])) ? sanitize($result['title']) : null;
+		$imdb = sanitize($result['imdb_id']);
+
 		$year = (!empty($result['date_released_unix'])) ? gmdate('Y', sanitize($result['date_released_unix'])) : null;
 		$hash = (!empty($result['hash'])) ? strtolower(sanitize($result['hash'])) : null;
 		$thumbnail = (!empty($result['small_screenshot'])) ? sanitize($result['small_screenshot']) : null;
@@ -54,9 +56,10 @@ function eztv_boxoffice($opts) {
 		// Add codec to quality
 		if(!empty($codec)) $quality = $quality.' '.$codec;
 
-		// Clean up show name
+		// Clean up show name and fix up the imdb ID
 		$title = (preg_match('/.+?(?=[0-9]{3,4}p|xvid|divx|(x|h)26(4|5))/i', $title, $clean_name)) ? $clean_name[0] : $title; // Break off show name before video resolution
 		$title = trim(str_replace(array('S0E0', 'S00E00'), '', $title)); // Strip spaces and empty season/episode indicator from name
+		$imdb = 'tt'.$imdb;
 
 		// Group the same episodes in one result
 		if(count($results) > 0) {
@@ -70,9 +73,9 @@ function eztv_boxoffice($opts) {
 		if($found_id !== false) {
 			// Add the download to a previous result
 			$results[$found_id]['magnet_links'][] = array(
-				'hash' => $hash, 
-				'magnet' => $magnet_link, 
-				'filesize' => $filesize, 
+				'hash' => $hash,
+				'magnet' => $magnet_link,
+				'filesize' => $filesize,
 				'quality' => $quality,
 				'audio' => $audio
 			);
@@ -83,11 +86,12 @@ function eztv_boxoffice($opts) {
 			$results[$result_id] = array (
 				'id' => $result_id, // string
 				'title' => $title, // string
+				'imdb_id' => $imdb, // string
 				'year' => $year, // int(4)
 				'thumbnail' => $thumbnail, // string
 				'magnet_links' => array(array( // Yes, two array (For merging results)...
 					'hash' => $hash, // string
-					'magnet' => $magnet_link, // string 
+					'magnet' => $magnet_link, // string
 					'filesize' => $filesize, // int
 					'quality' => $quality, // string
 					'audio' => $audio // string

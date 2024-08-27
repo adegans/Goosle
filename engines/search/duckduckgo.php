@@ -58,7 +58,6 @@ class DuckDuckGoRequest extends EngineRequest {
 		}
 
 		// Scrape the results
-//		$scrape = $xpath->query("/html/body/div[1]/div[".count($xpath->query("/html/body/div[1]/div"))."]/div/div/div[contains(@class, 'web-result')]/div");
 		$scrape = $xpath->query("//div[contains(@class, 'result__body')]");
 
 		// Figure out results and base rank
@@ -69,6 +68,12 @@ class DuckDuckGoRequest extends EngineRequest {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 's', $this->url, 'No results', 0);
 	        return $engine_result;
 	    }
+
+		// Scrape recommended
+		$didyoumean = $xpath->query('//div[contains(@class, "msg--spelling")]/div/a[1]')[0];
+		if(!is_null($didyoumean)) {
+			$engine_result['did_you_mean'] = strip_tags($didyoumean->textContent);
+		}
 
 		foreach($scrape as $result) {
 			// Find data

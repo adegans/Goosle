@@ -11,8 +11,6 @@
 ------------------------------------------------------------------------------------ */
 class QwantImageRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = $this->search->query;
-
 		// Size override
 		$size = 'all';
 		if($this->search->size == 1) $size = 'small';
@@ -24,7 +22,7 @@ class QwantImageRequest extends EngineRequest {
 
 		// Based on https://github.com/locness3/qwant-api-docs and variables from qwant website
         $url = 'https://api.qwant.com/v3/search/images?'.http_build_query(array(
-        	'q' => $query, // Search query
+        	'q' => $this->search->query, // Search query
         	't' => 'images', // Type of search, Images
         	'count' => 150, // Up-to how many images to return (Max 150)
         	'size' => $size, // General image size
@@ -33,7 +31,7 @@ class QwantImageRequest extends EngineRequest {
         	'safesearch' => $this->search->safe // Safe search filter (0 = off, 1 = normal, 2 = strict)
         ));
 
-        unset($query, $size, $language);
+        unset($size, $language);
 
         return $url;
 	}
@@ -74,7 +72,6 @@ class QwantImageRequest extends EngineRequest {
 			$image_full = (!empty($result['media'])) ? sanitize($result['media']) : null;
 			$url = (!empty($result['url'])) ? sanitize($result['url']) : null;
 			$alt = (!empty($result['title'])) ? sanitize($result['title']) : null;
-			$tags = (!empty($alt)) ? make_tags_from_string($alt) : array();
 
 			// Skip broken results
 			if(empty($image_thumb)) continue;
@@ -84,9 +81,6 @@ class QwantImageRequest extends EngineRequest {
 			// Optional
 			$dimensions_w = (!empty($result['width'])) ? sanitize($result['width']) : null;
 			$dimensions_h = (!empty($result['height'])) ? sanitize($result['height']) : null;
-
-			// Process data
-			$tags = array_unique($tags);
 
 			// Skip duplicate IMAGE urls/results
 			if(!empty($engine_temp)) {
@@ -99,7 +93,6 @@ class QwantImageRequest extends EngineRequest {
 				'image_full' => $image_full, // string
 				'url' => $url, // string
 				'alt' => $alt, // string
-				'tags' => $tags, // array
 				'engine_rank' => $rank, // int
 				// Optional
 				'width' => $dimensions_w, // int | null

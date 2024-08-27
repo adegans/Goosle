@@ -6,7 +6,7 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 function yts_boxoffice($opts, $what) {
@@ -17,7 +17,7 @@ function yts_boxoffice($opts, $what) {
 		return fetch_cached_results($opts->cache_type, $opts->hash, $api_url);
 	}
 
-	$response = do_curl_request( 
+	$response = do_curl_request(
 		$api_url, // (string) Where?
 		array('Accept: application/json, */*;q=0.7', 'User-Agent: '.$opts->user_agents[0].';'), // (array) User agent + Headers
 		'get', // (string) post/get
@@ -40,6 +40,7 @@ function yts_boxoffice($opts, $what) {
 
 	foreach($json_response['data']['movies'] as $result) {
 		$title = sanitize($result['title']);
+		$imdb = sanitize($result['imdb_code']);
 
 		$year = (!empty($result['year'])) ? sanitize($result['year']) : 0;
 		$category = (!empty($result['genres'])) ? $result['genres'] : null;
@@ -55,7 +56,7 @@ function yts_boxoffice($opts, $what) {
 		if(is_array($category)) {
 			// Block these categories
 			if(count(array_uintersect($category, $opts->yts_categories_blocked, 'strcasecmp')) > 0) continue;
-			
+
 			// Set actual category
 			$category = sanitize(implode(', ', $category));
 		}
@@ -76,10 +77,10 @@ function yts_boxoffice($opts, $what) {
 			if(!empty($bitrate)) $quality = $quality.' '.$bitrate.'bit';
 
 			$downloads[] = array (
-				'hash' => $hash, 
-				'magnet' => $magnet, 
-				'filesize' => $filesize, 
-				'type' => $type, 
+				'hash' => $hash,
+				'magnet' => $magnet,
+				'filesize' => $filesize,
+				'type' => $type,
 				'quality' => $quality,
 				'audio' => $audio
 			);
@@ -91,6 +92,7 @@ function yts_boxoffice($opts, $what) {
 		$results[$result_id] = array (
 			'id' => $result_id, // Semi random string to separate results
 			'title' => $title, // string
+			'imdb_id' => $imdb, // string
 			'year' => $year, // int(4)
 			'category' => $category, // string|null
 			'language' => $language, // string|null
@@ -100,8 +102,8 @@ function yts_boxoffice($opts, $what) {
 			'thumbnail' => $thumbnail, // string|empty
 			'magnet_links' => $downloads // array
 		);
-		
-		unset($result, $title, $thumbnail, $year, $category, $language, $rating, $url, $summary, $downloads);
+
+		unset($result, $title, $imdb, $thumbnail, $year, $category, $language, $rating, $url, $summary, $downloads);
 	}
 	unset($response, $json_response);
 

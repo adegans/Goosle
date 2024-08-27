@@ -130,13 +130,15 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance:none; -w
 .result-grid .result, .result-grid .meta { margin:0; padding:0; }
 
 /* Magnet highlight/Share/Boxoffice popup */
-.goosebox { display:none; position:fixed; inset:0; z-index:10000; overflow:auto; background-color:rgb(0, 0, 0, .75); }
+.goosebox { display:none; position:fixed; inset:0; z-index:2; overflow:auto; background-color:rgb(0, 0, 0, .75); }
 .goosebox.open { display:block; }
 .goosebox-body { margin:50px auto; padding:20px; width:50%; background:var(--background-popup); border:1px solid var(--border); border-radius:10px; }
 .goosebox-body h2 { padding:0 0 .3em 0; }
 .goosebox-body h3 { font-size:1.2rem; }
 .goosebox-body a { cursor:pointer; }
 .goosebox-body a:visited { color:var(--link); }
+.goosebox-body img { margin:0; padding:0 5px 5px 0; width:8em; border:0; border-radius:10px; float:left; }
+.goosebox-body hr { clear:both; content:" "; border:0; }
 .goosebox-body button { margin:5px auto; padding:5px 10px; width:100%; height:35px; border:1px solid var(--border-alt); border-radius:10px; color:var(--button-text); background-color:var(--button-bg); text-align:center; font-size:1rem; }
 .goosebox-body button:hover { text-decoration:none; background-color:var(--button-hover); }
 .goosebox-body .share-field, .goosebox-body .share-button { box-sizing:border-box; position:relative; padding:5px 10px; width:100%; height:40px; font-size:1rem; }
@@ -147,15 +149,14 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance:none; -w
 /* Stats display (stats page) */
 .statspage .content h1 { margin-bottom:10px; padding:0; text-align:center; font-size:2.5em; font-weight:400; }
 .statspage .content h2 { margin-bottom:10px; padding:0; text-align:center; font-size:1.5em; }
-.statspage p { font-family:'Courier New'; }
+.statspage p { font-family:'American Typewriter', 'Courier New', serif; }
 
 /* oAUTH page */
-.oauthpage { background-color:var(--background-alt); color:var(--text-alt); }
-.oauthpage .oauth-form { text-align:center; margin-top:20px; }
-.oauthpage .oauth-form p, .oauth-form small { margin-bottom:15px; color:var(--text-alt); }
-.oauthpage .oauth-form .field { padding:5px 10px; width:300px; color:#f0f6fc; background-color:var(--background-alt); font-size:1.2rem; border:1px solid var(--startpage-border); border-radius:10px; }
-.oauthpage .oauth-buttons button { margin:30px 20px 10px 20px; padding:13px 10px; min-width:130px; color:var(--text-alt); background-color:var(--startpage-button-bg); border:1px solid var(--startpage-border); font-size:1.2rem; border-radius:6px; }
-.oauthpage .oauth-buttons button:hover { border:1px solid var(--startpage-border-alt); background-color:var(--startpage-button-bg-alt); text-decoration:none; }
+.oauth-form { margin-top:20px; }
+.oauth-form p, .oauth-form small { margin-bottom:15px; color:var(--text-alt); }
+.oauth-form .field { padding:5px 10px; width:300px; color:#f0f6fc; background-color:var(--background-alt); font-size:1.2rem; border:1px solid var(--startpage-border); border-radius:10px; }
+.oauth-buttons button { margin:30px 0 10px 0; padding:13px 10px; min-width:130px; color:var(--text-alt); background-color:var(--startpage-button-bg); border:1px solid var(--startpage-border); font-size:1.2rem; border-radius:6px; }
+.oauth-buttons button:hover { border:1px solid var(--startpage-border-alt); background-color:var(--startpage-button-bg-alt); text-decoration:none; }
 
 /* Tooltips */
 .tooltip-question::before { content:""; display:inline-block; width:1.1em; height:1.1em; background:var(--link); vertical-align:text-bottom; mask-image:url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pjxzdmcgdmlld0JveD0iMCAwIDI0IDI0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMS4yOSwxNS4yOWExLjU4LDEuNTgsMCwwLDAtLjEyLjE1Ljc2Ljc2LDAsMCwwLS4wOS4xOC42NC42NCwwLDAsMC0uMDYuMTgsMS4zNiwxLjM2LDAsMCwwLDAsLjIuODQuODQsMCwwLDAsLjA4LjM4LjkuOSwwLDAsMCwuNTQuNTQuOTQuOTQsMCwwLDAsLjc2LDAsLjkuOSwwLDAsMCwuNTQtLjU0QTEsMSwwLDAsMCwxMywxNmExLDEsMCwwLDAtLjI5LS43MUExLDEsMCwwLDAsMTEuMjksMTUuMjlaTTEyLDJBMTAsMTAsMCwxLDAsMjIsMTIsMTAsMTAsMCwwLDAsMTIsMlptMCwxOGE4LDgsMCwxLDEsOC04QTgsOCwwLDAsMSwxMiwyMFpNMTIsN0EzLDMsMCwwLDAsOS40LDguNWExLDEsMCwxLDAsMS43MywxQTEsMSwwLDAsMSwxMiw5YTEsMSwwLDAsMSwwLDIsMSwxLDAsMCwwLTEsMXYxYTEsMSwwLDAsMCwyLDB2LS4xOEEzLDMsMCwwLDAsMTIsN1oiIGZpbGw9IiM2NTYzZmYiLz48L3N2Zz4='); }
@@ -191,6 +192,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance:none; -w
 
 /* Misc */
 .goosle-g { color:var(--color-accent); }
+.plainpage { background-color:var(--background-alt); color:var(--text-alt); }
 .green { color:var(--green); }
 .red { color:var(--red); }
 .yellow { color:var(--yellow); }

@@ -11,8 +11,6 @@
 ------------------------------------------------------------------------------------ */
 class YahooImageRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = $this->search->query;
-
 		// Safe search override
 		if($this->search->safe == 0) {
 			$safe = '0';
@@ -28,12 +26,12 @@ class YahooImageRequest extends EngineRequest {
 		if($this->search->size == 4) $size = 'wallpaper';
 
         $url = 'https://images.search.yahoo.com/search/images?'.http_build_query(array(
-        	'p' => $query, // Search query
+        	'p' => $this->search->query, // Search query
         	'imgsz' => $size, // Image size (small|medium|large|wallpaper)
         	'safe' => $safe // Safe search filter (0 = off, "" = on)
         ));
 
-        unset($query, $size, $safe);
+        unset($size, $safe);
 
         return $url;
 	}
@@ -68,14 +66,10 @@ class YahooImageRequest extends EngineRequest {
 	    }
 
 		// Scrape recommended
-		$didyoumean = $xpath->query(".//section[@class='dym-c']/section/h3/a")[0];
+		$didyoumean = $xpath->query("//section[@class='dym-c']/section/h3/a")[0];
 		if(!is_null($didyoumean)) {
-			$engine_result['did_you_mean'] = $didyoumean->textContent;
+			$engine_result['did_you_mean'][] = $didyoumean->textContent;
 		}
-        $search_specific = $xpath->query(".//section[@class='dym-c']/section/h5/a")[0];
-        if(!is_null($search_specific)) {
-			$engine_result['search_specific'] = $search_specific->textContent;
-        }
 
         foreach($scrape as $result) {
 			// Find data
@@ -110,7 +104,6 @@ class YahooImageRequest extends EngineRequest {
 			$image_full = (array_key_exists('imgurl', $usable_data)) ? sanitize($usable_data['imgurl']) : null;
 			$url = (array_key_exists('rurl', $usable_data)) ? sanitize($usable_data['rurl']) : null;
 			$alt = (array_key_exists('tt', $usable_data)) ? sanitize($usable_data['tt']) : null;
-			$tags = (!empty($alt)) ? make_tags_from_string($alt) : array();
 
 			// Skip broken results
 			if(empty($image_full)) continue;
@@ -132,7 +125,6 @@ class YahooImageRequest extends EngineRequest {
 					$image_full = '//'.$image_full;
 				}
 			}
-			$tags = array_unique($tags);
 
 			// Skip duplicate IMAGE urls/results
 			if(!empty($engine_temp)) {
@@ -145,7 +137,6 @@ class YahooImageRequest extends EngineRequest {
 				'image_full' => $image_full, // string
 				'url' => $url, // string
 				'alt' => $alt, // string
-				'tags' => $tags, // array
 				'engine_rank' => $rank, // int
 				// Optional
 				'width' => $dimensions_w, // int | null

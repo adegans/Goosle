@@ -35,7 +35,7 @@ $auth = (isset($_GET['a'])) ? sanitize($_GET['a']) : $opts->user_auth;
     <link rel="stylesheet" type="text/css" href="<?php echo get_base_url($opts->siteurl); ?>/assets/css/<?php echo $opts->colorscheme; ?>.css"/>
 </head>
 
-<body class="oauthpage">
+<body class="plainpage">
 <?php
 if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 ?>
@@ -122,10 +122,11 @@ if(verify_hash($opts->hash_auth, $opts->hash, $auth)) {
 
 </div>
 
-<?php } else { ?>
-	<div class="auth-error">Redirecting</div>
-	<meta http-equiv="refresh" content="1; url=<?php echo get_base_url($opts->siteurl); ?>/error.php" />
-<?php } ?>
+<?php
+} else {
+	include_once('../error.php');
+}
+?>
 
 </body>
 </html>

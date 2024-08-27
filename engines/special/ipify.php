@@ -6,16 +6,16 @@
 *  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
-*  By using this code you agree to indemnify Arnan de Gans from any 
+*  By using this code you agree to indemnify Arnan de Gans from any
 *  liability that might arise from its use.
 ------------------------------------------------------------------------------------ */
 class ipRequest extends EngineRequest {
     public function get_request_url() {
-        $url = 'https://api64.ipify.org?format=json';
-        
+        $url = 'https://api64.ipify.org?format=json&cache='.rand(1000, 9999);
+
         return $url;
     }
-    
+
     public function get_request_headers() {
 		return array(
 			'Accept' => 'application/json, */*;q=0.8',
@@ -36,7 +36,6 @@ class ipRequest extends EngineRequest {
 			if($this->opts->querylog == 'on') querylog(get_class($this), 'a', $this->url, 'No response', 0);
 			return $engine_result;
 		}
-
 
 		// Return result
         $engine_result = array(

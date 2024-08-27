@@ -11,17 +11,14 @@
 ------------------------------------------------------------------------------------ */
 class OpenverseRequest extends EngineRequest {
 	public function get_request_url() {
-		$query = $this->search->query;
-
-		// Max 200 chars
-		$query = (strlen($query) > 200) ? substr($query, 0, 200) : $query;
-		$query = implode(',', make_tags_from_string($query));
+		// Format query & max 200 chars
+		$query = implode(' ', make_terms_array_from_string(limit_string_length($this->search->query, 200, '')));
 
 		// Safe search override
 		if($this->search->safe == 0) {
-			$safe = '1';
+			$safe = true;
 		} else {
-			$safe = '0';
+			$safe = false;
 		}
 
 		// Size override
@@ -87,8 +84,8 @@ class OpenverseRequest extends EngineRequest {
 			$image_full = (!empty($result['url'])) ? sanitize($result['url']) : null;
 			$url = (!empty($result['foreign_landing_url'])) ? sanitize($result['foreign_landing_url']) : null;
 			$alt = (!empty($result['title'])) ? sanitize($result['title']) : null;
+			$tags = (count($result['tags']) > 0) ? implode(', ', array_unique(array_column($result['tags'], 'name'))) : null;
 			$creator = (!empty($result['creator'])) ? " by ".sanitize($result['creator']) : null;
-			$tags = (count($result['tags']) > 0) ? array_column($result['tags'], 'name') : make_tags_from_string($alt);
 
 			// Skip broken results
 			if(empty($image_thumb)) continue;
@@ -100,10 +97,10 @@ class OpenverseRequest extends EngineRequest {
 			$dimensions_h = (!empty($result['height'])) ? sanitize($result['height']) : null;
 
 			// Prepare data
+			if(!is_null($tags)) $alt = $alt.$tags;
 			if(!is_null($creator)) $alt = $alt.$creator;
-			$tags = array_unique($tags);
 
- 			// Skip duplicate IMAGE urls/results
+			// Skip duplicate IMAGE urls/results
 			if(!empty($engine_temp)) {
 				if(in_array($image_full, array_column($engine_temp, 'image_full'))) continue;
 			}
@@ -114,7 +111,6 @@ class OpenverseRequest extends EngineRequest {
 				'image_full' => $image_full, // string
 				'url' => $url, // string
 				'alt' => $alt, // string
-				'tags' => $tags, // array
 				'engine_rank' => $rank, // int
 				// Optional
 				'width' => $dimensions_w, // int | null

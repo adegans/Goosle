@@ -1,6 +1,30 @@
 # Goosle
 ## The best Meta Search Engine to find everything
 
+### 1.7.1 - August 26, 2024
+- NOTICE: config.default.php has changed, update your config.php!!
+- [new] Engine timeouts for specific response codes when a search engine returns some kind of error or quota limitation
+- [new] Engine timeouts status page at /functions/timeout-status.php
+- [new] GloTorrents (Glodls) Magnet results
+- [new] Use multiple search overrides (eg: 'size:large safe:off goose gone wild')
+- [fix] Search suggestions re-added and they now work (Scraped from Mojeek, Google, DuckduckGo and Yahoo Images)
+- [fix] Limetorrents search query is now properly formatted
+- [fix] Search overrides (Safe search, image size, etc.) trigger no longer included in search query
+- [fix] Search query no longer sent out double encoded
+- [fix] Strings (Search queries, seo texts, etc.) are now properly limited to max length where required
+- [fix] Multiple currency conversions now also works when caching is enabled
+- [fix] Multiple ip lookups (from different user IPs) now also works when caching is enabled
+- [update] Oauth page no longer center aligned
+- [update] Updated Language explanation in config.default.php
+- [change] Moved footer code to footer.php
+- [change] Redid error.php to only include the error html
+- [change] Openverse adds image category tags to image alt text
+- [change] Pixabay uses image tags as image alt text
+- [change] Image alt text now has a 1.5x multiplier for result ranking (was 1x)
+- [change] Added imdb.com link to Box office popup
+- [change] Added movie poster to Box office popup
+- [change] Simplified verified uploader popup text
+
 ### 1.7 - August 7, 2024
 - NOTICE: config.default.php has changed, update your config.php!!
 - [new] Mojeek search results
@@ -18,9 +42,10 @@
 - [change] Replaced 'porn' with 'nsfw' for safe search switch
 - [change] Removed 'xxx' as an keyword to disable safe search
 - [change] Don't search on nyaa.si and YTS if you search with safemode off
+- [change] Only search on sukebei.nyaa.si if you search with safemode off
 - [change] Moved image size override into search object
 - [change] Added a little space between rows for image results on mobile
-- [change] Stats font is now 'Courier'
+- [change] Stats font is now 'Courier New'
 - [fix] Google search query not providing good results
 - [fix] Search query not always properly urlencoded
 - [removed] Removed search suggestions as they didn't work
