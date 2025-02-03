@@ -137,38 +137,17 @@ Developed on Apache with PHP8.2.
 
 ## Updating Goosle to a Newer Version
 
-1. **Clone the latest version**:
-   ```bash
-   git clone https://github.com/adegans/Goosle.git Goosle-new
-   ```
+1. **Download and unzip the latest release of Goosle**.
 
-2. **Navigate to the new project directory**:
-   ```bash
-   cd Goosle-new
-   ```
+2. **Reconfigure Goosle with a new copy from `config.default.php`** (Or, compare your `config.php` file with `config.default.php` and make sure any new settings or changed values are present).
 
-3. **Reconfigure Goosle**:
-   Compare your current `config.php` file with `config.default.php` to ensure that any new settings or changed values are present. You can also create a new `config.php` file from `config.default.php` and add your custom settings to it.
+3. **Upload all the files to your webserver**, overwriting all files except perhaps `config.php`.
 
-4. **Install dependencies**:
-   Install the required dependencies for the new version of Goosle by running the following command in the project directory:
-   ```bash
-   composer install
-   ```
+4. **Load Goosle in your browser**. If you've enabled the access hash, don't forget to add `?a=YOUR_HASH` to the URL.
 
-5. **Replace files**:
-   Copy all files from the new directory to your current Goosle directory, overwriting all files except `config.php`.
-   ```bash
-   cp -r Goosle-new/* ../Goosle/
-   ```
+5. **Enjoy your updated search experience!**
 
-6. **Run Goosle**:
-   After copying the files, you can run Goosle by executing the following command in the project directory:
-   ```bash
-   php -S localhost:8000 -t Goosle
-   ```
-
-   You can then access Goosle by opening your web browser and navigating to `http://localhost:8000`.
+Take a look at the [changelog](changelog.md) for every update here.
 
 ## Installation and Setup Notes
 - When using file caching, you should set up a cron job to execute `goosle-cron.php` every few hours. This deletes cached results.
@@ -246,4 +225,3 @@ You can post your questions on GitHub Discussions or say hi on [Mastodon](https:
 - YTS API does not reliably provide complete movie information for new additions, mostly missing movie summaries.
 - Mojeek is very picky on who they respond to. Goosle can get randomly banned for days because of it.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.
-- 
