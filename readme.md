@@ -1,4 +1,3 @@
-
 # Goosle
 ## The best Meta Search Engine to find everything
 
