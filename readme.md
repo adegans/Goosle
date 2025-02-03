@@ -85,13 +85,16 @@ Developed on Apache with PHP8.2.
 
    Open `config.php` in your preferred text editor and modify the settings as needed. For example, you can set the timezone, adjust search settings, or tweak cache settings.
 
-5. **Run Goosle**:
-   After installing the dependencies and configuring Goosle, you can run it by executing the following command in the project directory:
+5. **Rename `goosle.htaccess` to `.htaccess` or add its contents to your existing `.htaccess` file**:
    ```bash
-   php -S localhost:8000 -t Goosle
+   mv goosle.htaccess .htaccess
    ```
 
-   You can then access Goosle by opening your web browser and navigating to `http://localhost:8000`.
+6. **Load Goosle in your browser**. If you've enabled the access hash, add `?a=YOUR_HASH` to the URL.
+
+7. **Set up a background task (Cronjob) as described below**. This runs a background task to delete old cache files and renews authorization tokens and checks for updates.
+
+8. **Let me know where you installed Goosle in the 'Show your Goosle' discussion on GitHub :-)**
 
 ### Linux and macOS
 
@@ -121,13 +124,16 @@ Developed on Apache with PHP8.2.
 
    Open `config.php` in your preferred text editor and modify the settings as needed. For example, you can set the timezone, adjust search settings, or tweak cache settings.
 
-5. **Run Goosle**:
-   After installing the dependencies and configuring Goosle, you can run it by executing the following command in the project directory:
+5. **Rename `goosle.htaccess` to `.htaccess` or add its contents to your existing `.htaccess` file**:
    ```bash
-   php -S localhost:8000 -t Goosle
+   mv goosle.htaccess .htaccess
    ```
 
-   You can then access Goosle by opening your web browser and navigating to `http://localhost:8000`.
+6. **Load Goosle in your browser**. If you've enabled the access hash, add `?a=YOUR_HASH` to the URL.
+
+7. **Set up a background task (Cronjob) as described below**. This runs a background task to delete old cache files and renews authorization tokens and checks for updates.
+
+8. **Let me know where you installed Goosle in the 'Show your Goosle' discussion on GitHub :-)**
 
 ## Updating Goosle to a Newer Version
 
@@ -240,3 +246,4 @@ You can post your questions on GitHub Discussions or say hi on [Mastodon](https:
 - YTS API does not reliably provide complete movie information for new additions, mostly missing movie summaries.
 - Mojeek is very picky on who they respond to. Goosle can get randomly banned for days because of it.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.
+- 
