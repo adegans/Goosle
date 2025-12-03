@@ -1,6 +1,12 @@
 # Goosle
 ## The best Meta Search Engine to find everything
 
+I'm still using Goosle and occasionally work on Goosle for my own usage. The constant sabotage from search engines, API and the internet as a whole made me shift priorities and in current betas Goosle only searches for magnet links.
+
+**I currently have NO plans on releasing any public updates. The energy and enthusiasm is gone...**
+
+---
+
 Goosle is a fast, privacy oriented search tool that just works. \
 It's kept simple so everyone can use it and to make sure it works on most webservers.
 
@@ -13,8 +19,6 @@ On top of that, Goosle provides a safe and clean Magnet Link search tab along wi
 Host for yourself and friends, with a access hash key. Or set up a public search website.
 
 After-all, finding things should be easy and not turn into a chore.
-
-[![Goosle Mainpage](https://ajdg.solutions/assets/goosle/homepage-950.webp)](https://ajdg.solutions/assets/goosle/homepage-950.webp)
 
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
@@ -39,16 +43,7 @@ What Goosle does **not** have.
 
 And yet it just works... fast!
 
-If you like Goosle, or found a use for it, please support my work and [donate](https://www.arnan.me/donate.html?mtm_campaign=goosle_readme) and tell everyone about its existence.
-
-## Screenshots
-[![Goosle Mainpage](https://ajdg.solutions/assets/goosle/homepage-250.webp)](https://ajdg.solutions/assets/goosle/homepage.webp)
-[![Goosle Web Search](https://ajdg.solutions/assets/goosle/web-search-250.webp)](https://ajdg.solutions/assets/goosle/web-search.webp)
-[![Goosle Image Search](https://ajdg.solutions/assets/goosle/image-search-250.webp)](https://ajdg.solutions/assets/goosle/image-search.webp)
-[![Goosle News Search](https://ajdg.solutions/assets/goosle/news-search-250.webp)](https://ajdg.solutions/assets/goosle/news-search.webp)
-[![Goosle Magnet Search](https://ajdg.solutions/assets/goosle/magnet-search-250.webp)](https://ajdg.solutions/assets/goosle/magnet-search.webp)
-[![Goosle Boxoffice releases](https://ajdg.solutions/assets/goosle/boxoffice-250.webp)](https://ajdg.solutions/assets/goosle/boxoffice.webp)
-[![Goosle Usage stats](https://ajdg.solutions/assets/goosle/usage-stats-250.webp)](https://ajdg.solutions/assets/goosle/usage-stats.webp)
+If you like Goosle, or found a use for it, please support my work and [donate](https://www.arnan.me/donate/?mtm_campaign=goosle_readme) and tell everyone about its existence.
 
 ## Requirements
 Any basic webserver/webhosting package with PHP7.4 or newer. \
@@ -108,39 +103,12 @@ Example for every midnight \
 
 Why a few minutes past the hour? Because most people run stuff exactly on the hour or some other predictable interval like 15 or 30 minutes. Running things a few minutes offset helps spread server load.
 
-## Authorizing access to the Openverse search API
-Openverse image search provides (mostly) royalty free images. \
-Millions of high quality photos from photographers from all over the world. \
-If you're into high quality photo backgrounds, need images for blogs and articles or just like to look at high-res anything, then Openverse is a useful engine to use. \
-Check out Openverse here: [https://www.openverse.com](https://www.openverse.com)
-
-To use Openverse Image Search you'll need to register Goosle for an oAUTH access token. \
-Goosle includes a oAuth routine to easily register for an access token.
-
-- In your browser navigate to your goosle setup and add /functions/oauth-openverse.php to the url (ex. example.com/functions/oauth-openverse.php or example.com/functions/oauth-openverse.php?a=YOUR_HASH).
-- Follow the onscreen prompts to get an authorization token to use Openverse.
-- When prompted save the Client ID and Client Secret somewhere on your computer, in a note or something. Should the token file that Goosle creates get lost you'll need these strings to continue using Openverse.
-- An email from Openverse will arrive within a few minutes with a confirmation link to finalize the set up.
-- Once activated, enable openverse in your config.php and you're all set!
-
-This procedure generates an access token which is stored in /cache/token.data, this token expires every 12 hours. Yeah, annoying! \
-To automatically renew the token you can set up the Goosle cronjob as described elsewhere in this readme.
-
-## API access to the Pixabay search API
-Pixabay is a high quality photo and illustration database with (generally) royalty-free images. \
-Pixabay has a database of hundreds of thousands of images provided by Photographers from all over the world. \
-If you're a content creator who regularly need images for blogs and articles or just like to look at high-res photography, Pixabay is for you.
-
-To get image results from Pixabay you'll need a free account to get a free API key. \
-Register an account here: [https://pixabay.com](https://pixabay.com) (Click the Join button in the top right)
-
-Once registered and logged in, you can find your API key in the Documentation here: [https://pixabay.com/api/docs/](https://pixabay.com/api/docs/), look for the first parameter specification (looks like a list), the Key will be highlighted in green at the top of it. Copy this key to your config.php into the pixabay_api_key option.
-
 ## Support
-You can post your questions on Github Discussions or say hi on [Mastodon](https://mas.to/@arnan) or through my [website](https://www.arnan.me).
+You can post your questions on Github Discussions.
 
 ## Known "issues"
 - Duckduckgo sometimes returns a '202' header and no results. I'm not sure what causes that but suspect it's something to do with quotas or a service limitation on their end.
 - YTS api does not reliably provide complete movie information for new additions, mostly missing movie summaries.
 - Mojeek is very picky on who they respond to. Goosle can get randomly banned for days because of it.
 - Some crawlers for Magnet searches may return empty results. These are likely quota limits on their end.
+- Search engines and the advent of AI suck in general!
