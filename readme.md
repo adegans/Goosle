@@ -14,8 +14,6 @@ Host for yourself and friends through the simple user profile system.
 
 After-all, finding things should be easy and not turn into a chore.
 
-[![Goosle Mainpage](https://ajdg.solutions/assets/goosle/homepage-950.webp)](https://ajdg.solutions/assets/goosle/homepage-950.webp)
-
 ## Features
 - Works on **any** hosting package that does PHP7.4 or newer
 - Search for magnet links on popular Torrent sites
@@ -31,8 +29,6 @@ What Goosle does **not** have.
 - Libraries, dependencies or Frameworks
 
 And yet it just works... fast!
-
-If you like Goosle, or found a use for it, please support my work and [donate](https://www.arnan.me/donate.html?mtm_campaign=goosle_readme) and tell everyone about its existence.
 
 ## Requirements
 Any basic webserver/webhosting package with PHP7.4 or newer. \
