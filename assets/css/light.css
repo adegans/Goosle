@@ -1,3 +1,5 @@
+/* Light colorscheme for Goosle */
+
 :root {
 	/* Main colors */
     --color-accent: #1fa4d1; /* Blue */
@@ -18,11 +20,11 @@
 	--result-special-background: #ebf3fa; /* Light blue */
 
 	/* Front page (Also used on oAUTH page) */
-	--startpage-border: #808b96; /* Grey */
-	--startpage-border-alt: #808b96; /* Lighter grey */
-    --startpage-button-text: #f0f6fc; /* Almost white */
-	--startpage-button-bg: #2980B9; /* Blueish grey */
-	--startpage-button-bg-alt: #7FB3D5; /* Lighter blueish grey */
+	--homepage-border: #808b96; /* Grey */
+	--homepage-border-alt: #808b96; /* Lighter grey */
+    --homepage-button-text: #f0f6fc; /* Almost white */
+	--homepage-button-bg: #2980B9; /* Blueish grey */
+	--homepage-button-bg-alt: #7FB3D5; /* Lighter blueish grey */
 
 	/* Misc */
 	--green: #518257; /* Green */

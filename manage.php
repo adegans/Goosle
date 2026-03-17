@@ -16,53 +16,47 @@ session_start();
 date_default_timezone_set('UTC');
 
 require ABSPATH.'functions/tools-files.php';
-require ABSPATH.'functions/tools-search.php';
 require ABSPATH.'functions/tools.php';
-require ABSPATH.'functions/search-engine.php';
 
 $opts = load_opts();
-$user = do_login($opts);
 $search = load_search();
 
-/*
-echo '<pre>';
-print_r($user);
-print_r($opts);
-echo '</pre>';
-*/
+if(isset($_REQUEST['view'])) {
+	$view = sanitize($_REQUEST['view']);
+} else if(isset($_POST['view'])) {
+	$view = sanitize($_POST['view']);
+} else {
+	$view = '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Goosle Search | Results</title>
+	<title>Goosle Search | Profile page</title>
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 	<meta name="robots" content="noodp,noydir" />
     <meta name="referrer" content="no-referrer"/>
-	<meta name="description" content="Check out these Goosle search results!" />
+	<meta name="description" content="Manage your Goosle profile and settings." />
 
 	<meta property="og:site_name" content="Goosle Search" />
-	<meta property="og:title" content="The best meta search engine" />
-	<meta property="og:description" content="Check out these Goosle search results!" />
-	<meta property="og:url" content="<?php echo $opts->baseurl; ?>results.php" />
+	<meta property="og:title" content="Profile page" />
+	<meta property="og:description" content="Manage your Goosle profile and settings." />
+	<meta property="og:url" content="<?php echo $opts->baseurl; ?>manage.php" />
 	<meta property="og:image" content="<?php echo $opts->baseurl; ?>assets/images/goosle.webp" />
 	<meta property="og:type" content="website" />
 
 	<link rel="icon" href="favicon.ico" />
 	<link rel="apple-touch-icon" href="apple-touch-icon.png" />
-	<link rel="canonical" href="<?php echo $opts->baseurl; ?>results.php" />
+	<link rel="canonical" href="<?php echo $opts->baseurl; ?>manage.php" />
     <link rel="stylesheet" type="text/css" href="<?php echo $opts->baseurl; ?>assets/css/styles.css"/>
     <link rel="stylesheet" type="text/css" href="<?php echo $opts->baseurl; ?>assets/css/<?php echo $opts->colorscheme; ?>.css"/>
-	<script src="<?php echo $opts->baseurl;?>/assets/js/goose.js" id="goosebox-js"></script>
-	<style>
-		.result-grid .result.image .thumb::before, .result-grid .result.highlight .thumb::before { background-image:url('<?php echo $opts->baseurl; ?>assets/images/goosle-nobg.webp'); }
-	</style>
 </head>
 
-<body class="page results">
+<body class="page profile">
 <?php
-if($user->logged_in) {
+if($opts->user->logged_in) {
 ?>
 <div class="header">
 	<div class="logo"><h1><a href="./"><span class="goosle-g">G</span>oosle</a></h1></div>
@@ -73,41 +67,35 @@ if($user->logged_in) {
 </div>
 
 <div class="content">
-	<?php
-	if(!empty($search->query)) {
-		$start_time = microtime(true);
-		// Curl
-    	$mh = curl_multi_init();
+	<div class="columns">
+		<div class="column-narrow">
+			<h3>Menu</h3>
+			<p>&raquo; <a href="<?php echo $opts->baseurl; ?>manage.php">Settings</a></p>
+			<p>&raquo; <a href="<?php echo $opts->baseurl; ?>manage.php?view=engines">Search engines</a></p>
+			<p>&raquo; <a href="<?php echo $opts->baseurl; ?>manage.php?view=credentials">Manage credentials</a></p>
 
-		// Load search script
-		require ABSPATH.'functions/search-magnet.php';
-       	$search_results = new SearchRequest($search, $opts, $mh);
-
-    	$running = null;
-
-    	do {
-        	$status = curl_multi_exec($mh, $running);
-	    	if($running) {
-	        	curl_multi_select($mh);
-	    	}
-    	} while ($running && $status == CURLM_OK);
-
-    	$results = $search_results->get_results();
-
-		curl_multi_close($mh);
-
-		// Add elapsed time to results
-		$results['time'] = number_format(microtime(true) - $start_time, 5, '.', '');
-
-		// Echoes results and special searches
-    	$search_results->print_results($results, $search, $opts);
-	} else {
-		echo "<div class=\"warning\">";
-		echo "	<h3>Search query can not be empty!</h3>";
-		echo "	<p>Not sure what went wrong? Learn more about <a href=\"./help.php\" title=\"how to use Goosle!\">how to use Goosle</a>.</p>";
-		echo "</div>";
-	}
-	?>
+			<?php if($opts->user->admin === "yes") { ?>
+				<h3>Admin</h3>
+				<p>&raquo; <a href="<?php echo $opts->baseurl; ?>manage.php?view=users">Users</a></p>
+				<p>&raquo; <a href="<?php echo $opts->baseurl; ?>manage.php?view=timeouts">View Timeouts</a></p>
+			<?php } ?>
+		</div>
+		<div class="column-wide">
+			<?php
+			if($view == 'users') {
+				include_once(ABSPATH.'manage-parts/gsl-users.php');
+			} else if($view == 'timeouts') {
+				include_once(ABSPATH.'manage-parts/gsl-timeouts.php');
+			} else if($view == 'engines') {
+				include_once(ABSPATH.'manage-parts/gsl-engines.php');
+			} else if($view == 'credentials') {
+				include_once(ABSPATH.'manage-parts/gsl-credentials.php');
+			} else {
+				include_once(ABSPATH.'manage-parts/gsl-settings.php');
+			}
+			?>
+		</div>
+	</div>
 </div>
 
 <?php

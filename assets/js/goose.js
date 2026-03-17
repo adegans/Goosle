@@ -2,7 +2,7 @@
 *  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
-*  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
+*  Copyright 2023-2025 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
 *  By using this code you agree to indemnify Arnan de Gans from any 
@@ -10,7 +10,7 @@
 ------------------------------------------------------------------------------------ */
 
 /*--------------------------------------
- Share magnet results to the clipboard
+ Share magnet links to the clipboard
 --------------------------------------*/
 function clipboard(id) {
 	// Get the text field element and set up a response
@@ -26,9 +26,9 @@ function clipboard(id) {
 	
 	// Visual response
 	if(success) {
-		message = "<span class=\"success green\">Link copied to the clipboard.</span><br />Paste the link anywhere you want with ctrl+v (or cmd+v on macOS).<br />Or use the paste function in your app."
+		message = "<span class=\"success green\">Magnet Link copied to the clipboard.</span><br />Paste the link anywhere you want with ctrl+v (or cmd+v on macOS).<br />Or use the paste function in your app."
 	} else {
-		message = "<span class=\"fail red\">Copying is not supported or got blocked.</span><br />Copy the link by pressing ctrl+c (or cmd+c on macOS).<br />Or use the select and copy functions from the context menu."
+		message = "<span class=\"fail red\">Copying is not supported or got blocked.</span><br />Copy the link by pressing ctrl+c (or cmd+c on macOS).<br />Or use the select and copy functions from your browsers context menu."
 	}
 	response = document.getElementById(id + '-response');
 	response.innerHTML = message;
@@ -40,7 +40,7 @@ function clipboard(id) {
 }
 
 /*--------------------------------------
- Handle magnet share, highlight and box office popups
+ Handle popups
 --------------------------------------*/
 function openpopup(id) {
     document.getElementById(id).classList.add('open');

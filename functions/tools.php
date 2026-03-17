@@ -3,7 +3,7 @@
 *  Goosle - The fast, privacy oriented search tool that just works.
 *
 *  COPYRIGHT NOTICE
-*  Copyright 2023-2024 Arnan de Gans. All Rights Reserved.
+*  Copyright 2023-2025 Arnan de Gans. All Rights Reserved.
 *
 *  COPYRIGHT NOTICES AND ALL THE COMMENTS SHOULD REMAIN INTACT.
 *  By using this code you agree to indemnify Arnan de Gans from any
@@ -11,145 +11,349 @@
 ------------------------------------------------------------------------------------ */
 
 // Current Goosle version
-$current_version = '1.7.1';
-
-/*--------------------------------------
-// Verify the hash, or not, and let people in, or not
---------------------------------------*/
-function verify_hash($use_hash, $hash, $auth, $is_shared = null) {
-	if(($use_hash == 'on' && strtolower($hash) === strtolower($auth)) || $use_hash == 'off' || !empty($is_shared)) return true;
-
-    return false;
-}
+$current_version = '2.0b61';
 
 /*--------------------------------------
 // Load and make config available, pass around variables
 --------------------------------------*/
 function load_opts() {
-	$config_file = ABSPATH.'config.php';
+	$config_file = ABSPATH.'data/config.php';
 
 	if(!is_file($config_file)) {
 		echo "<h3>config.php is missing!</h3>";
 		echo "<p>Please check the readme.md file for complete installation instructions.</p>";
-		echo "<p>Configure Goosle by copying config.default.php to config.php. In config.php you can set your preferences.</p>";
+		echo "<p>Configure Goosle by copying config.default.php to config.php. In config.php you can set your global preferences.</p>";
 
 		die();
 	} else {
 		$opts = require $config_file;
 
-		// From the url/request
-		$opts->user_auth = (isset($_REQUEST['a'])) ? sanitize($_REQUEST['a']) : '';
-		$opts->pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+		$opts->engines = array();
 
-		// Set up engine timeouts
-		$timeout_file = ABSPATH.'cache/timeout.data';
+		// Discover all engines
+		$engine_path = ABSPATH."engines/";
+		$files = array_diff(scandir($engine_path, SCANDIR_SORT_ASCENDING), array('..', '.'));
 
-		if(is_file($timeout_file)) {
-			$opts->timeouts = unserialize(file_get_contents($timeout_file));
-		} else {
-			$opts->timeouts = array();
+		foreach($files as $file) {
+			if(substr($file, -4) == ".php" && $file != "index.php") {
+				$engine_info["filename"] = $file;
+				$engine_info["enabled"] = "on";
+				$engine_info["filter"] = array();
+
+				$content = file_get_contents($engine_path.$file, false, null, 0, 1500);
+				$content = explode(PHP_EOL, $content);
+
+				foreach($content as $line) {
+					// Detect the identifier from the class name
+					if(strtolower(substr($line, 0, 6)) === "class ") {
+						$line = explode(" ", $line);
+						$identifier = $line[1];
+						continue;
+					}
+
+					// These go into $engine_info
+					if(strtolower(substr($line, 0, 8)) === "filter: ") {
+						$line = substr($line, 8);
+						$line = explode(", ", $line);
+						$engine_info["filter"] = $line;
+						continue;
+					}
+
+					if(strtolower(substr($line, 0, 6)) === "name: ") {
+						$engine_info["name"] = substr($line, 6);
+						continue;
+					}
+
+					if(strtolower(substr($line, 0, 13)) === "description: ") {
+						$engine_info["description"] = substr($line, 13);
+						continue;
+					}
+
+					if(strtolower(substr($line, 0, 12)) === "maintainer: ") {
+						$engine_info["maintainer"] = substr($line, 12);
+						continue;
+					}
+
+					if(strtolower(substr($line, 0, 9)) === "version: ") {
+						$engine_info["version"] = substr($line, 9);
+						continue;
+					}
+
+					unset($line);
+				}
+
+				// Only accept engines with complete headers/information
+				if(count($engine_info) == 7) $opts->engines[$identifier] = $engine_info;
+			}
+
+			unset($file, $engine_info, $identifier);
 		}
 
+		// Set up engine timeouts
+		$opts->timeouts = load_file('timeout.data');
+
+		// Figure out server protocol
+		$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';
+		$opts->baseurl = $protocol.'://'.$opts->siteurl.'/';
+
 		// Force a few defaults and safeguards
+		$opts->pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 		if($opts->cache_type == 'file' && !is_dir(ABSPATH.'cache/')) $opts->cache_type = 'off';
 		if($opts->cache_type == 'apcu' && !function_exists('apcu_exists')) $opts->cache_type = 'off';
 		if($opts->cache_type == 'apcu' && !function_exists('apcu_exists')) $opts->cache_type = 'off';
 		if($opts->cache_time < 1 || ($opts->cache_type == 'apcu' && $opts->cache_time > 8) || ($opts->cache_type == 'file' && $opts->cache_time > 48)) $opts->cache_time = 8;
-		if(!is_numeric($opts->search_results_per_page) || ($opts->search_results_per_page < 8 || $opts->search_results_per_page > 160)) $opts->social_media_relevance = 24;
-		if(!is_numeric($opts->social_media_relevance) || ($opts->social_media_relevance > 10 || $opts->social_media_relevance < 0)) $opts->social_media_relevance = 8;
+		if(!is_numeric($opts->search_results_per_page) || ($opts->search_results_per_page < 10 || $opts->search_results_per_page > 100)) $opts->search_results_per_page = 30;
+		if(!is_numeric($opts->safemode) || ($opts->safemode < 0 || $opts->safemode > 2)) $opts->safemode = 1;
 
-		// Disable the search type if no engines available
-		if($opts->web['duckduckgo'] == 'off' && $opts->web['mojeek'] == 'off' && $opts->web['qwant'] == 'off' && $opts->web['google'] == 'off' && $opts->web['brave'] == 'off' && $opts->web['wikipedia'] == 'off') $opts->enable_web_search = 'off';
-		if($opts->image['yahooimages'] == 'off' && $opts->image['qwantimages'] == 'off' && $opts->image['pixabay'] == 'off' && $opts->image['openverse'] == 'off') $opts->enable_image_search = 'off';
-		if($opts->news['qwantnews'] == 'off' && $opts->news['yahoonews'] == 'off' && $opts->news['bravenews'] == 'off' && $opts->news['hackernews'] == 'off') $opts->enable_news_search = 'off';
-		if($opts->magnet['limetorrents'] == 'off' && $opts->magnet['piratebay'] == 'off' && $opts->magnet['nyaa'] == 'off' && $opts->magnet['sukebei'] == 'off' && $opts->magnet['yta'] == 'off' && $opts->magnet['eztv'] == 'off') $opts->enable_magnet_search = 'off';
+		// Load the user settings and do a login
+		$opts->user = do_login($opts);
+
+		// Set user settings, if available
+		if(isset($opts->user->settings)) {
+			foreach($opts->user->settings as $key => $value) {
+				if(property_exists($opts, $key)) $opts->$key = $value;
+			}
+			unset($opts->user->settings);
+		}
+
+		// Set user engines, if available
+		if(isset($opts->user->engines)) {
+			foreach($opts->user->engines as $engine => $choice) {
+				if(array_key_exists($engine, $opts->engines)) {
+					$opts->engines[$engine]["enabled"] = $choice;
+				}
+
+				unset($engine, $choice);
+			}
+			unset($opts->user->engines);
+		}
 
 		return $opts;
 	}
 }
 
 /*--------------------------------------
+// Let people in, or not, and load their settings
+--------------------------------------*/
+function do_login($opts) {
+	$ttl = time() + ($opts->profile_cookie * 86400);
+	$profile_tokens = load_file('profile-token.data');
+
+	// Start the user object
+	$user = new stdClass();
+	$user->logged_in = false;
+	$user->settings = array();
+	$user->engines = array();
+
+	// Using Cookie or Session (Already logged in)
+	if(isset($_COOKIE['gsl_logged_in']) || isset($_SESSION['gsl_token'])) {
+		// Figure out the session token
+		if(!empty($_COOKIE['gsl_logged_in'])) {
+			$gsl_token = sanitize_credentials($_COOKIE['gsl_logged_in']);
+		} else if(!empty($_SESSION['gsl_token'])) {
+			$gsl_token = $_SESSION['gsl_token'];
+		} else {
+			$gsl_token = null;
+		}
+
+		if(!empty($gsl_token)) {
+			// Session exists and is not expired?
+			if(array_key_exists($gsl_token, $profile_tokens) && $profile_tokens[$gsl_token]['ttl'] > time() && strlen($gsl_token) == 48) {
+				// Keep the cookie alive
+				setcookie('gsl_logged_in', $gsl_token, $ttl, '/', $opts->siteurl, 1, 1);
+
+				// Load profile
+				$profile = get_profile($profile_tokens[$gsl_token]['uid']);
+
+				// Set up user object
+				$user->logged_in = true;
+				$user->uid = $profile_tokens[$gsl_token]['uid'];
+				$user->nicename = $profile['nicename'];
+				$user->username = $profile['username'];
+				$user->admin = $profile['admin'];
+				$user->settings = $profile['settings'];
+				$user->engines = $profile['engines'];
+			} else {
+				// Something is wrong with the token (expired or invalid), please log in again
+				$user->error = "error_invalid_token";
+
+				// End the session
+				session_destroy();
+				setcookie('gsl_logged_in', '', time() - 10, '/', $opts->siteurl, 1, 1);
+			}
+		} else {
+			// Session token is empty/missing
+			$user->error = "error_no_token";
+
+			// End the session
+			session_destroy();
+			setcookie('gsl_logged_in', '', time() - 10, '/', $opts->siteurl, 1, 1);
+		}
+
+		unset($gsl_token, $profile, $profile_tokens, $profile_settings);
+
+		return $user;
+	}
+
+	// Using login or registration form
+	if(isset($_POST['username']) && isset($_POST['password']) && $user->logged_in == false) {
+		$profiles = load_file('profile.data');
+
+		$username = sanitize_credentials($_POST['username']);
+		$password = sanitize_credentials($_POST['password']);
+		$uid = md5($username);
+
+		if(isset($_POST['reg']) && isset($_POST['password_confirm']) && !array_key_exists($uid, $profiles)) {
+			// ----------------------------------------------
+			// Register a new profile?
+			// ----------------------------------------------
+
+			$reg_auth = (isset($_POST['userhash'])) ? sanitize($_POST['userhash']) : '';
+			$password2 = (isset($_POST['password_confirm'])) ? sanitize_credentials($_POST['password_confirm']) : '';
+
+			if($reg_auth !== $opts->hash) {
+				// Hash does not match
+				$user->error = "error_hash_no_match";
+			} else if(strlen($username) < 5 || strlen($username) > 15) {
+				// Username shorter than 5 or longer than 15 characters
+				$user->error = "error_username_length";
+			} else if(preg_match('/[^a-zA-Z0-9]/', $username)) {
+				// Has special characters in username
+				$user->error = "error_username_has_special_chars";
+			} else if($password !== $password2) {
+				// Passwords do not match
+				$user->error = "error_password_no_match";
+			} else if(strlen($password) < 10 || strlen($password) > 100) {
+				// Password shorter than 10 or longer than 100 characters
+				$user->error = "error_password_length";
+			} else if(!preg_match('/[^a-zA-Z0-9]/', $password)) {
+				// No special characters in password
+				$user->error = "error_password_no_special_chars";
+			} else {
+				// Is this the first ever registration? We need an admin...
+				$is_admin = (count($profiles) === 0) ? "yes" : "no";
+
+				// Set up a new profile
+				$profiles[$uid] = array(
+					'username' => $username,
+					'nicename' => $username,
+					'admin' => $is_admin,
+					'registered' => time(),
+					'password' => password_hash($password, PASSWORD_DEFAULT),
+					'settings' => array(
+						'colorscheme' => $opts->colorscheme,
+						'safemode' => $opts->safemode,
+						'show_search_source' => $opts->show_search_source,
+						'show_yts_highlight' => $opts->show_yts_highlight,
+						'show_share_option' => $opts->show_share_option,
+						'show_zero_seeders' => $opts->show_zero_seeders
+					),
+					'engines' => $opts->engines
+				);
+
+				// Update profile file
+				if(update_file('profile.data', $profiles)) {
+					// Do a cookie and session
+					$_SESSION['gsl_token'] = string_generator(48);
+					setcookie('gsl_logged_in', $_SESSION['gsl_token'], $ttl, '/', $opts->siteurl, 1, 1);
+
+					// Update token file
+					$profile_tokens[$_SESSION['gsl_token']] = array('uid' => $uid, 'ttl' => $ttl);
+					update_file('profile-token.data', $profile_tokens);
+
+					// Set up user object
+					$user->logged_in = true;
+					$user->uid = $uid;
+					$user->nicename = $username;
+					$user->username = $username;
+					$user->admin = $is_admin;
+					$user->settings = $profiles[$uid]['settings'];
+					$user->engines = $profiles[$uid]['engines'];
+				}
+			}
+		} else if(array_key_exists($uid, $profiles) && !isset($_POST['reg']) && !isset($_POST['password_confirm'])) {
+			// ----------------------------------------------
+			// Existing profile, so we're not registering a new one
+			// ----------------------------------------------
+
+			// Load profile
+			$profile = $profiles[$uid];
+
+			if(password_verify($password, $profile['password']) && $profile['username'] === $username) {
+				session_regenerate_id();
+
+				// Do a cookie and session
+				$_SESSION['gsl_token'] = string_generator(48);
+				setcookie('gsl_logged_in', $_SESSION['gsl_token'], $ttl, '/', $opts->siteurl, 1, 1);
+
+				// Update token file
+				$profile_tokens[$_SESSION['gsl_token']] = array('uid' => $uid, 'ttl' => $ttl);
+				update_file('profile-token.data', $profile_tokens);
+
+				// Profile profile
+				$user->logged_in = true;
+				$user->uid = $profile_tokens[$gsl_token]['uid'];
+				$user->nicename = $profile['nicename'];
+				$user->username = $profile['username'];
+				$user->admin = $profile['admin'];
+				$user->settings = $profile['settings'];
+				$user->engines = $profile['engines'];
+			} else {
+				// Incorrect username or password
+				$user->error = "error_credentials";
+			}
+		} else {
+			// Unknown account or (if registering) account may already exist
+			$user->error = "error_account";
+		}
+
+		unset($ttl, $reg_auth, $username, $password, $password2, $uid, $is_admin, $profiles, $profile, $profile_tokens, $profile_settings);
+
+		return $user;
+	}
+
+	// Still not logged in? Maybe you're a guest user (Profiles are optional)
+	if($user->logged_in == false && $opts->profile_required == 'off') {
+		$user->logged_in = true;
+		$user->uid = "guest";
+		$user->username = "guest";
+		$user->nicename = "Guest";
+		$user->admin = "no";
+	}
+
+	unset($guest_auth, $profile_tokens);
+
+	return $user;
+}
+
+/*--------------------------------------
 // Process search query
 --------------------------------------*/
 function load_search() {
+	global $opts;
+
 	$search = new stdClass();
 
-	// From the url/request
-	if(!isset($_REQUEST['s'])) {
-		// Regular search
-		$search->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : '';
-		$search->type = (isset($_REQUEST['t'])) ? sanitize($_REQUEST['t']) : 0;
-		$search->share = null;
-	} else {
-		// Shared result
-		$share_string = explode('||', base64_url_decode(sanitize($_REQUEST['s'])));
-		if(is_array($share_string) && count($share_string) === 3) {
-			$search->query = sanitize($share_string[0]);
-			$search->type = sanitize($share_string[1]);
-			$search->share = sanitize($share_string[2]);
-		} else {
-			$search->query = '';
-			$search->type = 0;
-			$search->share = null;
-		}
-		unset($share_string);
-	}
+	// Regular search
+	$search->query = (isset($_REQUEST['q'])) ? trim($_REQUEST['q']) : '';
 
 	// Set pagination page
 	$search->page = (isset($_REQUEST['p'])) ? sanitize($_REQUEST['p']) : 1;
-
-	// Remove ! at the start of queries to prevent DDG Bangs (!g, !c and crap like that)
-	if(substr($search->query, 0, 1) === '!') $search->query = substr($search->query, 1);
 
 	// Preserve quotes
 	$search->query = str_replace('%22', '\"', $search->query);
 	$search->query = str_replace('%27', '\'', $search->query);
 
-	// Special searches and filters
-    $search->query_terms = make_terms_array_from_string($search->query); // Break up query
-	$search->count_terms = count($search->query_terms); // How many terms?
-
 	// Safe search override
 	// 0 = off, 1 = normal (default), 2 = on/strict
 	$search->safe = 1;
-	if($search->count_terms > 1) {
-		if(in_array('safe:on', $search->query_terms)) {
-			$search->safe = 2;
-			$search->query = trim(str_ireplace('safe:on', '', $search->query));
-		}
-
-		if(in_array('safe:off', $search->query_terms) || in_array('nsfw', $search->query_terms)) {
-			$search->safe = 0;
-			$search->query = trim(str_ireplace(array('safe:off', 'nsfw'), '', $search->query));
-		}
+	if($opts->user->logged_in && $search->safe != $opts->safemode) {
+		$search->safe = $opts->safemode;
 	}
 
-	// Size search override (For image search only)
-	// 0 = all (default), 1 = small, 2 = medium, 3 = large, 4 extra large
-	$search->size = 0;
-	if($search->type == 1 && $search->count_terms > 1) {
-		if(in_array('size:small', $search->query_terms)) {
-			$search->size = 1;
-			$search->query = trim(str_ireplace('size:small', '', $search->query));
-		}
+    $search->query_urlsafe = urlencode($search->query);
 
-		if(in_array('size:medium', $search->query_terms)) {
-			$search->size = 2;
-			$search->query = trim(str_ireplace('size:medium', '', $search->query));
-		}
-
-		if(in_array('size:large', $search->query_terms)) {
-			$search->size = 3;
-			$search->query = trim(str_ireplace('size:large', '', $search->query));
-		}
-
-		if(in_array('size:xlarge', $search->query_terms)) {
-			$search->size = 4;
-			$search->query = trim(str_ireplace('size:xlarge', '', $search->query));
-		}
-	}
-
-	// Maybe count stats?
+	// Count stats
 	if(!empty($search->query)) count_stats();
 
 	return $search;
@@ -158,63 +362,28 @@ function load_search() {
 /*--------------------------------------
 // Do some stats
 --------------------------------------*/
-function load_stats() {
-	$stats_file = ABSPATH.'cache/stats.data';
-
-	if(!is_file($stats_file)) {
-		// Create stats file if it doesn't exist
-	    $stats = array('started' => mktime(0, 0, 0, date('m'), date('d'), date('Y')), 'days_active' => 0, 'all_queries' => 0, 'avg_per_day' => 0);
-	    file_put_contents($stats_file, serialize($stats));
-	} else {
-		// Get stats
-		$stats = unserialize(file_get_contents($stats_file));
-	}
-
-	return $stats;
-}
-
 function count_stats() {
-	$stats = load_stats();
+	$stats = load_file('stats.data');
 
-	// Calculate average searches per day
-	$new_day = (mktime(0, 0, 0, date('m'), date('d'), date('Y')) - $stats['started']) / 86400;
-	if($new_day > $stats['days_active']) {
-		$stats['days_active'] = $stats['days_active'] + 1;
-		$stats['avg_per_day'] = $stats['all_queries'] / $stats['days_active'];
-	}
-
-	// Count query
-	$stats['all_queries'] = $stats['all_queries'] + 1;
-
-	// Save stats
-	$stats_file = ABSPATH.'cache/stats.data';
-    file_put_contents($stats_file, serialize($stats));
-}
-
-/*--------------------------------------
-// Show update notification in footer
---------------------------------------*/
-function show_update_notification() {
-	global $current_version;
-
-	$version_file = ABSPATH.'cache/version.data';
-
-	if(is_file($version_file)) {
-		// Get version information
-		$version = unserialize(file_get_contents($version_file));
-
-		// Check if a newer version is available and add it to the version display
-		if(version_compare($current_version, $version['latest'], '<')) {
-			return "<a href=\"".$version['url']."\" target=\"_blank\" class=\"update\">Version ".$version['latest']." is available!</a>";
+	if(!empty($stats)) {
+		// Calculate average searches per day
+		$new_day = (mktime(0, 0, 0, date('m'), date('d'), date('Y')) - $stats['started']) / 86400;
+		if($new_day > $stats['days_active']) {
+			$stats['days_active'] = $stats['days_active'] + 1;
+			$stats['avg_per_day'] = $stats['all_queries'] / $stats['days_active'];
 		}
+
+		// Count query
+		$stats['all_queries'] = $stats['all_queries'] + 1;
+
+		// Save stats
+	    update_file('stats.data', $stats);
 	}
 }
 
 /*--------------------------------------
 // Standardized cURL requests that support both POST and GET
-// For Box Office, Update checks and oAUTH
-// NOT (YET?) USED FOR ENGINE REQUESTS!!
-// NOT (YET?) USED FOR ENGINE REQUESTS!!
+// Used for Box Office and Update checks
 --------------------------------------*/
 function do_curl_request($url, $headers, $method, $post_fields) {
 	$ch = curl_init();
@@ -247,20 +416,15 @@ function do_curl_request($url, $headers, $method, $post_fields) {
 // Set a timeout if an engine is being mean to us
 --------------------------------------*/
 function set_timeout($engine, $http_code) {
-	$timeout_file = ABSPATH.'cache/timeout.data';
+	$timeouts = load_file('timeout.data');
 
-	if(is_file($timeout_file)) {
-		$timeouts = unserialize(file_get_contents($timeout_file));
-	} else {
-		$timeouts = array();
-	}
-
+	// 3600 seconds in an hour, 86400 in a day, 604800 for a week
 	if($http_code == 401 || $http_code == 403) {
 		// Unauthorized / banned
-		$timeout = 21600; // 6 hours
+		$timeout = 345600; // 4 days
 	} else if($http_code == 410) {
 		// Resource no longer available
-		$timeout = 3600; // 1 hour
+		$timeout = 86400; // 1 day
 	} else if($http_code == 429) {
 		// Too many requests
 		$timeout = 1800; // 30 minutes
@@ -274,7 +438,7 @@ function set_timeout($engine, $http_code) {
 
 	$timeouts[$engine] = time() + $timeout;
 
-	file_put_contents($timeout_file, serialize($timeouts));
+	update_file('timeout.data', $timeouts);
 }
 
 /*--------------------------------------
@@ -293,26 +457,23 @@ function has_timeout($engine) {
 }
 
 /*--------------------------------------
-// Load pages into a DOM
+// Get the basic domain.tld url
 --------------------------------------*/
-function get_xpath($response) {
-	if(!$response) return null;
+function get_base_url($url = '') {
+	global $opts;
 
-	$htmlDom = new DOMDocument;
-	@$htmlDom->loadHTML($response);
-	$xpath = new DOMXPath($htmlDom);
+	if(empty($url)) {
+		$url = $opts->siteurl;
 
-	return $xpath;
-}
+		// Figure out server protocol
+		$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';
+		$url = $protocol.'://'.$url;
+	} else {
+		$url = parse_url($url);
+		$url = $url['scheme'].'://'.$url['host'];
+	}
 
-/*--------------------------------------
-// Get Goosle's base url
---------------------------------------*/
-function get_base_url($siteurl) {
-	// Figure out server protocol
-	$protocol = empty($_SERVER['HTTPS']) ? 'http' : 'https';
-
-	return $protocol.'://'.$siteurl;
+	return $url;
 }
 
 /*--------------------------------------
@@ -327,109 +488,22 @@ function base64_url_decode($input) {
 }
 
 /*--------------------------------------
-// Result Caching
---------------------------------------*/
-function has_cached_results($cache_type, $hash, $url, $ttl) {
-	$ttl = intval($ttl * 3600); // Make it hours
-
-	if($cache_type == 'apcu') {
-		return apcu_exists($hash.':'.$url);
-	}
-
-	if($cache_type == 'file') {
-		$cache_file = ABSPATH.'cache/'.md5($hash.':'.$url).'.result';
-		if(is_file($cache_file)) {
-			if(filemtime($cache_file) >= (time() - $ttl)) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-function store_cached_results($cache_type, $hash, $url, $results, $ttl) {
-	$ttl = intval($ttl * 3600); // Make it hours
-
-	if($cache_type == 'apcu') {
-		apcu_store($hash.':'.$url, $results, $ttl);
-	}
-
-	if($cache_type == 'file') {
-		$cache_file = ABSPATH.'cache/'.md5($hash.':'.$url).'.result';
-		file_put_contents($cache_file, serialize($results));
-	}
-}
-
-function fetch_cached_results($cache_type, $hash, $url) {
-	if($cache_type == 'apcu') {
-		return apcu_fetch($hash.':'.$url);
-	}
-
-	if($cache_type == 'file') {
-		$cache_file = ABSPATH.'cache/'.md5($hash.':'.$url).'.result';
-		if(is_file($cache_file)) {
-			return unserialize(file_get_contents($cache_file));
-		}
-	}
-
-	return array();
-}
-
-function delete_cached_results($ttl) {
-	$ttl = intval($ttl * 3600); // Make it hours
-	$folder = ABSPATH.'cache/';
-
-	if(is_dir($folder)) {
-	    if($handle = opendir($folder)) {
-		    // Loop through all files
-	        while(($file = readdir($handle)) !== false) {
-		        // Skip some of them
-				$extension = pathinfo($file, PATHINFO_EXTENSION);
-
-				// Only delete cache files (*.result)
-				if($file == '.' OR $file == '..' OR $extension != 'result') continue;
-
-				// Delete if expired
-				if(filemtime($folder.$file) < (time() - $ttl)) {
-					unlink($folder.$file);
-				}
-	        }
-	        closedir($handle);
-	    }
-	}
-}
-
-/*--------------------------------------
-// Store generated tokens
---------------------------------------*/
-function oauth_store_token($token_file, $connect, $token) {
-	if(!is_file($token_file)){
-		// Create token file
-	    file_put_contents($token_file, serialize(array($connect => $token)));
-	} else {
-		// Update token file
-		$tokens = unserialize(file_get_contents($token_file));
-		$tokens[$connect] = $token;
-	    file_put_contents($token_file, serialize($tokens));
-	}
-}
-
-/*--------------------------------------
-// Log requests
---------------------------------------*/
-function querylog($engine, $type, $request_url, $scraped_results, $final_results) {
-	$log_file = ABSPATH.'cache/querylog_'.the_date('d_m_Y').'.log';
-    file_put_contents($log_file, '['.the_date('d-m-Y H:i:s').']['.$type.'] '.$engine.': '.$scraped_results.' -> '.$final_results.', '.$request_url."\n", FILE_APPEND);
-}
-
-/*--------------------------------------
 // Sanitize/format variables
 --------------------------------------*/
-function sanitize($variable) {
+function sanitize($variable, $keep_newlines = false) {
 	switch(gettype($variable)) {
 		case 'string':
-			$variable = htmlspecialchars(trim($variable), ENT_QUOTES);
+			if(str_contains($variable, '<')) {
+				$variable = preg_replace('/<(\s;)?br \/>/im', ' ', $variable);
+				$variable = strip_tags($variable);
+				$variable = str_replace("<\n", "&lt;\n", $variable);
+			}
+
+			if(!$keep_newlines) {
+				$variable = preg_replace('/[\r\n\t ]+/', ' ', $variable);
+			}
+
+			$variable = trim(preg_replace('/ {2,}/', ' ', $variable));
 		break;
 		case 'integer':
 			$variable = preg_replace('/[^0-9]/', '', $variable);
@@ -446,48 +520,46 @@ function sanitize($variable) {
     return $variable;
 }
 
-function strip_newlines($string) {
-	return preg_replace('/<br>|\n/', '', $string);
+// Clean up usernames and passwords
+function sanitize_credentials($variable) {
+	// Remove all tags/html
+	$variable = strip_tags($variable);
+	// Remove percent-encoded characters.
+	$variable = preg_replace('|%([a-fA-F0-9][a-fA-F0-9])|', '', $variable);
+	// Remove HTML entities
+	$variable = preg_replace('/&.+?;/', '', $variable);
+	// Remove all whitespace
+	$variable = preg_replace('|\s+|', '', $variable);
+	$variable = trim($variable);
+
+	return $variable;
 }
 
+// Used for result descriptions, saerch query length limitation
 function limit_string_length($string, $length = 200, $append = '&hellip;') {
 	$string = trim($string);
 
 	if(strlen($string) > $length) {
-		preg_match('/(.{' . $length . '}.*?)\b/', $string, $matches);
-		$string = rtrim($matches[1]) . $append;
+		$string = wordwrap($string, $length);
+		$string = explode("\n", $string);
+		$string = $string[0] . $append;
 	}
 
 	return $string;
 }
 
+// Used for special searches
 function make_terms_array_from_string($string) {
 	if(empty($string)) return array();
 
 	$string = strtolower($string);
 
 	// Replace anything but alphanumeric with a space
-	$string = preg_replace('/\s{2,}|[^a-z0-9]+/', ' ', $string);
+	$string = preg_replace('/\s+|[^a-z0-9]+/', ' ', $string);
+	// Filter unique terms with a comma as separator
 	$keywords = array_filter(array_unique(explode(' ', $string)));
 
     return $keywords;
-}
-
-/*--------------------------------------
-// Count matching keywords between result and search query
---------------------------------------*/
-function match_count($result_terms, $query_terms, $multiplier = 1) {
-	if(empty($result_terms)) return 0;
-
-	if(!is_array($result_terms)) {
-		$result_terms = make_terms_array_from_string($result_terms);
-	}
-
-	// Get matching keywords and apply multiplier
-	$matches = array_intersect($result_terms, $query_terms);
-	$matches = count($matches) * $multiplier;
-
-    return $matches;
 }
 
 /*--------------------------------------
@@ -512,119 +584,6 @@ function the_date($format, $timestamp = null) {
 	$datetime->setTimezone(new DateTimeZone(sprintf('%s%02d:%02d', $sign, $abs_hour, $abs_mins)));
 
 	return $datetime->format($format);
-}
-
-/*--------------------------------------
-// Detect social media results
---------------------------------------*/
-function detect_social_media($string) {
-	$string = strtolower($string);
-
-	// (Some) Based on regexes from https://github.com/lorey/social-media-profiles-regexs
-	$social_media = array(
-		'/(?:facebook|fb)\.com\/([A-z0-9_\-\.]+)\/?/',
-		'/(?:instagram\.com|instagr\.am)\/([A-Za-z0-9_])/',
-		'/twitter\.com\/@?([A-z0-9_]+)(\/status\/[0-9]+)?\/?/',
-		'/x\.com\/@?([A-z0-9_]+)(\/status\/[0-9]+)?\/?/',
-		'/reddit\.com\/(u|r)?(ser)?\/([A-z0-9\-\_]*)\/?/',
-		'/snapchat\.com\/add\/([A-z0-9\.\_\-]+)\/?/',
-		'/tiktok\.com\/((?:.*\b(?:(?:usr|v|embed|user|video)\/|\?shareId=|\&item_id=)(\d+))|\w+)/',
-		'/linkedin\.com\/(company|school)\/([A-z0-9-À-ÿ\.]+)\/?/',
-		'/linkedin\.com\/feed\/update\/urn:li:activity:([0-9]+)\/?/',
-		'/linkedin\.com\/in\/([\w\-\_À-ÿ%]+)\/?/',
-		'/youtube\.com\/c?(hannel)?\/([A-z0-9-\_]+)\/?/',
-		'/youtube\.com\/u?(ser)?\/([A-z0-9]+)\/?/',
-		'/youtube\.com\/(watch\?v=|embed\/|youtu\.be\/)([A-z0-9\-\_]+)/'
-	);
-
-	preg_replace($social_media, '*', $string, -1 , $count);
-
-    return ($count > 0) ? true : false;
-}
-
-/*--------------------------------------
-// Search suggestions
---------------------------------------*/
-function search_suggestion($search_type, $hash, $suggestions) {
-	// Remove duplicate suggestions
-	$suggestions = array_unique($suggestions);
-
-	if(count($suggestions) > 1) {
-		// List multiple suggestions and format them as usable links
-		foreach($suggestions as $key => $suggestion) {
-			$suggestions[$key] = "<a href=\"./results.php?q=".urlencode($suggestion)."&t=".$search_type."&a=".$hash."\">".$suggestion."</a>";
-
-			unset($key, $suggestion);
-		}
-
-		$result = "Did you mean ".implode(' or ', $suggestions)."?";
-	} else {
-		// Format the one suggestion
-		$result = "Did you mean <a href=\"./results.php?q=".urlencode($suggestions[0])."&t=".$search_type."&a=".$hash."\">".$suggestions[0]."</a>?";
-	}
-
-	unset($suggestions);
-
-	return $result;
-}
-
-/*--------------------------------------
-// Count and format search sources
---------------------------------------*/
-function search_sources($results) {
-	$sources = array();
-	foreach($results as $source => $amount) {
-		$plural = ($amount > 1) ? 'results' : 'result';
-		$sources[] = $amount.' '.$plural.' from '.$source;
-	}
-
-	$sources = replace_last_comma(implode(', ', $sources));
-	$sources = 'Includes '.$sources.'.';
-
-    return $sources;
-}
-
-/*--------------------------------------
-// Format search result urls
---------------------------------------*/
-function search_formatted_url($url) {
-	$url = parse_url(strtolower($url));
-
-	$formatted_url = $url['scheme'] . '://' . $url['host'];
-	if(array_key_exists('path', $url)) {
-		$formatted_url .= str_replace('/', ' &rsaquo; ', urldecode(str_replace('%20', ' ', rtrim($url['path'], '/'))));
-	}
-	if(array_key_exists('query', $url)) {
-		$formatted_url .= ' &rsaquo; '.urldecode(str_replace('&', ' &rsaquo; ', str_replace('=', ':', str_replace('%20', ' ', trim($url['query'])))));
-	}
-
-	return $formatted_url;
-}
-
-/*--------------------------------------
-// Results pagination
---------------------------------------*/
-function search_pagination($search, $opts, $number_of_results) {
-	$number_of_pages = ceil($number_of_results / $opts->search_results_per_page);
-
-	$pagination = "";
-
-	if($search->page > 1) {
-		$prev = $search->page - 1;
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$prev."\" title=\"Previous page\"><span class=\"arrow-left\"></span></a> ";
-	}
-
-	for($page = 1; $page <= $number_of_pages; $page++) {
-		$class = ($search->page == $page) ? "current" : "";
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$page."\" class=\"".$class."\" title=\"To page ".$page."\">".$page."</a> ";
-	}
-
-	if($search->page < $number_of_pages) {
-		$next = $search->page + 1;
-		$pagination .= "<a href=\"".get_base_url($opts->siteurl)."/results.php?q=".$search->query."&t=".$search->type."&a=".$opts->hash."&p=".$next."\" title=\"Next page\"><span class=\"arrow-right\"></span></a> ";
-	}
-
-    return $pagination;
 }
 
 /*--------------------------------------
@@ -682,9 +641,9 @@ function filesize_to_bytes($num) {
 }
 
 /*--------------------------------------
-// Generate random strings for passwords
+// Generate random strings for passwords, hashes, etc.
 --------------------------------------*/
-function string_generator($length, $separator) {
+function string_generator($length, $separator = '') {
     $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
     $password = array();
     $rand = strlen($characters) - 1;
@@ -693,10 +652,16 @@ function string_generator($length, $separator) {
         $n = rand(0, $rand);
         $password[] = $characters[$n];
     }
+
 	if(!empty($separator)) {
-	    array_splice($password, 6, 0, $separator);
-		array_splice($password, 13, 0, $separator);
-		array_splice($password, 20, 0, $separator);
+		$one = $length / 4;
+	    array_splice($password, $one, 0, $separator);
+	    $two = ($one * 2) + 1;
+		array_splice($password, $two, 0, $separator);
+		$three = ($one * 3) + 2;
+		array_splice($password, $three, 0, $separator);
+
+		unset($one, $two, $three);
 	}
 
     return implode($password);
